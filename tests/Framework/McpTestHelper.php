@@ -32,6 +32,7 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use PHPUnit\Framework\Assert;
 use Psr\Log\NullLogger;
 
@@ -43,15 +44,12 @@ final class McpTestHelper
     public static function buildServer(): Server
     {
         $factory = new McpServerFactory();
-        $tmpPath = StaticContainer::get('path.tmp');
-
-        if (!is_string($tmpPath)) {
-            throw new \RuntimeException('Temporary path is not configured.');
-        }
+        $sessionTtl = 3600;
+        $sessionStore = new DbSessionStore($sessionTtl);
 
         return $factory->createServer(
             new NullLogger(),
-            $tmpPath,
+            $sessionStore,
             StaticContainer::getContainer()
         );
     }

@@ -13,21 +13,24 @@ namespace Piwik\Plugins\McpServer;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Server;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\FileSessionStore;
 use Piwik\Plugin\Manager;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 final class McpServerFactory
 {
-    public function createServer(LoggerInterface $logger, string $tmpPath, ContainerInterface $container): Server
-    {
+    public function createServer(
+        LoggerInterface $logger,
+        SessionStoreInterface $sessionStore,
+        ContainerInterface $container
+    ): Server {
         $version = (string) Manager::getInstance()->getVersion('McpServer');
 
         return Server::builder()
             ->setServerInfo('Matomo MCP Server', $version)
             ->setLogger($logger)
-            ->setSession(new FileSessionStore($tmpPath . '/mcp_sessions'))
+            ->setSession($sessionStore)
             ->setContainer($container)
             ->setDiscovery(__DIR__, ['McpTools'])
             ->setCapabilities(new ServerCapabilities(

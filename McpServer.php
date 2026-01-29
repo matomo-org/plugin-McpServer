@@ -12,7 +12,17 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer;
 
 use Piwik\Plugin;
+use Piwik\Plugins\McpServer\Session\DbSessionTable;
 
 class McpServer extends Plugin
 {
+    public function install(): void
+    {
+        (new DbSessionTable())->install();
+    }
+
+    public function uninstall(): void
+    {
+        (new DbSessionTable())->uninstall();
+    }
 }

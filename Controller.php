@@ -19,6 +19,7 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Container\StaticContainer;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Session\DbSessionStore;
 
 class Controller extends \Piwik\Plugin\Controller
 {
@@ -35,15 +36,11 @@ class Controller extends \Piwik\Plugin\Controller
     protected function buildServer(): Server
     {
         $logger = StaticContainer::get(LoggerInterface::class);
-        $tmpPath = StaticContainer::get('path.tmp');
-
-        if (!is_string($tmpPath)) {
-            throw new \RuntimeException('Temporary path is not configured.');
-        }
+        $sessionStore = new DbSessionStore(DbSessionStore::resolveConfiguredTtl());
 
         return (new McpServerFactory())->createServer(
             $logger,
-            $tmpPath,
+            $sessionStore,
             StaticContainer::getContainer()
         );
     }
