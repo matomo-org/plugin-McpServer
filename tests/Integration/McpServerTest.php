@@ -22,11 +22,6 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class McpServerTest extends IntegrationTestCase
 {
-    public static function getPathToTestDirectory(): string
-    {
-        return __DIR__;
-    }
-
     public function testInitialize(): void
     {
         $server = McpTestHelper::buildServer();
@@ -67,20 +62,6 @@ class McpServerTest extends IntegrationTestCase
 
         self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
         self::assertSame('A valid session id is REQUIRED for non-initialize requests.', $message->message);
-    }
-
-    public function testCallTool(): void
-    {
-        $server = McpTestHelper::buildServer();
-        $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest('matomo_hello', [], 'call-1');
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertSame('call-1', $message->id);
-        self::assertNotEmpty($result->content);
     }
 
     public function testUnknownTool(): void

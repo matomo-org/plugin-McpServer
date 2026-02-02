@@ -30,22 +30,11 @@ class McpToolsContractTest extends IntegrationTestCase
         $message = McpTestHelper::decodeResponse($response);
         $result = McpTestHelper::parseListTools($message);
 
-        $toolNames = \array_map(static fn($tool) => $tool->name, $result->tools);
+        $toolNames = array_map(static fn($tool) => $tool->name, $result->tools);
 
-        self::assertContains('matomo_hello', $toolNames);
-    }
-
-    public function testHelloToolCallReturnsExpectedContent(): void
-    {
-        $server = McpTestHelper::buildServer();
-        $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest('matomo_hello', [], 'call-1');
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertSame(['hello' => 'Matomo'], $result->structuredContent);
+        // Intentionally assert only McpServer-owned tools.
+        // Other plugins may legitimately register additional tools.
+        // We verify presence, not exclusivity, to keep this test plugin-scoped.
+        self::assertContains('matomo_site_get', $toolNames);
     }
 }
