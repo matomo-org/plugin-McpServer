@@ -33,8 +33,11 @@ class SiteGet
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: idSite is known (from the user or " . SiteList::TOOL_NAME . ").\n"
-            . "Purpose: fetch authoritative details for exactly one Matomo site.",
+        description: "Use when: idSite is known"
+            . " (from the user, " . SiteList::TOOL_NAME . ", or " . SiteSearch::TOOL_NAME . ").\n"
+            . "Purpose: fetch authoritative details for exactly one Matomo site.\n"
+            . "Do not use: if you only have URL/domain/name—use"
+            . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.",
         outputSchema: [
             'type' => 'object',
             'properties' => [
