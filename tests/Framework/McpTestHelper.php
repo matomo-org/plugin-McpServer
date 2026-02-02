@@ -1,0 +1,253 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\tests\Framework;
+
+use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
+use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ClientCapabilities;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\InitializeRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListToolsRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\PingRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\InitializeResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListToolsResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
+use Matomo\Dependencies\McpServer\Mcp\Server;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
+use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
+use Piwik\Container\StaticContainer;
+use Piwik\Plugins\McpServer\McpServerFactory;
+use PHPUnit\Framework\Assert;
+use Psr\Log\NullLogger;
+
+/**
+ * @phpstan-import-type ToolData from Tool
+ */
+final class McpTestHelper
+{
+    public static function buildServer(): Server
+    {
+        $factory = new McpServerFactory();
+        $tmpPath = StaticContainer::get('path.tmp');
+
+        if (!is_string($tmpPath)) {
+            throw new \RuntimeException('Temporary path is not configured.');
+        }
+
+        return $factory->createServer(
+            new NullLogger(),
+            $tmpPath,
+            StaticContainer::getContainer()
+        );
+    }
+
+    /**
+     * @param array<string, mixed>|array<int, mixed>|string $payload
+     * @param array<string, string> $headers
+     */
+    public static function postJson(Server $server, array|string $payload, array $headers = []): ResponseInterface
+    {
+        return self::sendRequest($server, 'POST', $payload, $headers);
+    }
+
+    public static function initializeSession(Server $server): string
+    {
+        $payload = self::makeInitializeRequest('init-1');
+        $response = self::postJson($server, $payload);
+        self::decodeResponse($response);
+
+        $sessionId = $response->getHeaderLine('Mcp-Session-Id');
+        Assert::assertNotSame('', $sessionId, 'Expected Mcp-Session-Id header on initialize response.');
+
+        return $sessionId;
+    }
+
+    /**
+     * @param array<string, mixed>|array<int, mixed>|string $payload
+     * @param array<string, string> $headers
+     */
+    public static function sendRequest(
+        Server $server,
+        string $method,
+        array|string $payload = '',
+        array $headers = []
+    ): ResponseInterface {
+        $factory = new Psr17Factory();
+        $request = $factory->createServerRequest($method, 'https://example.test/mcp');
+
+        if ($payload !== '') {
+            $json = \is_array($payload) ? \json_encode($payload, \JSON_THROW_ON_ERROR) : $payload;
+            $request = $request->withBody($factory->createStream($json));
+            $request = $request->withHeader('Content-Type', 'application/json');
+        }
+
+        foreach ($headers as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        $transport = new StreamableHttpTransport($request);
+
+        return $server->run($transport);
+    }
+
+    public static function decodeMessage(ResponseInterface $response): MessageInterface
+    {
+        $body = self::readBody($response);
+        $messages = MessageFactory::make()->create($body);
+        Assert::assertCount(1, $messages, 'Expected a single MCP response message.');
+        Assert::assertNotInstanceOf(\Throwable::class, $messages[0], 'Expected a valid MCP message.');
+
+        return $messages[0];
+    }
+
+    public static function getResponseBody(ResponseInterface $response): string
+    {
+        return self::readBody($response);
+    }
+
+    /**
+     * @return Response<array<string, mixed>>
+     */
+    public static function decodeResponse(ResponseInterface $response): Response
+    {
+        $message = self::decodeMessage($response);
+        Assert::assertInstanceOf(Response::class, $message, 'Expected MCP response message.');
+        Assert::assertIsArray($message->result, 'Expected MCP response result to be an array.');
+
+        /** @var Response<array<string, mixed>> $message */
+        return $message;
+    }
+
+    public static function decodeError(ResponseInterface $response): Error
+    {
+        $message = self::decodeMessage($response);
+        Assert::assertInstanceOf(Error::class, $message, 'Expected MCP error message.');
+
+        return $message;
+    }
+
+    /**
+     * @param Response<array<string, mixed>> $response
+     */
+    public static function parseInitialize(Response $response): InitializeResult
+    {
+        Assert::assertIsArray($response->result, 'Expected initialize response result to be an array.');
+
+        /**
+         * @var array{
+         *     protocolVersion: string,
+         *     capabilities: array<string, mixed>,
+         *     serverInfo: array<string, mixed>,
+         *     instructions?: string,
+         *     _meta?: array<string, mixed>,
+         * } $result
+         */
+        $result = $response->result;
+
+        return InitializeResult::fromArray($result);
+    }
+
+    /**
+     * @param Response<array<string, mixed>> $response
+     */
+    public static function parseListTools(Response $response): ListToolsResult
+    {
+        Assert::assertIsArray($response->result, 'Expected list tools response result to be an array.');
+
+        /**
+         * @var array{
+         *     tools: array<ToolData>,
+         *     nextCursor?: string
+         * } $result
+         */
+        $result = $response->result;
+
+        return ListToolsResult::fromArray($result);
+    }
+
+    /**
+     * @param Response<array<string, mixed>> $response
+     */
+    public static function parseCallTool(Response $response): CallToolResult
+    {
+        Assert::assertIsArray($response->result, 'Expected call tool response result to be an array.');
+
+        /**
+         * @var array{
+         *     content: array<mixed>,
+         *     isError?: bool,
+         *     _meta?: array<string, mixed>,
+         *     structuredContent?: array<string, mixed>
+         * } $result
+         */
+        $result = $response->result;
+
+        return CallToolResult::fromArray($result);
+    }
+
+    public static function makeInitializeRequest(string|int $id = '1'): string
+    {
+        $request = new InitializeRequest(
+            MessageInterface::PROTOCOL_VERSION->value,
+            new ClientCapabilities(),
+            new Implementation('test-client', '1.0.0')
+        );
+
+        return self::encodeRequest($request, $id);
+    }
+
+    public static function makeListToolsRequest(string|int $id = '1'): string
+    {
+        $request = new ListToolsRequest();
+
+        return self::encodeRequest($request, $id);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    public static function makeCallToolRequest(string $name, array $arguments = [], string|int $id = '1'): string
+    {
+        $request = new CallToolRequest($name, $arguments);
+
+        return self::encodeRequest($request, $id);
+    }
+
+    public static function makePingRequest(string|int $id = '1'): string
+    {
+        $request = new PingRequest();
+
+        return self::encodeRequest($request, $id);
+    }
+
+    private static function encodeRequest(Request $request, string|int $id): string
+    {
+        return \json_encode($request->withId($id), \JSON_THROW_ON_ERROR);
+    }
+
+    private static function readBody(ResponseInterface $response): string
+    {
+        $body = $response->getBody();
+
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
+
+        return $body->getContents();
+    }
+}

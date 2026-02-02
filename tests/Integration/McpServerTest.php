@@ -1,0 +1,123 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\tests\Integration;
+
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
+use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
+
+/**
+ * @group McpServer
+ * @group Plugins
+ */
+class McpServerTest extends IntegrationTestCase
+{
+    public static function getPathToTestDirectory(): string
+    {
+        return __DIR__;
+    }
+
+    public function testInitialize(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $payload = McpTestHelper::makeInitializeRequest('init-1');
+
+        $response = McpTestHelper::postJson($server, $payload);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseInitialize($message);
+        $pluginVersion = (string) Manager::getInstance()->getVersion('McpServer');
+
+        self::assertSame('init-1', $message->id);
+        self::assertNotSame('', $result->protocolVersion);
+        self::assertNotSame('', $result->serverInfo->name);
+        self::assertSame($pluginVersion, $result->serverInfo->version);
+    }
+
+    public function testToolsList(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeListToolsRequest('list-1');
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseListTools($message);
+
+        self::assertSame('list-1', $message->id);
+        self::assertNotEmpty($result->tools);
+    }
+
+    public function testMissingSessionId(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $payload = McpTestHelper::makeListToolsRequest('list-1');
+
+        $response = McpTestHelper::postJson($server, $payload);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame('A valid session id is REQUIRED for non-initialize requests.', $message->message);
+    }
+
+    public function testCallTool(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest('matomo_hello', [], 'call-1');
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseCallTool($message);
+
+        self::assertSame('call-1', $message->id);
+        self::assertNotEmpty($result->content);
+    }
+
+    public function testUnknownTool(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-1');
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame('Tool not found: "missing_tool".', $message->message);
+    }
+
+    public function testInvalidJson(): void
+    {
+        $server = McpTestHelper::buildServer();
+
+        $response = McpTestHelper::postJson($server, '{invalid-json');
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::PARSE_ERROR, $message->code);
+        self::assertSame('Syntax error', $message->message);
+    }
+
+    public function testInitializeBatch(): void
+    {
+        $server = McpTestHelper::buildServer();
+
+        $initialize = \json_decode(McpTestHelper::makeInitializeRequest('init-1'), true, 512, \JSON_THROW_ON_ERROR);
+        $ping = \json_decode(McpTestHelper::makePingRequest('ping-1'), true, 512, \JSON_THROW_ON_ERROR);
+
+        $response = McpTestHelper::postJson($server, \json_encode([$initialize, $ping], \JSON_THROW_ON_ERROR));
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame('The "initialize" request MUST NOT be part of a batch.', $message->message);
+    }
+}

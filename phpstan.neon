@@ -1,0 +1,17 @@
+parameters:
+    level: max
+    phpVersion: 80100
+    tmpDir: /tmp/phpstan/McpServer/main
+
+    paths:
+        - .
+    excludePaths:
+        - scoper.inc.php
+        - vendor/*
+
+    bootstrapFiles:
+        - bootstrap-phpstan.php
+        - ../../bootstrap-phpstan.php
+
+    universalObjectCratesClasses:
+        - Piwik\Config
