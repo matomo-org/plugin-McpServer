@@ -19,14 +19,30 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Container\StaticContainer;
 use Piwik\Log\LoggerInterface;
+use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
+use Piwik\Piwik;
 
 class Controller extends \Piwik\Plugin\Controller
 {
     public function mcp(): void
     {
-        $server = $this->buildServer();
         $request = $this->createRequestFromGlobals();
+
+        // Accept any authentication method that Matomo accepts.
+        // We intentionally do not enforce header-only auth here yet.
+        // When auth fails, we still provide a Bearer challenge as client guidance.
+        try {
+            Piwik::checkUserHasSomeViewAccess();
+        } catch (NoAccessException $e) {
+            $response = (new Psr17Factory())
+                ->createResponse(401)
+                ->withHeader('WWW-Authenticate', 'Bearer realm="mcp"');
+            $this->emit($response);
+            return;
+        }
+
+        $server = $this->buildServer();
         $transport = new StreamableHttpTransport($request);
 
         $result = $server->run($transport);

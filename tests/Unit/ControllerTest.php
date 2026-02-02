@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
+use Piwik\Access;
 use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
@@ -26,11 +27,28 @@ class ControllerTest extends TestCase
 {
     public function testMcpEmitsResponseForInitialize(): void
     {
-        $factory = new Psr17Factory();
-        $request = $factory
-            ->createServerRequest('POST', 'https://example.test/mcp')
-            ->withHeader('Content-Type', 'application/json')
-            ->withBody($factory->createStream(McpTestHelper::makeInitializeRequest('init-1')));
+        try {
+            Access::getInstance()->setSuperUserAccess(true);
+
+            $request = $this->createRequest();
+
+            $controller = new TestController();
+            $controller->setRequest($request);
+            $controller->mcp();
+
+            $response = $controller->getCapturedResponse();
+            self::assertInstanceOf(ResponseInterface::class, $response);
+            self::assertSame(200, $response->getStatusCode());
+
+            McpTestHelper::decodeResponse($response);
+        } finally {
+            Access::getInstance()->setSuperUserAccess(false);
+        }
+    }
+
+    public function testMcpRejectsUnauthenticatedRequestAndSendsBearerChallengeHint(): void
+    {
+        $request = $this->createRequest();
 
         $controller = new TestController();
         $controller->setRequest($request);
@@ -38,9 +56,22 @@ class ControllerTest extends TestCase
 
         $response = $controller->getCapturedResponse();
         self::assertInstanceOf(ResponseInterface::class, $response);
-        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(401, $response->getStatusCode());
 
-        McpTestHelper::decodeResponse($response);
+        // This challenge advertises preferred header auth, but auth is not header-only yet.
+        self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
+        self::assertSame('', (string) $response->getBody());
+    }
+
+    private function createRequest(): ServerRequestInterface
+    {
+        $factory = new Psr17Factory();
+        $body = $factory->createStream(McpTestHelper::makeInitializeRequest('init-1'));
+
+        return $factory
+            ->createServerRequest('POST', 'https://example.test/mcp')
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody($body);
     }
 }
 
