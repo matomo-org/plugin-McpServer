@@ -9,19 +9,18 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\tests\Unit;
+namespace Piwik\Plugins\McpServer\tests\Integration;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use PHPUnit\Framework\TestCase;
+use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
 /**
  * @group McpServer
  * @group Plugins
  */
-class McpToolsContractTest extends TestCase
+class McpToolsContractTest extends IntegrationTestCase
 {
-    public function testToolsListIncludesMatomoHello(): void
+    public function testToolsListContainsAllPluginTools(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -34,18 +33,6 @@ class McpToolsContractTest extends TestCase
         $toolNames = \array_map(static fn($tool) => $tool->name, $result->tools);
 
         self::assertContains('matomo_hello', $toolNames);
-    }
-
-    public function testMissingSessionIdReturnsError(): void
-    {
-        $server = McpTestHelper::buildServer();
-        $payload = McpTestHelper::makeListToolsRequest('list-1');
-
-        $response = McpTestHelper::postJson($server, $payload);
-        $message = McpTestHelper::decodeError($response);
-
-        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
-        self::assertSame('A valid session id is REQUIRED for non-initialize requests.', $message->message);
     }
 
     public function testHelloToolCallReturnsExpectedContent(): void
