@@ -36,5 +36,6 @@ class McpToolsContractTest extends IntegrationTestCase
         // Other plugins may legitimately register additional tools.
         // We verify presence, not exclusivity, to keep this test plugin-scoped.
         self::assertContains('matomo_site_get', $toolNames);
+        self::assertContains('matomo_site_list', $toolNames);
     }
 }

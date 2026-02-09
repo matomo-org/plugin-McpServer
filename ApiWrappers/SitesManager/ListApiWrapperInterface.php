@@ -11,7 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
 
-interface ApiWrapperInterface
+interface ListApiWrapperInterface
 {
-    public function getSiteRecordFromId(int $idSite): SiteRecord;
+    /**
+     * @return array<int, SiteSummaryRecord>
+     */
+    public function getSitesWithViewAccess(): array;
 }

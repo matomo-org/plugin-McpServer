@@ -12,18 +12,18 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\ApiWrappers\SitesManager;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ApiWrapper;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer
  * @group Plugins
  */
-class ApiWrapperTest extends TestCase
+class GetApiWrapperTest extends TestCase
 {
     public function testNormalizeSiteDataThrowsWhenFieldIsMissing(): void
     {
-        $wrapper = new ApiWrapper();
+        $wrapper = new GetApiWrapper();
         $data = $this->makeValidSiteData();
         unset($data['currency_name']);
 
@@ -35,7 +35,7 @@ class ApiWrapperTest extends TestCase
 
     public function testNormalizeSiteDataThrowsWhenFieldIsNull(): void
     {
-        $wrapper = new ApiWrapper();
+        $wrapper = new GetApiWrapper();
         $data = $this->makeValidSiteData();
         $data['timezone_name'] = null;
 
@@ -47,7 +47,7 @@ class ApiWrapperTest extends TestCase
 
     public function testNormalizeSiteDataReturnsExpectedTypedOutput(): void
     {
-        $wrapper = new ApiWrapper();
+        $wrapper = new GetApiWrapper();
         $data = $this->makeValidSiteData();
 
         $site = $wrapper->normalizeSiteData($data);

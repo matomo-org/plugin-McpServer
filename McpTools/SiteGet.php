@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ApiWrapper;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ApiWrapperInterface;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteRecord;
 
 /**
@@ -24,7 +24,7 @@ class SiteGet
 {
     public const TOOL_NAME = 'matomo_site_get';
 
-    public function __construct(private ?ApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?GetApiWrapperInterface $apiWrapper = null)
     {
     }
 
@@ -33,7 +33,7 @@ class SiteGet
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: idSite is known.\n"
+        description: "Use when: idSite is known (from the user or " . SiteList::TOOL_NAME . ").\n"
             . "Purpose: fetch authoritative details for exactly one Matomo site.",
         outputSchema: [
             'type' => 'object',
@@ -78,14 +78,14 @@ class SiteGet
     )]
     public function get(int $idSite): array
     {
-        // See SitesManager\ApiWrapper for normalization contract and intentional
+        // See SitesManager\GetApiWrapper for normalization contract and intentional
         // not-found/access-denied message collapsing behavior.
         $site = $this->getApiWrapper()->getSiteRecordFromId($idSite);
         return $site->toArray();
     }
 
-    private function getApiWrapper(): ApiWrapperInterface
+    private function getApiWrapper(): GetApiWrapperInterface
     {
-        return $this->apiWrapper ??= new ApiWrapper();
+        return $this->apiWrapper ??= new GetApiWrapper();
     }
 }

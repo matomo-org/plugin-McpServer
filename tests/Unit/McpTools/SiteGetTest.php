@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ApiWrapperInterface;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +25,7 @@ class SiteGetTest extends TestCase
 {
     public function testGetReturnsRecordFromApiWrapper(): void
     {
-        $wrapper = new class () implements ApiWrapperInterface {
+        $wrapper = new class () implements GetApiWrapperInterface {
             public function getSiteRecordFromId(int $idSite): SiteRecord
             {
                 return new SiteRecord(
@@ -61,7 +61,7 @@ class SiteGetTest extends TestCase
 
     public function testGetPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements ApiWrapperInterface {
+        $wrapper = new class () implements GetApiWrapperInterface {
             public function getSiteRecordFromId(int $idSite): SiteRecord
             {
                 throw new ToolCallException("Site data is incomplete (missing 'currency_name').");

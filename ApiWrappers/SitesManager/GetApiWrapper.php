@@ -17,7 +17,7 @@ use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 
-final class ApiWrapper implements ApiWrapperInterface
+final class GetApiWrapper implements GetApiWrapperInterface
 {
     public function getSiteRecordFromId(int $idSite): SiteRecord
     {
