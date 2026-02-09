@@ -21,10 +21,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  AiChecklist:
+  ai_checklist:
+    name: AI Checklist
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
+
     steps:
       - name: Run tests
         uses: matomo-org/github-action-checklist-gate@main
