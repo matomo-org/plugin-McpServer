@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\ApiWrappers\SitesManager;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
+use LogicException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
 
 /**
  * @group McpServer
@@ -21,55 +23,30 @@ use PHPUnit\Framework\TestCase;
  */
 class ListApiWrapperTest extends TestCase
 {
-    public function testNormalizeSiteSummaryDataThrowsWhenFieldIsMissing(): void
+    public function testGetSitesWithViewAccessDelegatesToSummaryQueryService(): void
     {
-        $wrapper = new ListApiWrapper();
-        $data = $this->makeValidSiteSummaryData();
-        unset($data['main_url']);
-
-        $this->expectException(ToolCallException::class);
-        $this->expectExceptionMessage("Site list item is incomplete (missing 'main_url').");
-
-        $wrapper->normalizeSiteSummaryData($data);
-    }
-
-    public function testNormalizeSiteSummaryDataThrowsWhenFieldIsNull(): void
-    {
-        $wrapper = new ListApiWrapper();
-        $data = $this->makeValidSiteSummaryData();
-        $data['type'] = null;
-
-        $this->expectException(ToolCallException::class);
-        $this->expectExceptionMessage("Site list item is incomplete (missing 'type').");
-
-        $wrapper->normalizeSiteSummaryData($data);
-    }
-
-    public function testNormalizeSiteSummaryDataReturnsExpectedTypedOutput(): void
-    {
-        $wrapper = new ListApiWrapper();
-        $data = $this->makeValidSiteSummaryData();
-
-        $site = $wrapper->normalizeSiteSummaryData($data);
-
-        self::assertSame([
-            'idsite' => 3,
-            'name' => 'Site Name',
-            'main_url' => 'https://example.test',
-            'type' => 'website',
-        ], $site->toArray());
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function makeValidSiteSummaryData(): array
-    {
-        return [
-            'idsite' => '3',
-            'name' => 'Site Name',
-            'main_url' => 'https://example.test',
-            'type' => 'website',
+        $expected = [
+            new SiteSummaryRecord(3, 'Site Name', 'https://example.test', 'website'),
         ];
+
+        $queryService = new class ($expected) implements SiteSummaryQueryServiceInterface {
+            /** @param array<int, SiteSummaryRecord> $records */
+            public function __construct(private array $records)
+            {
+            }
+
+            public function getSiteSummariesForList(): array
+            {
+                return $this->records;
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
+            {
+                throw new LogicException('Not used in this test.');
+            }
+        };
+
+        $wrapper = new ListApiWrapper($queryService);
+        self::assertSame($expected, $wrapper->getSitesWithViewAccess());
     }
 }
