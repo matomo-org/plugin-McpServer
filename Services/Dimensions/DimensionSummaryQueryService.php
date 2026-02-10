@@ -1,0 +1,101 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\Services\Dimensions;
+
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\NoAccessException;
+use Piwik\Plugin\Manager;
+use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
+use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
+use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+
+final class DimensionSummaryQueryService implements DimensionSummaryQueryServiceInterface
+{
+    /**
+     * @return array<int, DimensionSummaryRecord>
+     */
+    public function getDimensionSummariesForSite(int $idSite): array
+    {
+        if (!Manager::getInstance()->isPluginActivated('CustomDimensions')) {
+            throw new ToolCallException('CustomDimensions plugin is not available.');
+        }
+
+        try {
+            $dimensions = CustomDimensionsApi::getInstance()->getConfiguredCustomDimensions($idSite);
+        } catch (NoAccessException $e) {
+            // Keep list behavior aligned with site/segment/goal list: no view access yields no rows.
+            return [];
+        } catch (\Throwable $e) {
+            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
+                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+                return [];
+            }
+
+            throw new ToolCallException('Dimension retrieval failed.');
+        }
+
+        return $this->normalizeDimensionSummaryRows(
+            $dimensions,
+            'Dimension list data is invalid.',
+            'Dimension list item'
+        );
+    }
+
+    /**
+     * Public for testability and to share normalization contract across MCP tools.
+     *
+     * @param array<string, mixed> $dimension
+     */
+    public function normalizeDimensionSummaryData(array $dimension, string $context): DimensionSummaryRecord
+    {
+        return new DimensionSummaryRecord(
+            idDimension: ToolDataNormalizer::requireIntLikeField($dimension, 'idcustomdimension', $context),
+            name: ToolDataNormalizer::requireStringField($dimension, 'name', $context),
+            scope: ToolDataNormalizer::requireStringField($dimension, 'scope', $context),
+        );
+    }
+
+    /**
+     * Public for testability and to keep top-level payload-shape validation centralized.
+     *
+     * @param mixed $dimensions
+     * @return array<int, DimensionSummaryRecord>
+     */
+    public function normalizeDimensionSummaryRows(
+        mixed $dimensions,
+        string $invalidDataMessage,
+        string $context
+    ): array {
+        if (!is_array($dimensions)) {
+            throw new ToolCallException($invalidDataMessage);
+        }
+
+        $result = [];
+        foreach ($dimensions as $dimension) {
+            if (!is_array($dimension)) {
+                throw new ToolCallException($invalidDataMessage);
+            }
+
+            $isActive = ToolDataNormalizer::requireBoolLikeField($dimension, 'active', $context);
+            if (!$isActive) {
+                continue;
+            }
+
+            $normalized = $this->normalizeDimensionSummaryData($dimension, $context);
+            $result[] = $normalized;
+        }
+
+        return $result;
+    }
+}
