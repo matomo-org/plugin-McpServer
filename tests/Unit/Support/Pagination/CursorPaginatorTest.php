@@ -163,6 +163,101 @@ class CursorPaginatorTest extends TestCase
         );
     }
 
+    public function testAcceptsCursorWhenContextMatches(): void
+    {
+        $paginator = new CursorPaginator();
+        $config = $this->buildNameConfig();
+        $items = [
+            ['idsite' => 1, 'name' => 'Alpha'],
+            ['idsite' => 2, 'name' => 'Beta'],
+            ['idsite' => 3, 'name' => 'Gamma'],
+        ];
+
+        $firstPage = $paginator->paginate(
+            $items,
+            new PageRequest(limit: 2, sortToken: 'name_asc', cursorContext: 'search:a'),
+            $config
+        );
+        self::assertIsString($firstPage->nextCursor);
+
+        $secondPage = $paginator->paginate(
+            $items,
+            new PageRequest(
+                limit: 2,
+                sortToken: 'name_asc',
+                cursor: $firstPage->nextCursor,
+                cursorContext: 'search:a'
+            ),
+            $config
+        );
+
+        self::assertSame([
+            ['idsite' => 3, 'name' => 'Gamma'],
+        ], $secondPage->items);
+    }
+
+    public function testRejectsCursorWhenContextMismatches(): void
+    {
+        $paginator = new CursorPaginator();
+        $config = $this->buildNameConfig();
+        $items = [
+            ['idsite' => 1, 'name' => 'Alpha'],
+            ['idsite' => 2, 'name' => 'Beta'],
+        ];
+
+        $firstPage = $paginator->paginate(
+            $items,
+            new PageRequest(limit: 1, sortToken: 'name_asc', cursorContext: 'search:a'),
+            $config
+        );
+        self::assertIsString($firstPage->nextCursor);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+
+        $paginator->paginate(
+            $items,
+            new PageRequest(
+                limit: 1,
+                sortToken: 'name_asc',
+                cursor: $firstPage->nextCursor,
+                cursorContext: 'search:b'
+            ),
+            $config
+        );
+    }
+
+    public function testRejectsLegacyCursorWhenContextIsRequired(): void
+    {
+        $paginator = new CursorPaginator();
+        $config = $this->buildNameConfig();
+        $items = [
+            ['idsite' => 1, 'name' => 'Alpha'],
+            ['idsite' => 2, 'name' => 'Beta'],
+        ];
+
+        $legacyPage = $paginator->paginate(
+            $items,
+            new PageRequest(limit: 1, sortToken: 'name_asc'),
+            $config
+        );
+        self::assertIsString($legacyPage->nextCursor);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+
+        $paginator->paginate(
+            $items,
+            new PageRequest(
+                limit: 1,
+                sortToken: 'name_asc',
+                cursor: $legacyPage->nextCursor,
+                cursorContext: 'search:a'
+            ),
+            $config
+        );
+    }
+
     public function testRejectsMissingRequiredFieldInRow(): void
     {
         $this->expectException(ToolCallException::class);

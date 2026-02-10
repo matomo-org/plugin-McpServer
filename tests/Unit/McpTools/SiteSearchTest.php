@@ -100,4 +100,27 @@ class SiteSearchTest extends TestCase
 
         $tool->search('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
+
+    public function testSearchRejectsCursorSearchMismatch(): void
+    {
+        $wrapper = new class () implements SearchApiWrapperInterface {
+            public function searchSitesWithViewAccess(string $search): array
+            {
+                return [
+                    new SiteSummaryRecord(1, 'Site A', 'https://a.test', 'website'),
+                    new SiteSummaryRecord(2, 'Site B', 'https://b.test', 'website'),
+                ];
+            }
+        };
+
+        $tool = new SiteSearch($wrapper);
+        $page = $tool->search('alpha', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $cursor = $page['next_cursor'] ?? null;
+        self::assertIsString($cursor);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+
+        $tool->search('beta', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+    }
 }

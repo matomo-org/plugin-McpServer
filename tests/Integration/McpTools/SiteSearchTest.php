@@ -395,6 +395,40 @@ class SiteSearchTest extends IntegrationTestCase
         self::assertSame('Invalid cursor.', $result->content[0]->text ?? null);
     }
 
+    public function testRejectsCursorSearchMismatch(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest(
+            SiteSearch::TOOL_NAME,
+            ['search' => 'Test Site', 'limit' => 1, 'sort' => SitesPagination::SORT_NAME_ASC],
+            __METHOD__ . '#1'
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseCallTool($message);
+
+        self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
+        $nextCursor = $result->structuredContent['next_cursor'] ?? null;
+        self::assertIsString($nextCursor);
+
+        $payload = McpTestHelper::makeCallToolRequest(
+            SiteSearch::TOOL_NAME,
+            ['search' => 'Alpha', 'cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
+            __METHOD__ . '#2'
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseCallTool($message);
+
+        self::assertTrue($result->isError);
+        self::assertSame('Invalid cursor.', $result->content[0]->text ?? null);
+    }
+
     public function testReturnsEmptyListForUserWithoutViewAccess(): void
     {
         McpAuthTestHelper::asNoAccessUser(function (): void {

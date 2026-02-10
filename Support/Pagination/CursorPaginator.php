@@ -43,7 +43,7 @@ final class CursorPaginator
         usort($rows, fn(array $left, array $right): int => $this->compareRows($left, $right, $sortSpec));
 
         if ($request->cursor !== null) {
-            $boundary = $this->decodeCursor($request->cursor, $sortSpec);
+            $boundary = $this->decodeCursor($request->cursor, $sortSpec, $request->cursorContext);
             $rows = $this->filterRowsAfterBoundary($rows, $sortSpec, $boundary);
         }
 
@@ -54,7 +54,7 @@ final class CursorPaginator
         $nextCursor = null;
 
         if ($hasMore && $rows !== []) {
-            $nextCursor = $this->encodeCursor($sortSpec, $rows[count($rows) - 1]);
+            $nextCursor = $this->encodeCursor($sortSpec, $rows[count($rows) - 1], $request->cursorContext);
         }
 
         return new PageResult($rows, $nextCursor, $hasMore);
@@ -63,7 +63,7 @@ final class CursorPaginator
     /**
      * @param array<string, mixed> $row
      */
-    private function encodeCursor(SortSpec $sortSpec, array $row): string
+    private function encodeCursor(SortSpec $sortSpec, array $row, ?string $cursorContext): string
     {
         $last = [];
         foreach ($sortSpec->keyChain() as $keySpec) {
@@ -75,6 +75,9 @@ final class CursorPaginator
             'sort' => $sortSpec->token,
             'last' => $last,
         ];
+        if ($cursorContext !== null) {
+            $payload['ctx'] = $cursorContext;
+        }
 
         $json = json_encode($payload, JSON_THROW_ON_ERROR);
         return base64_encode($json);
@@ -83,7 +86,7 @@ final class CursorPaginator
     /**
      * @return array<string, int|string>
      */
-    private function decodeCursor(string $cursor, SortSpec $sortSpec): array
+    private function decodeCursor(string $cursor, SortSpec $sortSpec, ?string $cursorContext): array
     {
         $decoded = base64_decode($cursor, true);
         if ($decoded === false) {
@@ -102,6 +105,12 @@ final class CursorPaginator
         }
         if (!isset($payload['last']) || !is_array($payload['last'])) {
             throw new ToolCallException('Invalid cursor.');
+        }
+        if ($cursorContext !== null) {
+            $context = $payload['ctx'] ?? null;
+            if (!is_string($context) || $context !== $cursorContext) {
+                throw new ToolCallException('Invalid cursor.');
+            }
         }
 
         $last = [];

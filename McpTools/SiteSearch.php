@@ -114,6 +114,7 @@ class SiteSearch
         }
 
         $sort = $sort ?? SitesPagination::SORT_NAME_ASC;
+        $cursorContext = hash('sha256', $search);
         /** @var list<SiteSummaryArray> $resultSites */
         $resultSites = array_map(
             static fn(SiteSummaryRecord $site): array => $site->toArray(),
@@ -122,7 +123,7 @@ class SiteSearch
 
         $page = $this->getPaginator()->paginate(
             $resultSites,
-            new PageRequest($limit, $sort, $cursor),
+            new PageRequest($limit, $sort, $cursor, $cursorContext),
             $this->getPaginationConfig()
         );
 
