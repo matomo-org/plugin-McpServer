@@ -17,10 +17,9 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
-use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
-use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
 
 /**
  * @phpstan-import-type SiteSummaryArray from SiteSummaryRecord
@@ -29,8 +28,10 @@ class SiteSearch
 {
     public const TOOL_NAME = 'matomo_site_search';
 
-    public function __construct(private ?SearchApiWrapperInterface $apiWrapper = null)
-    {
+    public function __construct(
+        private ?SearchApiWrapperInterface $apiWrapper = null,
+        private ?SiteSummaryPaginationResponder $paginationResponder = null
+    ) {
     }
 
     /**
@@ -46,29 +47,7 @@ class SiteSearch
             . "Purpose: find matching Matomo sites and return candidate idSite values.\n"
             . "Notes: may return multiple matches; results are ordered by sort (default name_asc).\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.",
-        outputSchema: [
-            'type' => 'object',
-            'properties' => [
-                'sites' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'idsite' => ['type' => 'integer'],
-                            'name' => ['type' => 'string'],
-                            'main_url' => ['type' => 'string'],
-                            'type' => ['type' => 'string'],
-                        ],
-                        'required' => ['idsite', 'name', 'main_url', 'type'],
-                        'additionalProperties' => false,
-                    ],
-                ],
-                'next_cursor' => ['type' => ['string', 'null']],
-                'has_more' => ['type' => 'boolean'],
-            ],
-            'required' => ['sites', 'next_cursor', 'has_more'],
-            'additionalProperties' => false,
-        ]
+        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(
         type: 'object',
@@ -113,25 +92,14 @@ class SiteSearch
             throw new ToolCallException("Parameter 'search' missing or invalid.");
         }
 
-        $sort = $sort ?? SitesPagination::SORT_NAME_ASC;
         $cursorContext = hash('sha256', $search);
-        /** @var list<SiteSummaryArray> $resultSites */
-        $resultSites = array_map(
-            static fn(SiteSummaryRecord $site): array => $site->toArray(),
-            $this->getApiWrapper()->searchSitesWithViewAccess($search)
+        return $this->getPaginationResponder()->paginateSiteSummaryRecords(
+            $this->getApiWrapper()->searchSitesWithViewAccess($search),
+            $limit,
+            $cursor,
+            $sort,
+            $cursorContext
         );
-
-        $page = $this->getPaginator()->paginate(
-            $resultSites,
-            new PageRequest($limit, $sort, $cursor, $cursorContext),
-            $this->getPaginationConfig()
-        );
-
-        return [
-            'sites' => $page->items,
-            'next_cursor' => $page->nextCursor,
-            'has_more' => $page->hasMore,
-        ];
     }
 
     private function getApiWrapper(): SearchApiWrapperInterface
@@ -139,13 +107,8 @@ class SiteSearch
         return $this->apiWrapper ??= new SearchApiWrapper();
     }
 
-    private function getPaginator(): CursorPaginator
+    private function getPaginationResponder(): SiteSummaryPaginationResponder
     {
-        return new CursorPaginator();
-    }
-
-    private function getPaginationConfig(): PaginationConfig
-    {
-        return SitesPagination::createConfig();
+        return $this->paginationResponder ??= new SiteSummaryPaginationResponder();
     }
 }

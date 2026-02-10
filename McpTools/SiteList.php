@@ -16,10 +16,9 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
-use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
-use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
 
 /**
  * @phpstan-import-type SiteSummaryArray from SiteSummaryRecord
@@ -28,8 +27,10 @@ class SiteList
 {
     public const TOOL_NAME = 'matomo_site_list';
 
-    public function __construct(private ?ListApiWrapperInterface $apiWrapper = null)
-    {
+    public function __construct(
+        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?SiteSummaryPaginationResponder $paginationResponder = null
+    ) {
     }
 
     /**
@@ -44,29 +45,7 @@ class SiteList
         description: "Use when: you need to list accessible Matomo sites without a search hint.\n"
             . "Purpose: return paginated site summaries for all sites the user can view.\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) for full details of one site.",
-        outputSchema: [
-            'type' => 'object',
-            'properties' => [
-                'sites' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'idsite' => ['type' => 'integer'],
-                            'name' => ['type' => 'string'],
-                            'main_url' => ['type' => 'string'],
-                            'type' => ['type' => 'string'],
-                        ],
-                        'required' => ['idsite', 'name', 'main_url', 'type'],
-                        'additionalProperties' => false,
-                    ],
-                ],
-                'next_cursor' => ['type' => ['string', 'null']],
-                'has_more' => ['type' => 'boolean'],
-            ],
-            'required' => ['sites', 'next_cursor', 'has_more'],
-            'additionalProperties' => false,
-        ]
+        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(
         type: 'object',
@@ -96,23 +75,12 @@ class SiteList
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $sort = $sort ?? SitesPagination::SORT_NAME_ASC;
-        /** @var list<SiteSummaryArray> $resultSites */
-        $resultSites = array_map(
-            static fn(SiteSummaryRecord $site): array => $site->toArray(),
-            $this->getApiWrapper()->getSitesWithViewAccess()
+        return $this->getPaginationResponder()->paginateSiteSummaryRecords(
+            $this->getApiWrapper()->getSitesWithViewAccess(),
+            $limit,
+            $cursor,
+            $sort
         );
-        $page = $this->getPaginator()->paginate(
-            $resultSites,
-            new PageRequest($limit, $sort, $cursor),
-            $this->getPaginationConfig()
-        );
-
-        return [
-            'sites' => $page->items,
-            'next_cursor' => $page->nextCursor,
-            'has_more' => $page->hasMore,
-        ];
     }
 
     private function getApiWrapper(): ListApiWrapperInterface
@@ -120,13 +88,8 @@ class SiteList
         return $this->apiWrapper ??= new ListApiWrapper();
     }
 
-    private function getPaginator(): CursorPaginator
+    private function getPaginationResponder(): SiteSummaryPaginationResponder
     {
-        return new CursorPaginator();
-    }
-
-    private function getPaginationConfig(): PaginationConfig
-    {
-        return SitesPagination::createConfig();
+        return $this->paginationResponder ??= new SiteSummaryPaginationResponder();
     }
 }

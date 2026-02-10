@@ -23,8 +23,7 @@ final class PageRequest
         ?string $sortToken = null,
         ?string $cursor = null,
         ?string $cursorContext = null
-    )
-    {
+    ) {
         $this->limit = $limit;
         $this->sortToken = $sortToken;
         $this->cursor = $cursor;

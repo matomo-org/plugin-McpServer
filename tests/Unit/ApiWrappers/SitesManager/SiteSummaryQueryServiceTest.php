@@ -60,6 +60,53 @@ class SiteSummaryQueryServiceTest extends TestCase
         ], $site->toArray());
     }
 
+    public function testNormalizeSiteSummaryRowsThrowsWhenPayloadIsNotArray(): void
+    {
+        $service = new SiteSummaryQueryService();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Site list data is invalid.');
+
+        $service->normalizeSiteSummaryRows(
+            'invalid',
+            'Site list data is invalid.',
+            'Site list item'
+        );
+    }
+
+    public function testNormalizeSiteSummaryRowsThrowsWhenRowIsNotArray(): void
+    {
+        $service = new SiteSummaryQueryService();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Site search data is invalid.');
+
+        $service->normalizeSiteSummaryRows(
+            ['invalid'],
+            'Site search data is invalid.',
+            'Site search item'
+        );
+    }
+
+    public function testNormalizeSiteSummaryRowsReturnsNormalizedRows(): void
+    {
+        $service = new SiteSummaryQueryService();
+
+        $actual = $service->normalizeSiteSummaryRows(
+            [$this->makeValidSiteSummaryData()],
+            'Site search data is invalid.',
+            'Site search item'
+        );
+
+        self::assertCount(1, $actual);
+        self::assertSame([
+            'idsite' => 3,
+            'name' => 'Site Name',
+            'main_url' => 'https://example.test',
+            'type' => 'website',
+        ], $actual[0]->toArray());
+    }
+
     /**
      * @return array<string, mixed>
      */

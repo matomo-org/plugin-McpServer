@@ -62,20 +62,18 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
     }
 
     /**
+     * Public for testability and to keep top-level payload-shape validation centralized.
+     *
+     * @param mixed $sites
      * @return array<int, SiteSummaryRecord>
      */
-    private function fetchSiteSummaries(string $search, string $invalidDataMessage, string $context): array
-    {
-        $siteIds = Access::getInstance()->getSitesIdWithAtLeastViewAccess();
-        if (!is_array($siteIds) || $siteIds === []) {
-            return [];
-        }
-
-        try {
-            $sites = SitesManagerApi::getInstance()->getSitesWithMinimumAccess(View::ID, $search, null);
-        } catch (NoAccessException $e) {
-            // Keep list/search behavior aligned: no view access yields no rows.
-            return [];
+    public function normalizeSiteSummaryRows(
+        mixed $sites,
+        string $invalidDataMessage,
+        string $context
+    ): array {
+        if (!is_array($sites)) {
+            throw new ToolCallException($invalidDataMessage);
         }
 
         $result = [];
@@ -87,5 +85,36 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @return array<int, SiteSummaryRecord>
+     */
+    private function fetchSiteSummaries(string $search, string $invalidDataMessage, string $context): array
+    {
+        try {
+            $sites = SitesManagerApi::getInstance()->getSitesWithMinimumAccess(View::ID, $search, null);
+        } catch (NoAccessException $e) {
+            // Keep list/search behavior aligned: no view access yields no rows.
+            return [];
+        } catch (\Throwable $e) {
+            $siteIds = Access::getInstance()->getSitesIdWithAtLeastViewAccess();
+            if (!is_array($siteIds) || $siteIds === []) {
+                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+                return [];
+            }
+
+            throw $e;
+        }
+
+        if (!is_array($sites)) {
+            $siteIds = Access::getInstance()->getSitesIdWithAtLeastViewAccess();
+            if (!is_array($siteIds) || $siteIds === []) {
+                // Keep list/search behavior aligned for backends that return non-array on no access.
+                return [];
+            }
+        }
+
+        return $this->normalizeSiteSummaryRows($sites, $invalidDataMessage, $context);
     }
 }
