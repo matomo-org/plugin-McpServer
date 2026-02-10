@@ -16,6 +16,7 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
 
 /**
  * @phpstan-import-type SiteArray from SiteRecord
@@ -38,34 +39,7 @@ class SiteGet
             . "Purpose: fetch authoritative details for exactly one Matomo site.\n"
             . "Do not use: if you only have URL/domain/name—use"
             . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.",
-        outputSchema: [
-            'type' => 'object',
-            'properties' => [
-                'idsite' => ['type' => 'integer'],
-                'name' => ['type' => 'string'],
-                'main_url' => ['type' => 'string'],
-                'timezone' => ['type' => 'string'],
-                'timezone_name' => ['type' => 'string'],
-                'currency' => ['type' => 'string'],
-                'currency_name' => ['type' => 'string'],
-                'ecommerce' => ['type' => 'boolean'],
-                'sitesearch' => ['type' => 'boolean'],
-                'type' => ['type' => 'string'],
-            ],
-            'required' => [
-                'idsite',
-                'name',
-                'main_url',
-                'timezone',
-                'timezone_name',
-                'currency',
-                'currency_name',
-                'ecommerce',
-                'sitesearch',
-                'type',
-            ],
-            'additionalProperties' => false,
-        ]
+        outputSchema: SiteDetailToolOutputSchema::ITEM
     )]
     #[Schema(
         type: 'object',

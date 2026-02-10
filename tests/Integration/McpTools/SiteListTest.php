@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -59,20 +58,13 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $firstPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2],
             __METHOD__ . '#1'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-
-        $firstPage = $result->structuredContent;
         self::assertIsArray($firstPage['sites'] ?? null);
         self::assertCount(2, $firstPage['sites']);
         self::assertTrue($firstPage['has_more']);
@@ -80,20 +72,13 @@ class SiteListTest extends IntegrationTestCase
         self::assertSame('MCP Test Site Alpha', $firstPage['sites'][0]['name'] ?? null);
         self::assertSame('MCP Test Site Beta', $firstPage['sites'][1]['name'] ?? null);
 
-        $payload = McpTestHelper::makeCallToolRequest(
+        $secondPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-
-        $secondPage = $result->structuredContent;
         self::assertIsArray($secondPage['sites'] ?? null);
         self::assertCount(1, $secondPage['sites']);
         self::assertFalse($secondPage['has_more']);
@@ -105,19 +90,14 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 3, 'sort' => SitesPagination::SORT_ID_DESC],
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $sites = $result->structuredContent['sites'] ?? null;
+        $sites = $content['sites'] ?? null;
         self::assertIsArray($sites);
         self::assertSame($this->idSiteGamma, $sites[0]['idsite'] ?? null);
         self::assertSame($this->idSiteBeta, $sites[1]['idsite'] ?? null);
@@ -128,20 +108,13 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-
-        $payload = McpTestHelper::makeCallToolRequest(
+        $firstPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC],
             __METHOD__ . '#1'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $firstPage = $result->structuredContent;
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
         self::assertSame('MCP Test Site Alpha', $sites[0]['name'] ?? null);
@@ -155,19 +128,13 @@ class SiteListTest extends IntegrationTestCase
             'https://delta.test'
         );
 
-        $payload = McpTestHelper::makeCallToolRequest(
+        $secondPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $secondPage = $result->structuredContent;
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
         self::assertSame('MCP Test Site Gamma', $sites[0]['name'] ?? null);
@@ -178,20 +145,13 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-
-        $payload = McpTestHelper::makeCallToolRequest(
+        $firstPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC],
             __METHOD__ . '#1'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $firstPage = $result->structuredContent;
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
         self::assertSame('MCP Test Site Alpha', $sites[0]['name'] ?? null);
@@ -205,19 +165,13 @@ class SiteListTest extends IntegrationTestCase
             'https://aaron.test'
         );
 
-        $payload = McpTestHelper::makeCallToolRequest(
+        $secondPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $secondPage = $result->structuredContent;
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
 
@@ -229,16 +183,13 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 0],
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeError($response);
-
-        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
             $message->message ?? ''
@@ -250,16 +201,13 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['sort' => 'invalid'],
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeError($response);
-
-        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
             $message->message ?? ''
@@ -271,18 +219,14 @@ class SiteListTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['cursor' => 'invalid'],
+            'Invalid cursor.',
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertTrue($result->isError);
-        self::assertSame('Invalid cursor.', $result->content[0]->text ?? null);
     }
 
     public function testRejectsCursorSortMismatch(): void
@@ -290,33 +234,24 @@ class SiteListTest extends IntegrationTestCase
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
-        $payload = McpTestHelper::makeCallToolRequest(
+        $firstPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 1, 'sort' => SitesPagination::SORT_ID_DESC],
             __METHOD__ . '#1'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-        $nextCursor = $result->structuredContent['next_cursor'] ?? null;
+        $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
 
-        $payload = McpTestHelper::makeCallToolRequest(
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
             SiteList::TOOL_NAME,
             ['cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
+            'Invalid cursor.',
             __METHOD__ . '#2'
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertTrue($result->isError);
-        self::assertSame('Invalid cursor.', $result->content[0]->text ?? null);
     }
 
     public function testReturnsEmptyListForUserWithoutViewAccess(): void
@@ -324,22 +259,17 @@ class SiteListTest extends IntegrationTestCase
         McpAuthTestHelper::asNoAccessUser(function (): void {
             $server = McpTestHelper::buildServer();
             $sessionId = McpTestHelper::initializeSession($server);
-            $payload = McpTestHelper::makeCallToolRequest(
+            $content = McpTestHelper::callToolAndAssertSuccess(
+                $server,
+                $sessionId,
                 SiteList::TOOL_NAME,
                 [],
                 __METHOD__
             );
-
-            $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-            $message = McpTestHelper::decodeResponse($response);
-            $result = McpTestHelper::parseCallTool($message);
-
-            self::assertFalse($result->isError);
-            self::assertIsArray($result->structuredContent);
-            self::assertSame([], $result->structuredContent['sites'] ?? null);
-            self::assertFalse($result->structuredContent['has_more'] ?? true);
-            self::assertArrayHasKey('next_cursor', $result->structuredContent);
-            self::assertNull($result->structuredContent['next_cursor']);
+            self::assertSame([], $content['sites'] ?? null);
+            self::assertFalse($content['has_more'] ?? true);
+            self::assertArrayHasKey('next_cursor', $content);
+            self::assertNull($content['next_cursor']);
         });
     }
 }

@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -67,19 +66,13 @@ class SiteGetTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             SiteGet::TOOL_NAME,
             ['idSite' => $this->idSite],
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertFalse($result->isError);
-        self::assertIsArray($result->structuredContent);
-
         self::assertSame([
             'idsite' => $this->idSite,
             'name' => 'MCP Test Site',
@@ -91,26 +84,21 @@ class SiteGetTest extends IntegrationTestCase
             'ecommerce' => false,
             'sitesearch' => true,
             'type' => 'website',
-        ], $result->structuredContent);
+        ], $content);
     }
 
     public function testReturnsErrorForMissingSite(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
             SiteGet::TOOL_NAME,
             ['idSite' => 999999],
+            'Site not found or access denied.',
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseCallTool($message);
-
-        self::assertTrue($result->isError);
-        self::assertNotEmpty($result->content);
-        self::assertSame('Site not found or access denied.', $result->content[0]->text ?? null);
     }
 
     public function testReturnsErrorForSiteWithoutViewAccess(): void
@@ -118,19 +106,14 @@ class SiteGetTest extends IntegrationTestCase
         McpAuthTestHelper::asNoAccessUser(function (): void {
             $server = McpTestHelper::buildServer();
             $sessionId = McpTestHelper::initializeSession($server);
-            $payload = McpTestHelper::makeCallToolRequest(
+            McpTestHelper::callToolAndAssertError(
+                $server,
+                $sessionId,
                 SiteGet::TOOL_NAME,
                 ['idSite' => $this->idSite],
+                'Site not found or access denied.',
                 __METHOD__
             );
-
-            $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-            $message = McpTestHelper::decodeResponse($response);
-            $result = McpTestHelper::parseCallTool($message);
-
-            self::assertTrue($result->isError);
-            self::assertNotEmpty($result->content);
-            self::assertSame('Site not found or access denied.', $result->content[0]->text ?? null);
         });
     }
 
@@ -138,16 +121,13 @@ class SiteGetTest extends IntegrationTestCase
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
             SiteGet::TOOL_NAME,
             ['idSite' => 0],
             __METHOD__
         );
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeError($response);
-
-        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteGet::TOOL_NAME . "':",
             $message->message
