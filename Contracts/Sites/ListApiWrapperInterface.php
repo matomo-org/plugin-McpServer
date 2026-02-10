@@ -9,12 +9,12 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
+namespace Piwik\Plugins\McpServer\Contracts\Sites;
 
-interface SearchApiWrapperInterface
+interface ListApiWrapperInterface
 {
     /**
      * @return array<int, SiteSummaryRecord>
      */
-    public function searchSitesWithViewAccess(string $search): array;
+    public function getSitesWithViewAccess(): array;
 }

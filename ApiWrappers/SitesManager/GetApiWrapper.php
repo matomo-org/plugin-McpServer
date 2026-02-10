@@ -14,6 +14,8 @@ namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Exception\UnexpectedWebsiteFoundException;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 

@@ -13,7 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\ApiWrappers\SitesManager;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 
 /**
  * @group McpServer

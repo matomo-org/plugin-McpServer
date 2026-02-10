@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\ApiWrappers\SitesManager;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryQueryServiceInterface;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
 
 /**
  * @group McpServer

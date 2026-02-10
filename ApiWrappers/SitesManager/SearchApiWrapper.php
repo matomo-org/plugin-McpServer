@@ -11,6 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
 
+use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
+
 final class SearchApiWrapper implements SearchApiWrapperInterface
 {
     public function __construct(private ?SiteSummaryQueryServiceInterface $queryService = null)

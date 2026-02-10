@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
 
 /**
  * @phpstan-import-type SiteArray from SiteRecord

@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapperInterface;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 

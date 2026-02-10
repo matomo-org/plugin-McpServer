@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
+namespace Piwik\Plugins\McpServer\Contracts\Sites;
 
 /**
  * @phpstan-type SiteSummaryArray array{

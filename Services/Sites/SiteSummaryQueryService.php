@@ -9,12 +9,14 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
+namespace Piwik\Plugins\McpServer\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access;
 use Piwik\Access\Role\View;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 

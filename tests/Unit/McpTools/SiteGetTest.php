@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use PHPUnit\Framework\TestCase;
 
