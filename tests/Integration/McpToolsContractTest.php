@@ -46,5 +46,6 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertContains('matomo_goal_list', $toolNames);
         self::assertContains('matomo_report_list', $toolNames);
         self::assertContains('matomo_report_metadata', $toolNames);
+        self::assertContains('matomo_report_processed', $toolNames);
     }
 }
