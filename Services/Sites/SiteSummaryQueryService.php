@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Access;
 use Piwik\Access\Role\View;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 
@@ -98,21 +98,12 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
             // Keep list/search behavior aligned: no view access yields no rows.
             return [];
         } catch (\Throwable $e) {
-            $siteIds = Access::getInstance()->getSitesIdWithAtLeastViewAccess();
-            if (!is_array($siteIds) || $siteIds === []) {
+            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 // Compatibility fallback for no-access backends that do not throw NoAccessException.
                 return [];
             }
 
             throw $e;
-        }
-
-        if (!is_array($sites)) {
-            $siteIds = Access::getInstance()->getSitesIdWithAtLeastViewAccess();
-            if (!is_array($siteIds) || $siteIds === []) {
-                // Keep list/search behavior aligned for backends that return non-array on no access.
-                return [];
-            }
         }
 
         return $this->normalizeSiteSummaryRows($sites, $invalidDataMessage, $context);

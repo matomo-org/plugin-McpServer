@@ -233,6 +233,95 @@ final class McpTestHelper
         return self::encodeRequest($request, $id);
     }
 
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    public static function callTool(
+        Server $server,
+        string $sessionId,
+        string $name,
+        array $arguments = [],
+        string|int $id = '1'
+    ): CallToolResult {
+        $payload = self::makeCallToolRequest($name, $arguments, $id);
+        $response = self::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = self::decodeResponse($response);
+
+        return self::parseCallTool($message);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function assertToolSuccess(CallToolResult $result): array
+    {
+        Assert::assertFalse($result->isError);
+        Assert::assertIsArray($result->structuredContent);
+
+        return $result->structuredContent;
+    }
+
+    public static function assertToolError(CallToolResult $result, ?string $expectedText = null): void
+    {
+        Assert::assertTrue($result->isError);
+        Assert::assertNotEmpty($result->content);
+
+        if ($expectedText !== null) {
+            Assert::assertSame($expectedText, $result->content[0]->text ?? null);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     * @return array<string, mixed>
+     */
+    public static function callToolAndAssertSuccess(
+        Server $server,
+        string $sessionId,
+        string $name,
+        array $arguments = [],
+        string|int $id = '1'
+    ): array {
+        return self::assertToolSuccess(
+            self::callTool($server, $sessionId, $name, $arguments, $id)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    public static function callToolAndAssertError(
+        Server $server,
+        string $sessionId,
+        string $name,
+        array $arguments = [],
+        ?string $expectedText = null,
+        string|int $id = '1'
+    ): CallToolResult {
+        $result = self::callTool($server, $sessionId, $name, $arguments, $id);
+        self::assertToolError($result, $expectedText);
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    public static function callToolExpectInvalidParams(
+        Server $server,
+        string $sessionId,
+        string $name,
+        array $arguments = [],
+        string|int $id = '1'
+    ): Error {
+        $payload = self::makeCallToolRequest($name, $arguments, $id);
+        $response = self::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = self::decodeError($response);
+        Assert::assertSame(Error::INVALID_PARAMS, $message->code);
+
+        return $message;
+    }
+
     private static function encodeRequest(Request $request, string|int $id): string
     {
         return \json_encode($request->withId($id), \JSON_THROW_ON_ERROR);
