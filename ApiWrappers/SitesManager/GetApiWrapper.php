@@ -28,6 +28,8 @@ final class GetApiWrapper implements GetApiWrapperInterface
         } catch (NoAccessException | UnexpectedWebsiteFoundException $e) {
             // Intentional: collapse not-found and no-access to avoid information disclosure.
             throw new ToolCallException('Site not found or access denied.');
+        } catch (\Throwable $e) {
+            throw new ToolCallException('Site retrieval failed.');
         }
 
         return $this->normalizeSiteData($site);

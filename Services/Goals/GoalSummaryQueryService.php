@@ -42,7 +42,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
                 return [];
             }
 
-            throw $e;
+            throw new ToolCallException('Goal retrieval failed.');
         }
 
         return $this->normalizeGoalSummaryRows(

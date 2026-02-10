@@ -42,7 +42,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
                 return [];
             }
 
-            throw $e;
+            throw new ToolCallException('Segment retrieval failed.');
         }
 
         return $this->normalizeSegmentSummaryRows(
