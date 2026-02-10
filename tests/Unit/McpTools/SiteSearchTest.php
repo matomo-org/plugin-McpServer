@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapperInterface;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
+use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 
 /**
  * @group McpServer
@@ -35,7 +36,7 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $actual = (new SiteSearch($wrapper))->search('site', limit: 10, sort: SiteSearch::SORT_NAME_ASC);
+        $actual = (new SiteSearch($wrapper))->search('site', limit: 10, sort: SitesPagination::SORT_NAME_ASC);
 
         self::assertSame([
             'sites' => [
@@ -90,13 +91,13 @@ class SiteSearchTest extends TestCase
         };
 
         $tool = new SiteSearch($wrapper);
-        $page = $tool->search('site', limit: 1, sort: SiteSearch::SORT_ID_DESC);
+        $page = $tool->search('site', limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->search('site', cursor: $cursor, sort: SiteSearch::SORT_NAME_ASC);
+        $tool->search('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

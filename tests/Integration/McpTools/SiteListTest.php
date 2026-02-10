@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
@@ -106,7 +107,7 @@ class SiteListTest extends IntegrationTestCase
         $sessionId = McpTestHelper::initializeSession($server);
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 3, 'sort' => SiteList::SORT_ID_DESC],
+            ['limit' => 3, 'sort' => SitesPagination::SORT_ID_DESC],
             __METHOD__
         );
 
@@ -130,7 +131,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 2, 'sort' => SiteList::SORT_ID_ASC],
+            ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC],
             __METHOD__ . '#1'
         );
 
@@ -156,7 +157,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 2, 'sort' => SiteList::SORT_ID_ASC, 'cursor' => $firstPage['next_cursor']],
+            ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2'
         );
 
@@ -180,7 +181,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 2, 'sort' => SiteList::SORT_NAME_ASC],
+            ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC],
             __METHOD__ . '#1'
         );
 
@@ -206,7 +207,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 2, 'sort' => SiteList::SORT_NAME_ASC, 'cursor' => $firstPage['next_cursor']],
+            ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2'
         );
 
@@ -291,7 +292,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['limit' => 1, 'sort' => SiteList::SORT_ID_DESC],
+            ['limit' => 1, 'sort' => SitesPagination::SORT_ID_DESC],
             __METHOD__ . '#1'
         );
 
@@ -306,7 +307,7 @@ class SiteListTest extends IntegrationTestCase
 
         $payload = McpTestHelper::makeCallToolRequest(
             SiteList::TOOL_NAME,
-            ['cursor' => $nextCursor, 'sort' => SiteList::SORT_NAME_ASC],
+            ['cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
             __METHOD__ . '#2'
         );
 

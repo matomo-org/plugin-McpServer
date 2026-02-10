@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -35,7 +36,7 @@ class SiteListTest extends TestCase
             }
         };
 
-        $actual = (new SiteList($wrapper))->list(limit: 10, sort: SiteList::SORT_NAME_ASC);
+        $actual = (new SiteList($wrapper))->list(limit: 10, sort: SitesPagination::SORT_NAME_ASC);
 
         self::assertSame([
             'sites' => [
@@ -90,13 +91,13 @@ class SiteListTest extends TestCase
         };
 
         $tool = new SiteList($wrapper);
-        $page = $tool->list(limit: 1, sort: SiteList::SORT_ID_DESC);
+        $page = $tool->list(limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(cursor: $cursor, sort: SiteList::SORT_NAME_ASC);
+        $tool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

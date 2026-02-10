@@ -18,11 +18,9 @@ use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapper;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapperInterface;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
-use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
 use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
-use Piwik\Plugins\McpServer\Support\Pagination\SortDirection;
-use Piwik\Plugins\McpServer\Support\Pagination\SortSpec;
+use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 
 /**
  * @phpstan-import-type SiteSummaryArray from SiteSummaryRecord
@@ -31,21 +29,11 @@ class SiteSearch
 {
     public const TOOL_NAME = 'matomo_site_search';
 
-    public const SORT_NAME_ASC = 'name_asc';
-    public const SORT_NAME_DESC = 'name_desc';
-    public const SORT_ID_ASC = 'id_asc';
-    public const SORT_ID_DESC = 'id_desc';
-
-    private const LIMIT_DEFAULT = 100;
-    private const LIMIT_MAX = 500;
-
     public function __construct(private ?SearchApiWrapperInterface $apiWrapper = null)
     {
     }
 
     /**
-     * @param self::SORT_*|null $sort
-     *
      * @return array{
      *     sites: list<SiteSummaryArray>,
      *     next_cursor: string|null,
@@ -93,7 +81,7 @@ class SiteSearch
             'limit' => [
                 'type' => 'integer',
                 'minimum' => 1,
-                'maximum' => self::LIMIT_MAX,
+                'maximum' => SitesPagination::LIMIT_MAX,
                 'description' => 'Maximum number of results to return (default 100, max 500).',
             ],
             'cursor' => [
@@ -102,7 +90,12 @@ class SiteSearch
             ],
             'sort' => [
                 'type' => 'string',
-                'enum' => [self::SORT_NAME_ASC, self::SORT_NAME_DESC, self::SORT_ID_ASC, self::SORT_ID_DESC],
+                'enum' => [
+                    SitesPagination::SORT_NAME_ASC,
+                    SitesPagination::SORT_NAME_DESC,
+                    SitesPagination::SORT_ID_ASC,
+                    SitesPagination::SORT_ID_DESC,
+                ],
                 'description' => 'Sort order for results.',
             ],
         ],
@@ -120,7 +113,7 @@ class SiteSearch
             throw new ToolCallException("Parameter 'search' missing or invalid.");
         }
 
-        $sort = $sort ?? self::SORT_NAME_ASC;
+        $sort = $sort ?? SitesPagination::SORT_NAME_ASC;
         /** @var list<SiteSummaryArray> $resultSites */
         $resultSites = array_map(
             static fn(SiteSummaryRecord $site): array => $site->toArray(),
@@ -152,30 +145,6 @@ class SiteSearch
 
     private function getPaginationConfig(): PaginationConfig
     {
-        return new PaginationConfig(
-            self::LIMIT_DEFAULT,
-            self::LIMIT_MAX,
-            self::SORT_NAME_ASC,
-            [
-                new SortSpec(
-                    self::SORT_NAME_ASC,
-                    new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::ASC)]
-                ),
-                new SortSpec(
-                    self::SORT_NAME_DESC,
-                    new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::DESC)]
-                ),
-                new SortSpec(
-                    self::SORT_ID_ASC,
-                    new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::ASC)
-                ),
-                new SortSpec(
-                    self::SORT_ID_DESC,
-                    new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::DESC)
-                ),
-            ]
-        );
+        return SitesPagination::createConfig();
     }
 }
