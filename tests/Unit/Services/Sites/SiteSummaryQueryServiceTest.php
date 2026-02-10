@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\tests\Unit\ApiWrappers\SitesManager;
+namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;

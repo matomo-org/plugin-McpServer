@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Contracts\Sites;
 
-interface GetApiWrapperInterface
+interface SiteDetailQueryServiceInterface
 {
     public function getSiteDetailFromId(int $idSite): SiteDetailRecord;
 }

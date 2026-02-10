@@ -11,48 +11,24 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\ApiWrappers\SitesManager;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Exception\UnexpectedWebsiteFoundException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
-use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SitesManager\API as SitesManagerApi;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailRecord;
+use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 
 final class GetApiWrapper implements GetApiWrapperInterface
 {
-    public function getSiteRecordFromId(int $idSite): SiteRecord
+    public function __construct(private ?SiteDetailQueryServiceInterface $queryService = null)
     {
-        try {
-            $site = SitesManagerApi::getInstance()->getSiteFromId($idSite);
-        } catch (NoAccessException | UnexpectedWebsiteFoundException $e) {
-            // Intentional: collapse not-found and no-access to avoid information disclosure.
-            throw new ToolCallException('Site not found or access denied.');
-        }
-
-        return $this->normalizeSiteData($site);
     }
 
-    /**
-     * Public for testability and to share normalization contract across MCP tools.
-     *
-     * @param array<string, mixed> $site
-     */
-    public function normalizeSiteData(array $site): SiteRecord
+    public function getSiteDetailFromId(int $idSite): SiteDetailRecord
     {
-        $context = 'Site data';
+        return $this->getQueryService()->getSiteDetailFromId($idSite);
+    }
 
-        return new SiteRecord(
-            idSite: ToolDataNormalizer::requireIntLikeField($site, 'idsite', $context),
-            name: ToolDataNormalizer::requireStringField($site, 'name', $context),
-            mainUrl: ToolDataNormalizer::requireStringField($site, 'main_url', $context),
-            timezone: ToolDataNormalizer::requireStringField($site, 'timezone', $context),
-            timezoneName: ToolDataNormalizer::requireStringField($site, 'timezone_name', $context),
-            currency: ToolDataNormalizer::requireStringField($site, 'currency', $context),
-            currencyName: ToolDataNormalizer::requireStringField($site, 'currency_name', $context),
-            ecommerce: ToolDataNormalizer::requireBoolLikeField($site, 'ecommerce', $context),
-            siteSearch: ToolDataNormalizer::requireBoolLikeField($site, 'sitesearch', $context),
-            type: ToolDataNormalizer::requireStringField($site, 'type', $context),
-        );
+    private function getQueryService(): SiteDetailQueryServiceInterface
+    {
+        return $this->queryService ??= new SiteDetailQueryService();
     }
 }

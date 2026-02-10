@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Contracts\Sites;
 
 /**
- * @phpstan-type SiteArray array{
+ * @phpstan-type SiteDetailArray array{
  *     idsite: int,
  *     name: string,
  *     main_url: string,
@@ -25,7 +25,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Sites;
  *     type: string,
  * }
  */
-final class SiteRecord
+final class SiteDetailRecord
 {
     public function __construct(
         public readonly int $idSite,
@@ -42,7 +42,7 @@ final class SiteRecord
     }
 
     /**
-     * @return SiteArray
+     * @return SiteDetailArray
      */
     public function toArray(): array
     {

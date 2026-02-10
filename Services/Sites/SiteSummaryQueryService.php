@@ -103,7 +103,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
                 return [];
             }
 
-            throw $e;
+            throw new ToolCallException('Site retrieval failed.');
         }
 
         return $this->normalizeSiteSummaryRows($sites, $invalidDataMessage, $context);

@@ -15,11 +15,11 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
 
 /**
- * @phpstan-import-type SiteArray from SiteRecord
+ * @phpstan-import-type SiteDetailArray from SiteDetailRecord
  */
 class SiteGet
 {
@@ -30,7 +30,7 @@ class SiteGet
     }
 
     /**
-     * @return SiteArray
+     * @return SiteDetailArray
      */
     #[McpTool(
         name: self::TOOL_NAME,
@@ -57,7 +57,7 @@ class SiteGet
     {
         // See SitesManager\GetApiWrapper for normalization contract and intentional
         // not-found/access-denied message collapsing behavior.
-        $site = $this->getApiWrapper()->getSiteRecordFromId($idSite);
+        $site = $this->getApiWrapper()->getSiteDetailFromId($idSite);
         return $site->toArray();
     }
 
