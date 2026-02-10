@@ -66,7 +66,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
             description: ToolDataNormalizer::requireStringField($goal, 'description', $context),
             matchAttribute: ToolDataNormalizer::requireStringField($goal, 'match_attribute', $context),
             allowMultiple: ToolDataNormalizer::requireBoolLikeField($goal, 'allow_multiple', $context),
-            revenue: $this->normalizeRevenue($goal, $context),
+            revenue: GoalRevenueNormalizer::normalizeRevenue($goal, $context),
             eventValueAsRevenue: ToolDataNormalizer::requireBoolLikeField($goal, 'event_value_as_revenue', $context),
         );
     }
@@ -95,26 +95,5 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
         }
 
         return $result;
-    }
-
-    /**
-     * @param array<string, mixed> $goal
-     */
-    private function normalizeRevenue(array $goal, string $context): string
-    {
-        if (!array_key_exists('revenue', $goal) || $goal['revenue'] === null) {
-            throw new ToolCallException("{$context} is incomplete (missing 'revenue').");
-        }
-
-        $revenue = $goal['revenue'];
-        if (is_string($revenue)) {
-            return $revenue;
-        }
-
-        if (is_int($revenue) || is_float($revenue)) {
-            return (string) $revenue;
-        }
-
-        throw new ToolCallException("{$context} is invalid (field 'revenue').");
     }
 }

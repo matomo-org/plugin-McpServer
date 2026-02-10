@@ -63,33 +63,12 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
             description: ToolDataNormalizer::requireStringField($goal, 'description', $context),
             matchAttribute: $matchAttribute,
             allowMultiple: ToolDataNormalizer::requireBoolLikeField($goal, 'allow_multiple', $context),
-            revenue: $this->normalizeRevenue($goal, $context),
+            revenue: GoalRevenueNormalizer::normalizeRevenue($goal, $context),
             eventValueAsRevenue: ToolDataNormalizer::requireBoolLikeField($goal, 'event_value_as_revenue', $context),
             pattern: $this->normalizePattern($goal, $matchAttribute, $context),
             patternType: $this->normalizePatternType($goal, $matchAttribute, $context),
             caseSensitive: $this->normalizeCaseSensitive($goal, $matchAttribute, $context),
         );
-    }
-
-    /**
-     * @param array<string, mixed> $goal
-     */
-    private function normalizeRevenue(array $goal, string $context): string
-    {
-        if (!array_key_exists('revenue', $goal) || $goal['revenue'] === null) {
-            throw new ToolCallException("{$context} is incomplete (missing 'revenue').");
-        }
-
-        $revenue = $goal['revenue'];
-        if (is_string($revenue)) {
-            return $revenue;
-        }
-
-        if (is_int($revenue) || is_float($revenue)) {
-            return (string) $revenue;
-        }
-
-        throw new ToolCallException("{$context} is invalid (field 'revenue').");
     }
 
     /**
