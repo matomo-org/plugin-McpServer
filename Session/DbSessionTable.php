@@ -23,6 +23,7 @@ class DbSessionTable
     {
         $definition = '
             `id` VARCHAR(191) NOT NULL,
+            `login` VARCHAR(100) NOT NULL,
             `expires_at` INTEGER NOT NULL,
             `data` MEDIUMTEXT,
             PRIMARY KEY (`id`),

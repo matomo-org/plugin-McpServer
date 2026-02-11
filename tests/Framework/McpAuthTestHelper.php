@@ -101,6 +101,11 @@ final class McpAuthTestHelper
         Request::reloadAuthUsingTokenAuth(['token_auth' => $tokenAuth]);
     }
 
+    public static function switchToAnonymous(): void
+    {
+        self::switchToTokenAuth('anonymous');
+    }
+
     public static function restoreAuth(?string $originalTokenAuth): void
     {
         if ($originalTokenAuth !== null && $originalTokenAuth !== '') {
