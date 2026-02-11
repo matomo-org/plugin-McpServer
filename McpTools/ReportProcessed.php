@@ -89,9 +89,8 @@ class ReportProcessed
                 'enum' => GoalMetricsMode::SCHEMA_VALUES,
                 'description' => 'Optional goal metrics mode. '
                     . 'Controls how goal columns are added to report output. '
-                    . 'Allowed values: overview, full, minimal, pages, entry_pages, '
-                    . 'pages_ecommerce, entry_pages_ecommerce, specific_goal, ecommerce_order, '
-                    . 'ecommerce_cart. Use specific_goal together with idGoal.',
+                    . 'Allowed values are enforced by the schema enum. '
+                    . 'Use specific_goal together with idGoal.',
             ],
             'goalMetricsProcessGoals' => [
                 'type' => 'array',
@@ -133,7 +132,7 @@ class ReportProcessed
                 'minimum' => 1,
                 'maximum' => self::FILTER_LIMIT_MAX,
                 'default' => self::FILTER_LIMIT_DEFAULT,
-                'description' => 'Rows per page (default 50, max 250).',
+                'description' => 'Rows per page. Uses schema default and maximum constraints.',
             ],
             'filter_offset' => [
                 'type' => 'integer',
