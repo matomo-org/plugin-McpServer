@@ -1,0 +1,139 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
+
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
+
+/**
+ * @group McpServer
+ * @group Plugins
+ */
+class DimensionSummaryQueryServiceTest extends TestCase
+{
+    public function testNormalizeDimensionSummaryDataThrowsWhenFieldIsMissing(): void
+    {
+        $service = new DimensionSummaryQueryService();
+        $data = $this->makeValidDimensionSummaryData();
+        unset($data['scope']);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage("Dimension list item is incomplete (missing 'scope').");
+
+        $service->normalizeDimensionSummaryData($data, 'Dimension list item');
+    }
+
+    public function testNormalizeDimensionSummaryDataThrowsWhenFieldIsNull(): void
+    {
+        $service = new DimensionSummaryQueryService();
+        $data = $this->makeValidDimensionSummaryData();
+        $data['name'] = null;
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage("Dimension list item is incomplete (missing 'name').");
+
+        $service->normalizeDimensionSummaryData($data, 'Dimension list item');
+    }
+
+    public function testNormalizeDimensionSummaryDataReturnsExpectedTypedOutput(): void
+    {
+        $service = new DimensionSummaryQueryService();
+
+        $dimension = $service->normalizeDimensionSummaryData(
+            $this->makeValidDimensionSummaryData(),
+            'Dimension list item'
+        );
+
+        self::assertSame([
+            'iddimension' => 9,
+            'name' => 'Customer Type',
+            'scope' => 'visit',
+        ], $dimension->toArray());
+    }
+
+    public function testNormalizeDimensionSummaryRowsReturnsOnlyActiveRows(): void
+    {
+        $service = new DimensionSummaryQueryService();
+        $inactive = $this->makeValidDimensionSummaryData();
+        $inactive['idcustomdimension'] = '8';
+        $inactive['active'] = '0';
+
+        $actual = $service->normalizeDimensionSummaryRows(
+            [$inactive, $this->makeValidDimensionSummaryData()],
+            'Dimension list data is invalid.',
+            'Dimension list item'
+        );
+
+        self::assertCount(1, $actual);
+        self::assertSame(9, $actual[0]->idDimension);
+    }
+
+    public function testNormalizeDimensionSummaryRowsThrowsWhenPayloadIsNotArray(): void
+    {
+        $service = new DimensionSummaryQueryService();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Dimension list data is invalid.');
+
+        $service->normalizeDimensionSummaryRows(
+            'invalid',
+            'Dimension list data is invalid.',
+            'Dimension list item'
+        );
+    }
+
+    public function testNormalizeDimensionSummaryRowsThrowsWhenRowIsNotArray(): void
+    {
+        $service = new DimensionSummaryQueryService();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Dimension list data is invalid.');
+
+        $service->normalizeDimensionSummaryRows(
+            ['invalid'],
+            'Dimension list data is invalid.',
+            'Dimension list item'
+        );
+    }
+
+    public function testNormalizeDimensionSummaryRowsReturnsOnlyDimensionRows(): void
+    {
+        $service = new DimensionSummaryQueryService();
+        $dimension = $this->makeValidDimensionSummaryData();
+        $dimension['idcustomdimension'] = '11';
+        $dimension['active'] = true;
+
+        $actual = $service->normalizeDimensionSummaryRows(
+            [$dimension],
+            'Dimension list data is invalid.',
+            'Dimension list item'
+        );
+
+        self::assertCount(1, $actual);
+        self::assertSame('visit', $actual[0]->scope);
+        self::assertSame(11, $actual[0]->idDimension);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function makeValidDimensionSummaryData(): array
+    {
+        return [
+            'idcustomdimension' => '9',
+            'name' => 'Customer Type',
+            'scope' => 'visit',
+            'active' => '1',
+        ];
+    }
+}
