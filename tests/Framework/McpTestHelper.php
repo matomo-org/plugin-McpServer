@@ -19,6 +19,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\InitializeRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListToolsRequest;
@@ -87,7 +88,7 @@ final class McpTestHelper
         array $headers = []
     ): ResponseInterface {
         foreach ($headers as $name => $_value) {
-            if (\is_string($name) && \strtolower($name) === 'authorization') {
+            if (\strtolower($name) === 'authorization') {
                 throw new \InvalidArgumentException(
                     'Do not pass Authorization header to McpTestHelper::sendRequest(); auth is managed by the helper.'
                 );
@@ -175,8 +176,6 @@ final class McpTestHelper
      */
     public static function parseInitialize(Response $response): InitializeResult
     {
-        Assert::assertIsArray($response->result, 'Expected initialize response result to be an array.');
-
         /**
          * @var array{
          *     protocolVersion: string,
@@ -196,8 +195,6 @@ final class McpTestHelper
      */
     public static function parseListTools(Response $response): ListToolsResult
     {
-        Assert::assertIsArray($response->result, 'Expected list tools response result to be an array.');
-
         /**
          * @var array{
          *     tools: array<ToolData>,
@@ -214,8 +211,6 @@ final class McpTestHelper
      */
     public static function parseCallTool(Response $response): CallToolResult
     {
-        Assert::assertIsArray($response->result, 'Expected call tool response result to be an array.');
-
         /**
          * @var array{
          *     content: array<mixed>,
@@ -298,7 +293,9 @@ final class McpTestHelper
         Assert::assertNotEmpty($result->content);
 
         if ($expectedText !== null) {
-            Assert::assertSame($expectedText, $result->content[0]->text ?? null);
+            $content = $result->content[0] ?? null;
+            Assert::assertInstanceOf(TextContent::class, $content);
+            Assert::assertSame($expectedText, $content->text);
         }
     }
 

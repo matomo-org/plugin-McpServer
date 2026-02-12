@@ -25,9 +25,9 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class SiteSearchTest extends IntegrationTestCase
 {
-    private int $idSiteAlpha;
-    private int $idSiteBeta;
-    private int $idSiteGamma;
+    private int $idSiteAlpha = 0;
+    private int $idSiteBeta = 0;
+    private int $idSiteGamma = 0;
 
     public function setUp(): void
     {

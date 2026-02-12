@@ -78,10 +78,8 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
 
         $result = [];
         foreach ($sites as $site) {
-            if (!is_array($site)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
-            $result[] = $this->normalizeSiteSummaryData($site, $context);
+            $siteData = ToolDataNormalizer::requireStringKeyedArray($site, $invalidDataMessage);
+            $result[] = $this->normalizeSiteSummaryData($siteData, $context);
         }
 
         return $result;

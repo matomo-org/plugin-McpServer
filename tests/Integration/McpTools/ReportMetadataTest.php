@@ -28,7 +28,7 @@ use Piwik\Translation\Translator;
  */
 class ReportMetadataTest extends IntegrationTestCase
 {
-    private int $idSite;
+    private int $idSite = 0;
 
     public function setUp(): void
     {
@@ -276,7 +276,10 @@ class ReportMetadataTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $report) {
-            if (!is_array($report) || $this->isSubtableMetadataRow($report)) {
+            if (!is_array($report)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($report)) {
                 continue;
             }
 
@@ -318,10 +321,7 @@ class ReportMetadataTest extends IntegrationTestCase
             }
 
             $content = $result->structuredContent;
-            if (!is_array($content)) {
-                continue;
-            }
-
+            /** @var array<string, mixed> $content */
             return ['source' => $report, 'content' => $content];
         }
 
@@ -407,7 +407,7 @@ class ReportMetadataTest extends IntegrationTestCase
             }
 
             $uniqueId = $report['uniqueId'] ?? null;
-            if (!is_string($uniqueId) || $uniqueId === '') {
+            if (!is_string($uniqueId)) {
                 continue;
             }
 
@@ -423,7 +423,7 @@ class ReportMetadataTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<mixed> $row
      */
     private function isSubtableMetadataRow(array $row): bool
     {

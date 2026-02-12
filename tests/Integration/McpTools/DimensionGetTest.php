@@ -24,9 +24,9 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class DimensionGetTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idDimension;
-    private string $dimensionName;
+    private int $idSite = 0;
+    private int $idDimension = 0;
+    private string $dimensionName = '';
 
     public function setUp(): void
     {

@@ -118,7 +118,7 @@ final class McpAuthTestHelper
     public static function captureCurrentTokenAuth(): ?string
     {
         $tokenAuth = Fixture::getTokenAuth();
-        return is_string($tokenAuth) && $tokenAuth !== '' ? $tokenAuth : null;
+        return $tokenAuth !== '' ? $tokenAuth : null;
     }
 
     /**

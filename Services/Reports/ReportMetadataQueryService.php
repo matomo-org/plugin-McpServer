@@ -41,11 +41,16 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             throw new ToolCallException('Report retrieval failed.');
         }
 
-        if (!is_array($metadata) || $this->isSubtableReport($metadata)) {
+        if (!is_array($metadata)) {
             throw new ToolCallException('Report not found.');
         }
 
-        return $this->normalizeReportMetadataData($metadata, 'Report metadata item');
+        $metadataData = ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
+        if ($this->isSubtableReport($metadataData)) {
+            throw new ToolCallException('Report not found.');
+        }
+
+        return $this->normalizeReportMetadataData($metadataData, 'Report metadata item');
     }
 
     /**
@@ -87,12 +92,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         $matches = [];
         foreach ($reports as $report) {
-            if (!is_array($report) || $this->isSubtableReport($report)) {
+            if (!is_array($report)) {
                 continue;
             }
 
-            $module = $report['module'] ?? null;
-            $action = $report['action'] ?? null;
+            $reportData = ToolDataNormalizer::requireStringKeyedArray($report, 'Report metadata data is invalid.');
+            if ($this->isSubtableReport($reportData)) {
+                continue;
+            }
+
+            $module = $reportData['module'] ?? null;
+            $action = $reportData['action'] ?? null;
 
             if (!is_string($module) || !is_string($action)) {
                 throw new ToolCallException('Report metadata data is invalid.');
@@ -102,7 +112,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 continue;
             }
 
-            $reportParametersRaw = $report['parameters'] ?? [];
+            $reportParametersRaw = $reportData['parameters'] ?? [];
             if (!is_array($reportParametersRaw)) {
                 throw new ToolCallException("Report metadata item is invalid (field 'parameters').");
             }
@@ -111,7 +121,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 continue;
             }
 
-            $matches[] = $report;
+            $matches[] = $reportData;
         }
 
         if ($matches === []) {
@@ -173,18 +183,15 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     }
 
     /**
-     * @param array<string, mixed> $value
+     * @param mixed $value
      * @return array<string, mixed>
      */
-    private function normalizeParameterObject(array $value, string $field): array
+    private function normalizeParameterObject(mixed $value, string $field): array
     {
-        foreach (array_keys($value) as $key) {
-            if (!is_string($key)) {
-                throw new ToolCallException("Report metadata item is invalid (field '{$field}').");
-            }
-        }
-
-        return $value;
+        return ToolDataNormalizer::requireStringKeyedArray(
+            $value,
+            "Report metadata item is invalid (field '{$field}')"
+        );
     }
 
     private function normalizeParameterValue(mixed $value): string

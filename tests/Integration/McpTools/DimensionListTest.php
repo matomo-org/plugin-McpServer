@@ -25,11 +25,11 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class DimensionListTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idSiteOther;
-    private int $idDimensionAlpha;
-    private int $idDimensionBeta;
-    private int $idDimensionGamma;
+    private int $idSite = 0;
+    private int $idSiteOther = 0;
+    private int $idDimensionAlpha = 0;
+    private int $idDimensionBeta = 0;
+    private int $idDimensionGamma = 0;
 
     public function setUp(): void
     {

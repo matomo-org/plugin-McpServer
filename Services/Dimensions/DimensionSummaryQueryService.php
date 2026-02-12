@@ -83,16 +83,14 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
 
         $result = [];
         foreach ($dimensions as $dimension) {
-            if (!is_array($dimension)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
+            $dimensionData = ToolDataNormalizer::requireStringKeyedArray($dimension, $invalidDataMessage);
 
-            $isActive = ToolDataNormalizer::requireBoolLikeField($dimension, 'active', $context);
+            $isActive = ToolDataNormalizer::requireBoolLikeField($dimensionData, 'active', $context);
             if (!$isActive) {
                 continue;
             }
 
-            $normalized = $this->normalizeDimensionSummaryData($dimension, $context);
+            $normalized = $this->normalizeDimensionSummaryData($dimensionData, $context);
             $result[] = $normalized;
         }
 

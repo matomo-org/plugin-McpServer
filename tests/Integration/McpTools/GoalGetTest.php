@@ -24,9 +24,9 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class GoalGetTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idGoal;
-    private string $goalName;
+    private int $idSite = 0;
+    private int $idGoal = 0;
+    private string $goalName = '';
 
     public function setUp(): void
     {

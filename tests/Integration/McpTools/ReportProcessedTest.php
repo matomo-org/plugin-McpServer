@@ -26,7 +26,7 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ReportProcessedTest extends IntegrationTestCase
 {
-    private int $idSite;
+    private int $idSite = 0;
 
     protected static function configureFixture($fixture): void
     {
@@ -376,7 +376,10 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row) || $this->isSubtableMetadataRow($row)) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
 
@@ -401,7 +404,10 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row) || $this->isSubtableMetadataRow($row)) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
 
@@ -411,7 +417,10 @@ class ReportProcessedTest extends IntegrationTestCase
             }
 
             $rowIdGoal = $parameters['idGoal'] ?? null;
-            if ((string) $rowIdGoal !== (string) $idGoal) {
+            if (is_int($rowIdGoal)) {
+                $rowIdGoal = (string) $rowIdGoal;
+            }
+            if (!is_string($rowIdGoal) || $rowIdGoal !== (string) $idGoal) {
                 continue;
             }
 
@@ -435,7 +444,7 @@ class ReportProcessedTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<mixed> $row
      */
     private function isSubtableMetadataRow(array $row): bool
     {

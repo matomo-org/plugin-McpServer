@@ -25,11 +25,11 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class SegmentListTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idSiteOther;
-    private string $segmentNameAlpha;
-    private string $segmentNameBeta;
-    private string $segmentNameGamma;
+    private int $idSite = 0;
+    private int $idSiteOther = 0;
+    private string $segmentNameAlpha = '';
+    private string $segmentNameBeta = '';
+    private string $segmentNameGamma = '';
 
     public function setUp(): void
     {

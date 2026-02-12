@@ -23,8 +23,9 @@ use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord;
-use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 use Piwik\Translation\Translator;
 
 final class ReportProcessedQueryService implements ReportProcessedQueryServiceInterface
@@ -246,10 +247,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
 
         foreach ($apiParameters as $key => $value) {
-            if (!is_string($key)) {
-                throw new ToolCallException("Invalid apiParameters key: expected string keys only.");
-            }
-
             if (isset(self::DANGEROUS_API_PARAMETER_KEYS[$key])) {
                 throw new ToolCallException("Unsupported apiParameters key '{$key}'.");
             }
@@ -508,7 +505,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             throw new ToolCallException('Report data is invalid.');
         }
 
-        return $processed;
+        return ToolDataNormalizer::requireStringKeyedArray($processed, 'Report data is invalid.');
     }
 
     /**
@@ -519,10 +516,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     {
         $normalized = [];
         foreach ($processed as $key => $value) {
-            if (!is_string($key)) {
-                continue;
-            }
-
             $normalized[$key] = $this->normalizeMixedValue($value);
         }
 
