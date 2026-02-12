@@ -19,7 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type SiteSummaryArray from SiteSummaryRecord
@@ -30,7 +30,7 @@ class SiteList
 
     public function __construct(
         private ?SiteSummaryQueryServiceInterface $queryService = null,
-        private ?SiteSummaryPaginationResponder $paginationResponder = null
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -77,12 +77,19 @@ class SiteList
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        return $this->getPaginationResponder()->paginateSiteSummaryRecords(
+        $response = $this->getPaginationResponder()->paginateRecords(
             $this->getQueryService()->getSiteSummariesForList(),
+            static fn(SiteSummaryRecord $site): array => $site->toArray(),
+            'sites',
+            SitesPagination::createConfig(),
+            SitesPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort
         );
+
+        /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
     private function getQueryService(): SiteSummaryQueryServiceInterface
@@ -90,8 +97,8 @@ class SiteList
         return $this->queryService ??= new SiteSummaryQueryService();
     }
 
-    private function getPaginationResponder(): SiteSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new SiteSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

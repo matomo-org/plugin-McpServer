@@ -19,7 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryQueryServiceInterfa
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\SegmentSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type SegmentSummaryArray from SegmentSummaryRecord
@@ -30,7 +30,7 @@ class SegmentList
 
     public function __construct(
         private ?SegmentSummaryQueryServiceInterface $queryService = null,
-        private ?SegmentSummaryPaginationResponder $paginationResponder = null
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,13 +84,20 @@ class SegmentList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'segment-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateSegmentSummaryRecords(
+        $response = $this->getPaginationResponder()->paginateRecords(
             $this->getQueryService()->getSegmentSummariesForSite($idSite),
+            static fn(SegmentSummaryRecord $segment): array => $segment->toArray(),
+            'segments',
+            SegmentsPagination::createConfig(),
+            SegmentsPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
     private function getQueryService(): SegmentSummaryQueryServiceInterface
@@ -98,8 +105,8 @@ class SegmentList
         return $this->queryService ??= new SegmentSummaryQueryService();
     }
 
-    private function getPaginationResponder(): SegmentSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new SegmentSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

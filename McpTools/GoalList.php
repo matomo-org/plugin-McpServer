@@ -19,7 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\GoalSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type GoalSummaryArray from GoalSummaryRecord
@@ -30,7 +30,7 @@ class GoalList
 
     public function __construct(
         private ?GoalSummaryQueryServiceInterface $queryService = null,
-        private ?GoalSummaryPaginationResponder $paginationResponder = null
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,13 +84,20 @@ class GoalList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'goal-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateGoalSummaryRecords(
+        $response = $this->getPaginationResponder()->paginateRecords(
             $this->getQueryService()->getGoalSummariesForSite($idSite),
+            static fn(GoalSummaryRecord $goal): array => $goal->toArray(),
+            'goals',
+            GoalsPagination::createConfig(),
+            GoalsPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{goals: list<GoalSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
     private function getQueryService(): GoalSummaryQueryServiceInterface
@@ -98,8 +105,8 @@ class GoalList
         return $this->queryService ??= new GoalSummaryQueryService();
     }
 
-    private function getPaginationResponder(): GoalSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new GoalSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

@@ -19,7 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryQueryServiceInterface
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\ReportSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type ReportSummaryArray from ReportSummaryRecord
@@ -30,7 +30,7 @@ class ReportList
 
     public function __construct(
         private ?ReportSummaryQueryServiceInterface $queryService = null,
-        private ?ReportSummaryPaginationResponder $paginationResponder = null
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,13 +84,20 @@ class ReportList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateReportSummaryRecords(
+        $response = $this->getPaginationResponder()->paginateRecords(
             $this->getQueryService()->getReportSummariesForSite($idSite),
+            static fn(ReportSummaryRecord $report): array => $report->toArray(),
+            'reports',
+            ReportsPagination::createConfig(),
+            ReportsPagination::SORT_CATEGORY_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
     private function getQueryService(): ReportSummaryQueryServiceInterface
@@ -98,8 +105,8 @@ class ReportList
         return $this->queryService ??= new ReportSummaryQueryService();
     }
 
-    private function getPaginationResponder(): ReportSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new ReportSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

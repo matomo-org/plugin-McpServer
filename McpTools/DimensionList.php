@@ -19,7 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryQueryServiceInt
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\DimensionSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type DimensionSummaryArray from DimensionSummaryRecord
@@ -30,7 +30,7 @@ class DimensionList
 
     public function __construct(
         private ?DimensionSummaryQueryServiceInterface $queryService = null,
-        private ?DimensionSummaryPaginationResponder $paginationResponder = null
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,13 +84,20 @@ class DimensionList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'dimension-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateDimensionSummaryRecords(
+        $response = $this->getPaginationResponder()->paginateRecords(
             $this->getQueryService()->getDimensionSummariesForSite($idSite),
+            static fn(DimensionSummaryRecord $dimension): array => $dimension->toArray(),
+            'dimensions',
+            DimensionsPagination::createConfig(),
+            DimensionsPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
     private function getQueryService(): DimensionSummaryQueryServiceInterface
@@ -98,8 +105,8 @@ class DimensionList
         return $this->queryService ??= new DimensionSummaryQueryService();
     }
 
-    private function getPaginationResponder(): DimensionSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new DimensionSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }
