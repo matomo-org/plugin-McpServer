@@ -17,6 +17,7 @@ use Piwik\Access;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
  * @group McpServer
@@ -221,6 +222,63 @@ class ReportProcessedQueryServiceTest extends TestCase
         self::assertSame([], $observedApiParameters);
         self::assertSame('-1', $observedGoalColumnsMode);
         self::assertSame('1,2', $observedGoalColumnsProcessGoals);
+    }
+
+    public function testInjectsScopedRequestParametersThroughMutator(): void
+    {
+        $mutator = new class () implements GetRequestScopeMutatorInterface {
+            /**
+             * @var array<string, mixed>|null
+             */
+            public ?array $capturedScopedParameters = null;
+
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function runWithParameters(array $parameters, callable $callback): mixed
+            {
+                $this->capturedScopedParameters = $parameters;
+                return $callback();
+            }
+        };
+
+        $service = new ReportProcessedQueryService(
+            $this->makeMetadataWrapper(),
+            function (): array {
+                return [
+                    'reportData' => [['label' => 'A']],
+                    'reportMetadata' => [['idsubdatatable' => 1]],
+                    'columns' => ['label' => 'Label'],
+                ];
+            },
+            $mutator
+        );
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: ['flat' => '1'],
+            goalMetricsMode: 'overview',
+            goalMetricsProcessGoals: [1, '2'],
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 1,
+            filterOffset: 5
+        );
+
+        self::assertSame([
+            'filter_limit' => '2',
+            'filter_offset' => '5',
+            'flat' => '1',
+            'filter_update_columns_when_show_all_goals' => '-1',
+            'filter_show_goal_columns_process_goals' => '1,2',
+        ], $mutator->capturedScopedParameters);
     }
 
     public function testRejectsGoalModeCoreFilterInApiParameters(): void
