@@ -9,7 +9,9 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Goals;
+namespace Piwik\Plugins\McpServer\Contracts\Ports\Goals;
+
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 
 interface GoalSummaryQueryServiceInterface
 {

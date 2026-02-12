@@ -15,8 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 

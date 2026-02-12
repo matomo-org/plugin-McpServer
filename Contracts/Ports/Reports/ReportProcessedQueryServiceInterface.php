@@ -9,7 +9,9 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Reports;
+namespace Piwik\Plugins\McpServer\Contracts\Ports\Reports;
+
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 
 interface ReportProcessedQueryServiceInterface
 {

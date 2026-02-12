@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
 
 /**

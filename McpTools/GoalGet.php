@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalDetailRecord;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 

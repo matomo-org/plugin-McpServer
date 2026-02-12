@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Dimensions;
+namespace Piwik\Plugins\McpServer\Contracts\Records\Dimensions;
 
 /**
  * @phpstan-type DimensionExtractionArray array{

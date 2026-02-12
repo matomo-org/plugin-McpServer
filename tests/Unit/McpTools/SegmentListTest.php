@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 

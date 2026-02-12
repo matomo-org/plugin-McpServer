@@ -9,7 +9,9 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Sites;
+namespace Piwik\Plugins\McpServer\Contracts\Ports\Sites;
+
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 
 interface SiteSummaryQueryServiceInterface
 {

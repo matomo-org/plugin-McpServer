@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Goals;
+namespace Piwik\Plugins\McpServer\Contracts\Records\Goals;
 
 /**
  * @phpstan-type GoalSummaryArray array{

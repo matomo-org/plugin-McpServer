@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 

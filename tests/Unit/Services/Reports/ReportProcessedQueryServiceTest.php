@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 

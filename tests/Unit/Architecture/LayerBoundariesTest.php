@@ -21,6 +21,7 @@ class LayerBoundariesTest extends TestCase
 {
     private const PLUGIN_NAMESPACE = 'Piwik\\Plugins\\McpServer\\';
     private const API_WRAPPERS_NAMESPACE = self::PLUGIN_NAMESPACE . 'ApiWrappers\\';
+    private const CONTRACTS_NAMESPACE = self::PLUGIN_NAMESPACE . 'Contracts\\';
 
     /**
      * @var list<string>
@@ -38,7 +39,7 @@ class LayerBoundariesTest extends TestCase
         'Matomo\\Dependencies\\McpServer\\Mcp\\Exception\\ToolCallException',
     ];
 
-    public function testServicesDoNotDependOnApiWrappersExceptAllowlistedException(): void
+    public function testServicesDoNotDependOnApiWrappers(): void
     {
         $violations = [];
         foreach ($this->listPhpFiles('Services') as $relativePath => $absolutePath) {
@@ -56,6 +57,20 @@ class LayerBoundariesTest extends TestCase
             [],
             $violations,
             "Service -> ApiWrappers dependency violations:\n" . implode("\n", $violations)
+        );
+    }
+
+    public function testServicesAndMcpToolsOnlyReferenceContractsPortsAndRecordsNamespaces(): void
+    {
+        $violations = array_merge(
+            $this->findContractNamespaceViolations('Services'),
+            $this->findContractNamespaceViolations('McpTools')
+        );
+
+        self::assertSame(
+            [],
+            $violations,
+            "Legacy/invalid Contracts namespace references:\n" . implode("\n", $violations)
         );
     }
 
@@ -264,5 +279,32 @@ class LayerBoundariesTest extends TestCase
         }
 
         return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function findContractNamespaceViolations(string $relativeDirectory): array
+    {
+        $violations = [];
+
+        foreach ($this->listPhpFiles($relativeDirectory) as $relativePath => $absolutePath) {
+            $contents = file_get_contents($absolutePath);
+            self::assertNotFalse($contents);
+
+            if (strpos($contents, self::CONTRACTS_NAMESPACE) === false) {
+                continue;
+            }
+
+            $unknownContractsNamespacePattern = '/'
+                . preg_quote(self::CONTRACTS_NAMESPACE, '/')
+                . '(?!Ports\\\\|Records\\\\)/';
+
+            if (preg_match_all($unknownContractsNamespacePattern, $contents) > 0) {
+                $violations[] = $relativePath . ' -> unknown Contracts namespace';
+            }
+        }
+
+        return $violations;
     }
 }

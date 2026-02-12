@@ -15,8 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 

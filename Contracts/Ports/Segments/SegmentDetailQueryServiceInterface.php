@@ -9,7 +9,9 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Segments;
+namespace Piwik\Plugins\McpServer\Contracts\Ports\Segments;
+
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 
 interface SegmentDetailQueryServiceInterface
 {

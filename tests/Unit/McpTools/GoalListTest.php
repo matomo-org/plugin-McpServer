@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\GoalList;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 

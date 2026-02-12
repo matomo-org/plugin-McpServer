@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\Services\Sites;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Exception\UnexpectedWebsiteFoundException;
 use Piwik\NoAccessException;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 

@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentGet;
 
 /**

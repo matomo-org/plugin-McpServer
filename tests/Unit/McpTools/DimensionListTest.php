@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 

@@ -15,8 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\Goals\API as GoalsApi;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 

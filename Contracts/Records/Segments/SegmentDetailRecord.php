@@ -9,28 +9,34 @@
 
 declare(strict_types=1);
 
-namespace Piwik\Plugins\McpServer\Contracts\Segments;
+namespace Piwik\Plugins\McpServer\Contracts\Records\Segments;
 
 /**
- * @phpstan-type SegmentSummaryArray array{
+ * @phpstan-type SegmentDetailArray array{
  *     idsegment: int,
  *     name: string,
  *     definition: string,
  *     idsite: int|null,
+ *     auto_archive: bool,
+ *     enabled_all_users: bool,
+ *     login: string,
  * }
  */
-final class SegmentSummaryRecord
+final class SegmentDetailRecord
 {
     public function __construct(
         public readonly int $idSegment,
         public readonly string $name,
         public readonly string $definition,
-        public readonly ?int $idSite
+        public readonly ?int $idSite,
+        public readonly bool $autoArchive,
+        public readonly bool $enabledAllUsers,
+        public readonly string $login
     ) {
     }
 
     /**
-     * @return SegmentSummaryArray
+     * @return SegmentDetailArray
      */
     public function toArray(): array
     {
@@ -39,6 +45,9 @@ final class SegmentSummaryRecord
             'name' => $this->name,
             'definition' => $this->definition,
             'idsite' => $this->idSite,
+            'auto_archive' => $this->autoArchive,
+            'enabled_all_users' => $this->enabledAllUsers,
+            'login' => $this->login,
         ];
     }
 }
