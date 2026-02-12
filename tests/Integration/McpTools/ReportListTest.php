@@ -232,9 +232,10 @@ class ReportListTest extends IntegrationTestCase
             }
         }
 
-        if ($subtableUniqueIds === []) {
-            $this->markTestSkipped('No subtable report metadata available for this site in current environment.');
-        }
+        self::assertNotEmpty(
+            $subtableUniqueIds,
+            'Expected fixture metadata to include at least one subtable report.'
+        );
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);

@@ -73,9 +73,10 @@ class ReportMetadataTest extends IntegrationTestCase
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
         $resolved = $this->resolveFirstModuleActionSuccess($server, $sessionId, $this->idSite);
-        if ($resolved === null) {
-            $this->markTestSkipped('No report metadata candidate resolved via module/action in this environment.');
-        }
+        self::assertNotNull(
+            $resolved,
+            'Expected fixture metadata to include a module/action candidate resolvable by ReportMetadata tool.'
+        );
 
         self::assertSame($resolved['source']['uniqueId'] ?? null, $resolved['content']['uniqueId'] ?? null);
     }
@@ -180,12 +181,14 @@ class ReportMetadataTest extends IntegrationTestCase
 
         try {
             $differing = $this->findReportWithLanguageDifference($processedReport, $this->idSite, 'fr', 'en');
-            if ($differing === null) {
-                $this->markTestSkipped(
-                    'No report metadata entry with observable language difference '
-                    . '(fr vs en) was found in this environment.'
-                );
-            }
+            self::assertNotNull(
+                $differing,
+                'Expected at least one report metadata entry with observable language difference (fr vs en).'
+            );
+
+            $translator->setCurrentLanguage('en');
+            $englishMetadata = $processedReport->getReportMetadataByUniqueId($this->idSite, $differing['uniqueId']);
+            self::assertIsArray($englishMetadata);
 
             $translator->setCurrentLanguage('fr');
 
@@ -199,8 +202,8 @@ class ReportMetadataTest extends IntegrationTestCase
                 __METHOD__
             );
 
-            self::assertSame($differing['right']['category'] ?? null, $content['category'] ?? null);
-            self::assertSame($differing['right']['name'] ?? null, $content['name'] ?? null);
+            self::assertSame($englishMetadata['category'] ?? null, $content['category'] ?? null);
+            self::assertSame($englishMetadata['name'] ?? null, $content['name'] ?? null);
         } finally {
             $translator->setCurrentLanguage($originalLanguage);
         }
