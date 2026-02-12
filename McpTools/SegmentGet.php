@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\SegmentEditor\GetApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Segments\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailRecord;
@@ -37,6 +38,7 @@ class SegmentGet
         description: "Use when: you need details for one saved segment.\n"
             . "Purpose: resolve a segment by idSegment, exact name, or exact definition within idSite scope.\n"
             . "Next: use the returned definition in analytics/report API calls.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SegmentDetailToolOutputSchema::ITEM
     )]
     #[Schema(definition: [

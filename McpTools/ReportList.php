@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\Reports\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Reports\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
@@ -45,6 +46,7 @@ class ReportList
         description: "Use when: you need a compact discovery list of available reports for a site.\n"
             . "Purpose: return paginated report metadata for idSite.\n"
             . "Next: choose module/action/parameters and call Matomo reporting APIs.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

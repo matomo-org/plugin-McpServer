@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\SegmentEditor\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Segments\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryRecord;
@@ -45,6 +46,7 @@ class SegmentList
         description: "Use when: you need reusable saved segments for a specific site.\n"
             . "Purpose: return paginated saved segment definitions available for idSite.\n"
             . "Next: use the chosen segment definition in analytics/report API calls.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SegmentSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

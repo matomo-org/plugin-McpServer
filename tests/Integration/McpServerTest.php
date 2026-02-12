@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -100,5 +101,24 @@ class McpServerTest extends IntegrationTestCase
 
         self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
         self::assertSame('The "initialize" request MUST NOT be part of a batch.', $message->message);
+    }
+
+    public function testAnonymousCannotImpersonateAuthenticatedSession(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeListToolsRequest('list-1');
+        $originalTokenAuth = McpAuthTestHelper::captureCurrentTokenAuth();
+
+        try {
+            McpAuthTestHelper::switchToAnonymous();
+
+            $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+            $actualError = McpTestHelper::decodeError($response);
+            self::assertSame(JsonRpcError::INVALID_REQUEST, $actualError->code);
+            self::assertSame('Session not found or has expired.', $actualError->message);
+        } finally {
+            McpAuthTestHelper::restoreAuth($originalTokenAuth);
+        }
     }
 }

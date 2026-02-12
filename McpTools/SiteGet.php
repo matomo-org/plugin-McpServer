@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailRecord;
@@ -39,6 +40,7 @@ class SiteGet
             . "Purpose: fetch authoritative details for exactly one Matomo site.\n"
             . "Do not use: if you only have URL/domain/name—use"
             . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SiteDetailToolOutputSchema::ITEM
     )]
     #[Schema(

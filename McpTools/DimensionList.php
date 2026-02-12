@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\CustomDimensions\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\ListApiWrapperInterface;
@@ -45,6 +46,7 @@ class DimensionList
         description: "Use when: you need idDimension values for processed report retrieval.\n"
             . "Purpose: return paginated active custom dimensions configured for a specific site.\n"
             . "Next: use the chosen iddimension in analytics/report API calls.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: DimensionSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

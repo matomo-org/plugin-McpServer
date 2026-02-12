@@ -16,6 +16,7 @@ use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use Piwik\Common;
 use Piwik\Config;
 use Piwik\Db;
+use Piwik\Piwik;
 
 class DbSessionStore implements SessionStoreInterface
 {
@@ -47,11 +48,11 @@ class DbSessionStore implements SessionStoreInterface
     public function read(Uuid $id): string|false
     {
         $sql = sprintf(
-            'SELECT data, expires_at FROM `%s` WHERE id = ?',
+            'SELECT data, expires_at FROM `%s` WHERE id = ? AND login = ?',
             $this->tableName
         );
 
-        $row = Db::fetchRow($sql, [$id->toRfc4122()]);
+        $row = Db::fetchRow($sql, [$id->toRfc4122(), $this->resolveCurrentLogin()]);
         if (!$row) {
             return false;
         }
@@ -73,22 +74,23 @@ class DbSessionStore implements SessionStoreInterface
     {
         $now = time();
         $expiresAt = $now + $this->ttl;
+        $login = $this->resolveCurrentLogin();
         $sql = sprintf(
-            'INSERT INTO `%s` (id, expires_at, data) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE expires_at = VALUES(expires_at), data = VALUES(data)',
+            'INSERT INTO `%s` (id, login, expires_at, data) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE login = VALUES(login), expires_at = VALUES(expires_at), data = VALUES(data)',
             $this->tableName
         );
 
-        Db::query($sql, [$id->toRfc4122(), $expiresAt, $data]);
+        Db::query($sql, [$id->toRfc4122(), $login, $expiresAt, $data]);
 
         return true;
     }
 
     public function destroy(Uuid $id): bool
     {
-        $sql = sprintf('DELETE FROM `%s` WHERE id = ?', $this->tableName);
+        $sql = sprintf('DELETE FROM `%s` WHERE id = ? AND login = ?', $this->tableName);
 
-        Db::query($sql, [$id->toRfc4122()]);
+        Db::query($sql, [$id->toRfc4122(), $this->resolveCurrentLogin()]);
 
         return true;
     }
@@ -125,5 +127,10 @@ class DbSessionStore implements SessionStoreInterface
         }
 
         return $normalized;
+    }
+
+    private function resolveCurrentLogin(): string
+    {
+        return Piwik::getCurrentUserLogin();
     }
 }

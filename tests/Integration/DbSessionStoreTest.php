@@ -17,6 +17,8 @@ use Piwik\Config;
 use Piwik\Db;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use Piwik\Plugins\McpServer\Session\DbSessionTable;
+use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
+use Piwik\Piwik;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
 /**
@@ -48,6 +50,7 @@ class DbSessionStoreTest extends IntegrationTestCase
         $this->assertNotNull($expiresAt);
         $this->assertGreaterThanOrEqual($now + 3598, $expiresAt);
         $this->assertLessThanOrEqual($now + 3602, $expiresAt);
+        $this->assertSame(Piwik::getCurrentUserLogin(), $this->fetchLogin($id));
     }
 
     public function testReadMissingReturnsFalse(): void
@@ -69,6 +72,52 @@ class DbSessionStoreTest extends IntegrationTestCase
 
         $this->assertFalse($store->read($id));
         $this->assertRowMissing($id);
+    }
+
+    public function testReadReturnsFalseForDifferentAuthenticatedUser(): void
+    {
+        $store = new DbSessionStore(3600);
+        $id = Uuid::v4();
+
+        $store->write($id, 'payload');
+
+        McpAuthTestHelper::asNoAccessUser(function () use ($store, $id): void {
+            $this->assertFalse($store->read($id));
+            $this->assertFalse($store->exists($id));
+        });
+    }
+
+    public function testDestroyDoesNotDeleteSessionForDifferentAuthenticatedUser(): void
+    {
+        $store = new DbSessionStore(3600);
+        $id = Uuid::v4();
+
+        $store->write($id, 'payload');
+        $ownerLogin = Piwik::getCurrentUserLogin();
+
+        McpAuthTestHelper::asNoAccessUser(function () use ($store, $id): void {
+            $this->assertTrue($store->destroy($id));
+            $this->assertFalse($store->read($id));
+        });
+
+        $this->assertSame($ownerLogin, $this->fetchLogin($id));
+        $this->assertSame('payload', $this->fetchPayload($id));
+    }
+
+    public function testWriteStoresAnonymousLoginWhenAuthenticatedAsAnonymous(): void
+    {
+        $store = new DbSessionStore(3600);
+        $id = Uuid::v4();
+        $originalTokenAuth = McpAuthTestHelper::captureCurrentTokenAuth();
+
+        try {
+            McpAuthTestHelper::switchToAnonymous();
+            $store->write($id, 'payload');
+            $this->assertSame('anonymous', $this->fetchLogin($id));
+            $this->assertSame('payload', $store->read($id));
+        } finally {
+            McpAuthTestHelper::restoreAuth($originalTokenAuth);
+        }
     }
 
     public function testExpiredSessionIsRemovedOnRead(): void
@@ -202,6 +251,34 @@ class DbSessionStoreTest extends IntegrationTestCase
         }
 
         return (int) $row['expires_at'];
+    }
+
+    private function fetchLogin(Uuid $id): ?string
+    {
+        $row = Db::fetchRow(
+            sprintf('SELECT login FROM `%s` WHERE id = ?', $this->tableName),
+            [$id->toRfc4122()]
+        );
+
+        if (!array_key_exists('login', $row) || $row['login'] === null || !is_scalar($row['login'])) {
+            return null;
+        }
+
+        return (string) $row['login'];
+    }
+
+    private function fetchPayload(Uuid $id): ?string
+    {
+        $row = Db::fetchRow(
+            sprintf('SELECT data FROM `%s` WHERE id = ?', $this->tableName),
+            [$id->toRfc4122()]
+        );
+
+        if (!array_key_exists('data', $row) || $row['data'] === null || !is_scalar($row['data'])) {
+            return null;
+        }
+
+        return (string) $row['data'];
     }
 
     private function assertRowMissing(Uuid $id): void
