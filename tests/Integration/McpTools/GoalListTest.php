@@ -27,8 +27,8 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class GoalListTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idSiteOther;
+    private int $idSite = 0;
+    private int $idSiteOther = 0;
 
     public function setUp(): void
     {

@@ -37,9 +37,6 @@ final class PaginationConfig
 
         $sortTokens = [];
         foreach ($allowedSorts as $sortSpec) {
-            if (!$sortSpec instanceof SortSpec) {
-                throw new InvalidArgumentException('Invalid sort spec type.');
-            }
             if (isset($sortTokens[$sortSpec->token])) {
                 throw new InvalidArgumentException('Duplicate sort token.');
             }

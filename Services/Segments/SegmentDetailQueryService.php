@@ -82,10 +82,8 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
 
         $result = [];
         foreach ($segments as $segment) {
-            if (!is_array($segment)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
-            $result[] = $this->normalizeSegmentDetailData($segment, $context);
+            $segmentData = ToolDataNormalizer::requireStringKeyedArray($segment, $invalidDataMessage);
+            $result[] = $this->normalizeSegmentDetailData($segmentData, $context);
         }
 
         return $result;

@@ -16,6 +16,37 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 final class ToolDataNormalizer
 {
     /**
+     * @return array<string, mixed>
+     */
+    public static function requireStringKeyedArray(mixed $value, string $context): array
+    {
+        if (!is_array($value)) {
+            throw new ToolCallException(self::invalidMessage($context));
+        }
+
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                throw new ToolCallException(self::invalidMessage($context));
+            }
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
+    }
+
+    private static function invalidMessage(string $context): string
+    {
+        if (str_ends_with($context, '.')) {
+            return $context;
+        }
+        if (str_contains($context, ' is invalid')) {
+            return "{$context}.";
+        }
+
+        return "{$context} is invalid.";
+    }
+
+    /**
      * @param array<string, mixed> $data
      *
      * Note: empty strings are accepted intentionally. This validator enforces

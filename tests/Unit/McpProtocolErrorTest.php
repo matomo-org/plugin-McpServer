@@ -52,4 +52,24 @@ class McpProtocolErrorTest extends TestCase
 
         self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
     }
+
+    public function testSendRequestRejectsAuthorizationHeader(): void
+    {
+        $server = McpTestHelper::buildServer();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Do not pass Authorization header');
+
+        McpTestHelper::sendRequest($server, 'GET', '', ['Authorization' => 'Bearer custom-token']);
+    }
+
+    public function testSendRequestRejectsAuthorizationHeaderCaseInsensitive(): void
+    {
+        $server = McpTestHelper::buildServer();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Do not pass Authorization header');
+
+        McpTestHelper::sendRequest($server, 'GET', '', ['authorization' => 'Bearer custom-token']);
+    }
 }

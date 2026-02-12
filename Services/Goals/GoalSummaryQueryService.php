@@ -88,10 +88,8 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
 
         $result = [];
         foreach ($goals as $goal) {
-            if (!is_array($goal)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
-            $result[] = $this->normalizeGoalSummaryData($goal, $context);
+            $goalData = ToolDataNormalizer::requireStringKeyedArray($goal, $invalidDataMessage);
+            $result[] = $this->normalizeGoalSummaryData($goalData, $context);
         }
 
         return $result;

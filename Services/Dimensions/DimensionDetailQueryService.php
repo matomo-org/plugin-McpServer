@@ -40,17 +40,11 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
             throw new ToolCallException('Dimension retrieval failed.');
         }
 
-        if (!is_array($dimensions)) {
-            throw new ToolCallException('Dimension not found.');
-        }
-
         foreach ($dimensions as $dimension) {
-            if (!is_array($dimension)) {
-                throw new ToolCallException('Dimension data is invalid.');
-            }
+            $dimensionData = ToolDataNormalizer::requireStringKeyedArray($dimension, 'Dimension data');
 
             $candidateId = ToolDataNormalizer::requireIntLikeField(
-                $dimension,
+                $dimensionData,
                 'idcustomdimension',
                 'Dimension data'
             );
@@ -59,7 +53,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
                 continue;
             }
 
-            return $this->normalizeDimensionDetailData($dimension, 'Dimension data');
+            return $this->normalizeDimensionDetailData($dimensionData, 'Dimension data');
         }
 
         throw new ToolCallException('Dimension not found.');
@@ -96,13 +90,14 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
 
         $result = [];
         foreach ($extractions as $extraction) {
-            if (!is_array($extraction)) {
-                throw new ToolCallException("{$context} is invalid (field 'extractions').");
-            }
+            $extractionData = ToolDataNormalizer::requireStringKeyedArray(
+                $extraction,
+                "{$context} is invalid (field 'extractions')"
+            );
 
             $result[] = [
-                'dimension' => ToolDataNormalizer::requireStringField($extraction, 'dimension', $context),
-                'pattern' => ToolDataNormalizer::requireStringField($extraction, 'pattern', $context),
+                'dimension' => ToolDataNormalizer::requireStringField($extractionData, 'dimension', $context),
+                'pattern' => ToolDataNormalizer::requireStringField($extractionData, 'pattern', $context),
             ];
         }
 

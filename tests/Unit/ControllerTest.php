@@ -77,7 +77,7 @@ class ControllerTest extends TestCase
 
 final class TestController extends Controller
 {
-    private ServerRequestInterface $request;
+    private ?ServerRequestInterface $request = null;
     private ?ResponseInterface $response = null;
 
     public function setRequest(ServerRequestInterface $request): void
@@ -92,6 +92,10 @@ final class TestController extends Controller
 
     protected function createRequestFromGlobals(): ServerRequestInterface
     {
+        if ($this->request === null) {
+            throw new \RuntimeException('Request not set.');
+        }
+
         return $this->request;
     }
 

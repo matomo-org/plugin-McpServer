@@ -38,8 +38,7 @@ final class CursorPaginator
             throw new ToolCallException("Parameter 'sort' missing or invalid.");
         }
 
-        /** @var list<TItem> $rows */
-        $rows = array_values($items);
+        $rows = $items;
         usort($rows, fn(array $left, array $right): int => $this->compareRows($left, $right, $sortSpec));
 
         if ($request->cursor !== null) {
@@ -48,8 +47,7 @@ final class CursorPaginator
         }
 
         $totalRows = count($rows);
-        /** @var list<TItem> $rows */
-        $rows = array_values(array_slice($rows, 0, $limit));
+        $rows = array_slice($rows, 0, $limit);
         $hasMore = $totalRows > $limit;
         $nextCursor = null;
 

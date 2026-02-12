@@ -61,7 +61,6 @@ class ReportMetadataQueryServiceTest extends TestCase
         self::assertSame('Page URLs', $actual['name']);
         self::assertSame('Actions', $actual['category']);
         self::assertSame(['idGoal' => '1'], $actual['parameters']);
-        self::assertIsArray($actual['metadata']);
         self::assertSame('Actions_getPageUrls', $actual['metadata']['uniqueId'] ?? null);
     }
 

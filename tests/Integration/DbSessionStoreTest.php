@@ -25,7 +25,7 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class DbSessionStoreTest extends IntegrationTestCase
 {
-    private string $tableName;
+    private string $tableName = '';
 
     public function setUp(): void
     {

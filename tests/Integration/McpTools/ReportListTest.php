@@ -27,8 +27,8 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ReportListTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idSiteOther;
+    private int $idSite = 0;
+    private int $idSiteOther = 0;
 
     public function setUp(): void
     {
@@ -232,9 +232,10 @@ class ReportListTest extends IntegrationTestCase
             }
         }
 
-        if ($subtableUniqueIds === []) {
-            $this->markTestSkipped('No subtable report metadata available for this site in current environment.');
-        }
+        self::assertNotEmpty(
+            $subtableUniqueIds,
+            'Expected fixture metadata to include at least one subtable report.'
+        );
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -266,7 +267,8 @@ class ReportListTest extends IntegrationTestCase
         self::assertIsArray($reports);
         self::assertCount(2, $reports);
         self::assertIsString($firstPage['next_cursor'] ?? null);
-        $boundary = $this->extractNameSortBoundaryFromFirstPage($reports);
+        /** @var array<int, array<string, mixed>> $reports */
+        $boundary = $this->extractNameSortBoundaryFromFirstPage(array_values($reports));
 
         $goalIdLow = (int) GoalsApi::getInstance()->addGoal(
             $this->idSite,
@@ -298,7 +300,8 @@ class ReportListTest extends IntegrationTestCase
         $reports = $secondPage['reports'] ?? null;
         self::assertIsArray($reports);
         self::assertNotEmpty($reports);
-        $resultUniqueIds = $this->extractUniqueIdsFromToolReports($reports);
+        /** @var array<int, array<string, mixed>> $reports */
+        $resultUniqueIds = $this->extractUniqueIdsFromToolReports(array_values($reports));
         $candidateUniqueIdsAfterBoundary = $this->collectGoalReportUniqueIdsAfterNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
@@ -330,7 +333,8 @@ class ReportListTest extends IntegrationTestCase
         self::assertIsArray($reports);
         self::assertCount(2, $reports);
         self::assertIsString($firstPage['next_cursor'] ?? null);
-        $boundary = $this->extractNameSortBoundaryFromFirstPage($reports);
+        /** @var array<int, array<string, mixed>> $reports */
+        $boundary = $this->extractNameSortBoundaryFromFirstPage(array_values($reports));
 
         $goalIdLow = (int) GoalsApi::getInstance()->addGoal(
             $this->idSite,
@@ -362,7 +366,8 @@ class ReportListTest extends IntegrationTestCase
         $reports = $secondPage['reports'] ?? null;
         self::assertIsArray($reports);
         self::assertNotEmpty($reports);
-        $resultUniqueIds = $this->extractUniqueIdsFromToolReports($reports);
+        /** @var array<int, array<string, mixed>> $reports */
+        $resultUniqueIds = $this->extractUniqueIdsFromToolReports(array_values($reports));
         $candidateUniqueIdsAfterBoundary = $this->collectGoalReportUniqueIdsAfterNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
@@ -407,7 +412,7 @@ class ReportListTest extends IntegrationTestCase
 
         do {
             $arguments = ['idSite' => $idSite, 'limit' => 100];
-            if (is_string($cursor) && $cursor !== '') {
+            if (is_string($cursor)) {
                 $arguments['cursor'] = $cursor;
             }
 
@@ -434,7 +439,7 @@ class ReportListTest extends IntegrationTestCase
     }
 
     /**
-     * @param list<array<string, mixed>> $reports
+     * @param array<int, array<string, mixed>> $reports
      * @return array{name: string, uniqueId: string}
      */
     private function extractNameSortBoundaryFromFirstPage(array $reports): array
@@ -452,7 +457,7 @@ class ReportListTest extends IntegrationTestCase
     }
 
     /**
-     * @param list<array<string, mixed>> $reports
+     * @param array<int, array<string, mixed>> $reports
      * @return list<string>
      */
     private function extractUniqueIdsFromToolReports(array $reports): array
@@ -516,7 +521,10 @@ class ReportListTest extends IntegrationTestCase
         $uniqueIds = [];
 
         foreach ($source as $report) {
-            if (!is_array($report) || $this->isSubtableMetadataRow($report)) {
+            if (!is_array($report)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($report)) {
                 continue;
             }
             if (!$this->isMetadataRowForGoalIds($report, $idGoals)) {
@@ -559,7 +567,7 @@ class ReportListTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<mixed> $row
      * @param list<int> $idGoals
      */
     private function isMetadataRowForGoalIds(array $row, array $idGoals): bool
@@ -581,7 +589,7 @@ class ReportListTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<mixed> $row
      */
     private function isSubtableMetadataRow(array $row): bool
     {

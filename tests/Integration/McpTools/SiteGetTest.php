@@ -27,9 +27,9 @@ class SiteGetTest extends IntegrationTestCase
     private const TEST_TIMEZONE = 'UTC+2';
     private const TEST_CURRENCY = 'EUR';
 
-    private int $idSite;
-    private string $expectedTimezoneName;
-    private string $expectedCurrencyName;
+    private int $idSite = 0;
+    private string $expectedTimezoneName = '';
+    private string $expectedCurrencyName = '';
 
     public function setUp(): void
     {

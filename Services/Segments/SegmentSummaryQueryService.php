@@ -86,10 +86,8 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
 
         $result = [];
         foreach ($segments as $segment) {
-            if (!is_array($segment)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
-            $result[] = $this->normalizeSegmentSummaryData($segment, $context);
+            $segmentData = ToolDataNormalizer::requireStringKeyedArray($segment, $invalidDataMessage);
+            $result[] = $this->normalizeSegmentSummaryData($segmentData, $context);
         }
 
         return $result;

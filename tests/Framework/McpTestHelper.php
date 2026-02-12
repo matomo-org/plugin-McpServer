@@ -19,6 +19,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\InitializeRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListToolsRequest;
@@ -30,6 +31,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
+use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
@@ -85,13 +87,27 @@ final class McpTestHelper
         array|string $payload = '',
         array $headers = []
     ): ResponseInterface {
+        foreach ($headers as $name => $_value) {
+            if (\strtolower($name) === 'authorization') {
+                throw new \InvalidArgumentException(
+                    'Do not pass Authorization header to McpTestHelper::sendRequest(); auth is managed by the helper.'
+                );
+            }
+        }
+
         $factory = new Psr17Factory();
-        $request = $factory->createServerRequest($method, 'https://example.test/mcp');
+        $uri = 'https://example.test/mcp';
+        $tokenAuth = McpAuthTestHelper::getForcedTokenAuth() ?? Access::getInstance()->getTokenAuth();
+        $request = $factory->createServerRequest($method, $uri);
 
         if ($payload !== '') {
             $json = \is_array($payload) ? \json_encode($payload, \JSON_THROW_ON_ERROR) : $payload;
             $request = $request->withBody($factory->createStream($json));
             $request = $request->withHeader('Content-Type', 'application/json');
+        }
+
+        if ($tokenAuth !== null) {
+            $request = $request->withHeader('Authorization', 'Bearer ' . $tokenAuth);
         }
 
         foreach ($headers as $name => $value) {
@@ -100,7 +116,23 @@ final class McpTestHelper
 
         $transport = new StreamableHttpTransport($request);
 
-        return $server->run($transport);
+        $hadAuthorizationHeader = array_key_exists('HTTP_AUTHORIZATION', $_SERVER);
+        $previousAuthorizationHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+
+        if ($tokenAuth !== null) {
+            McpAuthTestHelper::switchToTokenAuth($tokenAuth);
+            $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $tokenAuth;
+        }
+
+        try {
+            return $server->run($transport);
+        } finally {
+            if ($hadAuthorizationHeader) {
+                $_SERVER['HTTP_AUTHORIZATION'] = $previousAuthorizationHeader;
+            } else {
+                unset($_SERVER['HTTP_AUTHORIZATION']);
+            }
+        }
     }
 
     public static function decodeMessage(ResponseInterface $response): MessageInterface
@@ -144,8 +176,6 @@ final class McpTestHelper
      */
     public static function parseInitialize(Response $response): InitializeResult
     {
-        Assert::assertIsArray($response->result, 'Expected initialize response result to be an array.');
-
         /**
          * @var array{
          *     protocolVersion: string,
@@ -165,8 +195,6 @@ final class McpTestHelper
      */
     public static function parseListTools(Response $response): ListToolsResult
     {
-        Assert::assertIsArray($response->result, 'Expected list tools response result to be an array.');
-
         /**
          * @var array{
          *     tools: array<ToolData>,
@@ -183,8 +211,6 @@ final class McpTestHelper
      */
     public static function parseCallTool(Response $response): CallToolResult
     {
-        Assert::assertIsArray($response->result, 'Expected call tool response result to be an array.');
-
         /**
          * @var array{
          *     content: array<mixed>,
@@ -267,7 +293,9 @@ final class McpTestHelper
         Assert::assertNotEmpty($result->content);
 
         if ($expectedText !== null) {
-            Assert::assertSame($expectedText, $result->content[0]->text ?? null);
+            $content = $result->content[0] ?? null;
+            Assert::assertInstanceOf(TextContent::class, $content);
+            Assert::assertSame($expectedText, $content->text);
         }
     }
 

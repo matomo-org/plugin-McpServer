@@ -1,7 +1,16 @@
+includes:
+    - ../../vendor/phpstan/phpstan/conf/bleedingEdge.neon
+
 parameters:
     level: max
     phpVersion: 80100
     tmpDir: /tmp/phpstan/McpServer/main
+
+    checkDynamicProperties: true
+    checkFunctionNameCase: true
+    checkInternalClassCaseSensitivity: true
+    checkUninitializedProperties: true
+    reportStaticMethodSignatures: true
 
     paths:
         - .

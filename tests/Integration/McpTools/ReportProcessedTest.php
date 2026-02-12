@@ -11,9 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
-use Piwik\Access;
 use Piwik\DataTable;
-use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
@@ -28,7 +26,7 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ReportProcessedTest extends IntegrationTestCase
 {
-    private int $idSite;
+    private int $idSite = 0;
 
     protected static function configureFixture($fixture): void
     {
@@ -158,16 +156,6 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertNotNull($reportUniqueId);
 
         McpAuthTestHelper::asNoAccessUser(function () use ($reportUniqueId): void {
-            try {
-                Access::getInstance()->checkUserHasViewAccess($this->idSite);
-                $this->markTestSkipped(
-                    'No-access fixture has view access in this runtime; '
-                    . 'cannot deterministically assert masked no-access error for processed reports.'
-                );
-            } catch (NoAccessException $e) {
-                // expected: this fixture should not have view access.
-            }
-
             $server = McpTestHelper::buildServer();
             $sessionId = McpTestHelper::initializeSession($server);
             McpTestHelper::callToolAndAssertError(
@@ -388,7 +376,10 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row) || $this->isSubtableMetadataRow($row)) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
 
@@ -413,7 +404,10 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row) || $this->isSubtableMetadataRow($row)) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
 
@@ -423,7 +417,10 @@ class ReportProcessedTest extends IntegrationTestCase
             }
 
             $rowIdGoal = $parameters['idGoal'] ?? null;
-            if ((string) $rowIdGoal !== (string) $idGoal) {
+            if (is_int($rowIdGoal)) {
+                $rowIdGoal = (string) $rowIdGoal;
+            }
+            if (!is_string($rowIdGoal) || $rowIdGoal !== (string) $idGoal) {
                 continue;
             }
 
@@ -447,7 +444,7 @@ class ReportProcessedTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param array<mixed> $row
      */
     private function isSubtableMetadataRow(array $row): bool
     {

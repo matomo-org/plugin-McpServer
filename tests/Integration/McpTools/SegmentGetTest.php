@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Piwik\Plugins\McpServer\McpTools\SegmentGet;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -26,15 +27,15 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class SegmentGetTest extends IntegrationTestCase
 {
-    private int $idSite;
-    private int $idSegmentAlpha;
-    private int $idSegmentBeta;
-    private int $idSegmentGamma;
-    private int $idSegmentDelta;
-    private int $idSegmentEpsilon;
-    private string $segmentNameAlpha;
-    private string $segmentNameShared;
-    private string $segmentDefinitionShared;
+    private int $idSite = 0;
+    private int $idSegmentAlpha = 0;
+    private int $idSegmentBeta = 0;
+    private int $idSegmentGamma = 0;
+    private int $idSegmentDelta = 0;
+    private int $idSegmentEpsilon = 0;
+    private string $segmentNameAlpha = '';
+    private string $segmentNameShared = '';
+    private string $segmentDefinitionShared = '';
 
     public function setUp(): void
     {
@@ -170,7 +171,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertTrue($result->isError);
-        self::assertSame('Segment not found.', $result->content[0]->text ?? null);
+        self::assertSame('Segment not found.', $this->extractFirstTextContent($result));
     }
 
     public function testReturnsErrorWhenNameMatchIsAmbiguous(): void
@@ -181,7 +182,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertTrue($result->isError);
-        self::assertSame('Multiple segments matched. Provide idSegment.', $result->content[0]->text ?? null);
+        self::assertSame('Multiple segments matched. Provide idSegment.', $this->extractFirstTextContent($result));
         self::assertNotSame($this->idSegmentBeta, $this->idSegmentGamma);
     }
 
@@ -193,7 +194,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertTrue($result->isError);
-        self::assertSame('Multiple segments matched. Provide idSegment.', $result->content[0]->text ?? null);
+        self::assertSame('Multiple segments matched. Provide idSegment.', $this->extractFirstTextContent($result));
         self::assertNotSame($this->idSegmentDelta, $this->idSegmentEpsilon);
     }
 
@@ -206,7 +207,7 @@ class SegmentGetTest extends IntegrationTestCase
             ]);
 
             self::assertTrue($result->isError);
-            self::assertSame('Segment not found.', $result->content[0]->text ?? null);
+            self::assertSame('Segment not found.', $this->extractFirstTextContent($result));
         });
     }
 
@@ -277,5 +278,14 @@ class SegmentGetTest extends IntegrationTestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeResponse($response);
         return McpTestHelper::parseCallTool($message);
+    }
+
+    private function extractFirstTextContent(CallToolResult $result): string
+    {
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        self::assertIsString($content->text);
+
+        return $content->text;
     }
 }

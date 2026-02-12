@@ -30,11 +30,6 @@ final class SortSpec
         if ($token === '') {
             throw new InvalidArgumentException('Sort token must not be empty.');
         }
-        foreach ($tieBreakers as $tieBreaker) {
-            if (!$tieBreaker instanceof KeySpec) {
-                throw new InvalidArgumentException('Invalid tie-breaker type.');
-            }
-        }
 
         $this->token = $token;
         $this->primary = $primary;

@@ -60,14 +60,14 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
      */
     public function normalizeReportSummaryData(array $report, string $context): ReportSummaryRecord
     {
-        $parameters = $report['parameters'] ?? [];
-        if (!is_array($parameters)) {
+        $parametersValue = $report['parameters'] ?? [];
+        if ($parametersValue !== [] && !is_array($parametersValue)) {
             throw new ToolCallException("{$context} is invalid (field 'parameters').");
         }
-
-        if (!$this->isAssocArray($parameters) && $parameters !== []) {
-            throw new ToolCallException("{$context} is invalid (field 'parameters').");
-        }
+        $parameters = ToolDataNormalizer::requireStringKeyedArray(
+            $parametersValue,
+            "{$context} is invalid (field 'parameters')"
+        );
 
         return new ReportSummaryRecord(
             uniqueId: ToolDataNormalizer::requireStringField($report, 'uniqueId', $context),
@@ -96,15 +96,13 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
 
         $result = [];
         foreach ($reports as $report) {
-            if (!is_array($report)) {
-                throw new ToolCallException($invalidDataMessage);
-            }
+            $reportData = ToolDataNormalizer::requireStringKeyedArray($report, $invalidDataMessage);
 
-            if ($this->isSubtableReport($report)) {
+            if ($this->isSubtableReport($reportData)) {
                 continue;
             }
 
-            $result[] = $this->normalizeReportSummaryData($report, $context);
+            $result[] = $this->normalizeReportSummaryData($reportData, $context);
         }
 
         return $result;
@@ -122,19 +120,5 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
 
         $alias = $report['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
-    }
-
-    /**
-     * @param array<mixed> $value
-     */
-    private function isAssocArray(array $value): bool
-    {
-        foreach (array_keys($value) as $key) {
-            if (!is_string($key)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
