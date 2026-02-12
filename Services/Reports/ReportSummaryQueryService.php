@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\Services\Reports;
+
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\NoAccessException;
+use Piwik\Plugins\API\API as ApiModuleApi;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+
+final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterface
+{
+    /**
+     * @return array<int, ReportSummaryRecord>
+     */
+    public function getReportSummariesForSite(int $idSite): array
+    {
+        try {
+            $reports = ApiModuleApi::getInstance()->getReportMetadata(
+                (string) $idSite,
+                false,
+                false,
+                true,
+                true
+            );
+        } catch (NoAccessException $e) {
+            // Keep list behavior aligned with other list tools: no view access yields no rows.
+            return [];
+        } catch (\Throwable $e) {
+            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
+                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+                return [];
+            }
+
+            throw new ToolCallException('Report retrieval failed.');
+        }
+
+        return $this->normalizeReportSummaryRows(
+            $reports,
+            'Report list data is invalid.',
+            'Report list item'
+        );
+    }
+
+    /**
+     * Public for testability and to share normalization contract across MCP tools.
+     *
+     * @param array<string, mixed> $report
+     */
+    public function normalizeReportSummaryData(array $report, string $context): ReportSummaryRecord
+    {
+        $parameters = $report['parameters'] ?? [];
+        if (!is_array($parameters)) {
+            throw new ToolCallException("{$context} is invalid (field 'parameters').");
+        }
+
+        if (!$this->isAssocArray($parameters) && $parameters !== []) {
+            throw new ToolCallException("{$context} is invalid (field 'parameters').");
+        }
+
+        return new ReportSummaryRecord(
+            uniqueId: ToolDataNormalizer::requireStringField($report, 'uniqueId', $context),
+            module: ToolDataNormalizer::requireStringField($report, 'module', $context),
+            action: ToolDataNormalizer::requireStringField($report, 'action', $context),
+            name: ToolDataNormalizer::requireStringField($report, 'name', $context),
+            category: ToolDataNormalizer::requireStringField($report, 'category', $context),
+            parameters: $parameters,
+        );
+    }
+
+    /**
+     * Public for testability and to keep top-level payload-shape validation centralized.
+     *
+     * @param mixed $reports
+     * @return array<int, ReportSummaryRecord>
+     */
+    public function normalizeReportSummaryRows(
+        mixed $reports,
+        string $invalidDataMessage,
+        string $context
+    ): array {
+        if (!is_array($reports)) {
+            throw new ToolCallException($invalidDataMessage);
+        }
+
+        $result = [];
+        foreach ($reports as $report) {
+            if (!is_array($report)) {
+                throw new ToolCallException($invalidDataMessage);
+            }
+
+            if ($this->isSubtableReport($report)) {
+                continue;
+            }
+
+            $result[] = $this->normalizeReportSummaryData($report, $context);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $report
+     */
+    private function isSubtableReport(array $report): bool
+    {
+        $primary = $report['isSubtableReport'] ?? null;
+        if ($primary === true || $primary === 1 || $primary === '1') {
+            return true;
+        }
+
+        $alias = $report['isSubtableReports'] ?? null;
+        return $alias === true || $alias === 1 || $alias === '1';
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function isAssocArray(array $value): bool
+    {
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}

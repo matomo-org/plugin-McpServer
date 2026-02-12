@@ -59,7 +59,7 @@ class DimensionList
                 'type' => 'integer',
                 'minimum' => 1,
                 'maximum' => DimensionsPagination::LIMIT_MAX,
-                'description' => 'Maximum number of results to return (default 100, max 500).',
+                'description' => 'Maximum number of results to return. Uses schema constraints.',
             ],
             'cursor' => [
                 'type' => 'string',

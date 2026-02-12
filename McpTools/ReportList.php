@@ -13,39 +13,39 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
-use Piwik\Plugins\McpServer\ApiWrappers\Goals\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Goals\ListApiWrapperInterface;
-use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\GoalSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\ApiWrappers\Reports\ListApiWrapper;
+use Piwik\Plugins\McpServer\Contracts\Reports\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\ReportSummaryPaginationResponder;
 
 /**
- * @phpstan-import-type GoalSummaryArray from GoalSummaryRecord
+ * @phpstan-import-type ReportSummaryArray from ReportSummaryRecord
  */
-class GoalList
+class ReportList
 {
-    public const TOOL_NAME = 'matomo_goal_list';
+    public const TOOL_NAME = 'matomo_report_list';
 
     public function __construct(
         private ?ListApiWrapperInterface $apiWrapper = null,
-        private ?GoalSummaryPaginationResponder $paginationResponder = null
+        private ?ReportSummaryPaginationResponder $paginationResponder = null
     ) {
     }
 
     /**
      * @return array{
-     *     goals: list<GoalSummaryArray>,
+     *     reports: list<ReportSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
      * }
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: you need reusable configured goals for a specific site.\n"
-            . "Purpose: return paginated goal definitions available for idSite.\n"
-            . "Next: use the chosen idgoal in goal-specific analytics/report API calls.",
-        outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST
+        description: "Use when: you need a compact discovery list of available reports for a site.\n"
+            . "Purpose: return paginated report metadata for idSite.\n"
+            . "Next: choose module/action/parameters and call Matomo reporting APIs.",
+        outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(
         type: 'object',
@@ -53,12 +53,12 @@ class GoalList
             'idSite' => [
                 'type' => 'integer',
                 'minimum' => 1,
-                'description' => 'Matomo site ID used to scope available goals.',
+                'description' => 'Matomo site ID used to scope available reports.',
             ],
             'limit' => [
                 'type' => 'integer',
                 'minimum' => 1,
-                'maximum' => GoalsPagination::LIMIT_MAX,
+                'maximum' => ReportsPagination::LIMIT_MAX,
                 'description' => 'Maximum number of results to return. Uses schema constraints.',
             ],
             'cursor' => [
@@ -68,10 +68,10 @@ class GoalList
             'sort' => [
                 'type' => 'string',
                 'enum' => [
-                    GoalsPagination::SORT_NAME_ASC,
-                    GoalsPagination::SORT_NAME_DESC,
-                    GoalsPagination::SORT_ID_ASC,
-                    GoalsPagination::SORT_ID_DESC,
+                    ReportsPagination::SORT_CATEGORY_ASC,
+                    ReportsPagination::SORT_CATEGORY_DESC,
+                    ReportsPagination::SORT_NAME_ASC,
+                    ReportsPagination::SORT_NAME_DESC,
                 ],
                 'description' => 'Sort order for results.',
             ],
@@ -81,9 +81,9 @@ class GoalList
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $cursorContext = hash('sha256', 'goal-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateGoalSummaryRecords(
-            $this->getApiWrapper()->getGoalsForSite($idSite),
+        $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
+        return $this->getPaginationResponder()->paginateReportSummaryRecords(
+            $this->getApiWrapper()->getReportsForSite($idSite),
             $limit,
             $cursor,
             $sort,
@@ -96,8 +96,8 @@ class GoalList
         return $this->apiWrapper ??= new ListApiWrapper();
     }
 
-    private function getPaginationResponder(): GoalSummaryPaginationResponder
+    private function getPaginationResponder(): ReportSummaryPaginationResponder
     {
-        return $this->paginationResponder ??= new GoalSummaryPaginationResponder();
+        return $this->paginationResponder ??= new ReportSummaryPaginationResponder();
     }
 }
