@@ -22,10 +22,14 @@ use Piwik\Tests\Framework\Fixture;
 
 final class McpAuthTestHelper
 {
+    private static ?string $forcedTokenAuth = null;
+
     public static function asNoAccessUser(callable $callback): mixed
     {
         $originalTokenAuth = self::captureCurrentTokenAuth();
+        $previousForcedTokenAuth = self::$forcedTokenAuth;
         $fixture = self::createNoAccessUserFixture();
+        self::$forcedTokenAuth = $fixture['tokenAuth'];
         self::switchToTokenAuth($fixture['tokenAuth']);
         $callbackError = null;
         $result = null;
@@ -45,6 +49,7 @@ final class McpAuthTestHelper
             }
 
             self::restoreAuth($originalTokenAuth);
+            self::$forcedTokenAuth = $previousForcedTokenAuth;
 
             if ($callbackError !== null) {
                 throw $callbackError;
@@ -56,6 +61,11 @@ final class McpAuthTestHelper
         }
 
         return $result;
+    }
+
+    public static function getForcedTokenAuth(): ?string
+    {
+        return self::$forcedTokenAuth;
     }
 
     /**

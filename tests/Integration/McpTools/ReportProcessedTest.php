@@ -11,9 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
-use Piwik\Access;
 use Piwik\DataTable;
-use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
@@ -158,16 +156,6 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertNotNull($reportUniqueId);
 
         McpAuthTestHelper::asNoAccessUser(function () use ($reportUniqueId): void {
-            try {
-                Access::getInstance()->checkUserHasViewAccess($this->idSite);
-                $this->markTestSkipped(
-                    'No-access fixture has view access in this runtime; '
-                    . 'cannot deterministically assert masked no-access error for processed reports.'
-                );
-            } catch (NoAccessException $e) {
-                // expected: this fixture should not have view access.
-            }
-
             $server = McpTestHelper::buildServer();
             $sessionId = McpTestHelper::initializeSession($server);
             McpTestHelper::callToolAndAssertError(

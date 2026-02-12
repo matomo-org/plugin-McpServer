@@ -30,6 +30,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
+use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
@@ -85,13 +86,27 @@ final class McpTestHelper
         array|string $payload = '',
         array $headers = []
     ): ResponseInterface {
+        foreach ($headers as $name => $_value) {
+            if (\is_string($name) && \strtolower($name) === 'authorization') {
+                throw new \InvalidArgumentException(
+                    'Do not pass Authorization header to McpTestHelper::sendRequest(); auth is managed by the helper.'
+                );
+            }
+        }
+
         $factory = new Psr17Factory();
-        $request = $factory->createServerRequest($method, 'https://example.test/mcp');
+        $uri = 'https://example.test/mcp';
+        $tokenAuth = McpAuthTestHelper::getForcedTokenAuth() ?? Access::getInstance()->getTokenAuth();
+        $request = $factory->createServerRequest($method, $uri);
 
         if ($payload !== '') {
             $json = \is_array($payload) ? \json_encode($payload, \JSON_THROW_ON_ERROR) : $payload;
             $request = $request->withBody($factory->createStream($json));
             $request = $request->withHeader('Content-Type', 'application/json');
+        }
+
+        if ($tokenAuth !== null) {
+            $request = $request->withHeader('Authorization', 'Bearer ' . $tokenAuth);
         }
 
         foreach ($headers as $name => $value) {
@@ -100,7 +115,23 @@ final class McpTestHelper
 
         $transport = new StreamableHttpTransport($request);
 
-        return $server->run($transport);
+        $hadAuthorizationHeader = array_key_exists('HTTP_AUTHORIZATION', $_SERVER);
+        $previousAuthorizationHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+
+        if ($tokenAuth !== null) {
+            McpAuthTestHelper::switchToTokenAuth($tokenAuth);
+            $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $tokenAuth;
+        }
+
+        try {
+            return $server->run($transport);
+        } finally {
+            if ($hadAuthorizationHeader) {
+                $_SERVER['HTTP_AUTHORIZATION'] = $previousAuthorizationHeader;
+            } else {
+                unset($_SERVER['HTTP_AUTHORIZATION']);
+            }
+        }
     }
 
     public static function decodeMessage(ResponseInterface $response): MessageInterface
