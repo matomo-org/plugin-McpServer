@@ -26,7 +26,7 @@ class DbSessionTable
             `expires_at` INTEGER NOT NULL,
             `data` MEDIUMTEXT,
             PRIMARY KEY (`id`),
-            INDEX `idx_expires_at` (`expires_at`)
+            INDEX `index_expires_at` (`expires_at`)
         ';
 
         DbHelper::createTable(self::TABLE_NAME, $definition);
