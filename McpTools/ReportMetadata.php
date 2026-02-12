@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetMetadataApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
@@ -39,6 +40,7 @@ class ReportMetadata
         description: "Use when: you need full metadata for one report in a site scope.\n"
             . "Purpose: resolve one report by reportUniqueId (preferred) or module/action selector.\n"
             . "Next: use the returned metadata and parameters for reporting API calls.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: ReportMetadataToolOutputSchema::ITEM
     )]
     #[Schema(definition: [

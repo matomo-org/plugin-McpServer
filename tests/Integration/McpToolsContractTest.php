@@ -47,5 +47,33 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertContains('matomo_report_list', $toolNames);
         self::assertContains('matomo_report_metadata', $toolNames);
         self::assertContains('matomo_report_processed', $toolNames);
+
+        $expectedHintsByTool = [
+            'matomo_site_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_site_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_site_search' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_segment_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_segment_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_dimension_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_dimension_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_goal_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_goal_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_report_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_report_metadata' => ['readOnlyHint' => true, 'openWorldHint' => false],
+            'matomo_report_processed' => ['readOnlyHint' => false, 'openWorldHint' => false],
+        ];
+
+        $toolsByName = [];
+        foreach ($result->tools as $tool) {
+            $toolsByName[$tool->name] = $tool;
+        }
+
+        foreach ($expectedHintsByTool as $toolName => $expectedHints) {
+            self::assertArrayHasKey($toolName, $toolsByName);
+            $tool = $toolsByName[$toolName];
+            self::assertNotNull($tool->annotations);
+            self::assertSame($expectedHints['readOnlyHint'], $tool->annotations->readOnlyHint);
+            self::assertSame($expectedHints['openWorldHint'], $tool->annotations->openWorldHint);
+        }
     }
 }

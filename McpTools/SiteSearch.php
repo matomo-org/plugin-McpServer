@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
@@ -47,6 +48,7 @@ class SiteSearch
             . "Purpose: find matching Matomo sites and return candidate idSite values.\n"
             . "Notes: may return multiple matches; results are ordered by sort (default name_asc).\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

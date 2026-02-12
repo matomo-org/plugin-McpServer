@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\Goals\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Goals\ListApiWrapperInterface;
@@ -45,6 +46,7 @@ class GoalList
         description: "Use when: you need reusable configured goals for a specific site.\n"
             . "Purpose: return paginated goal definitions available for idSite.\n"
             . "Next: use the chosen idgoal in goal-specific analytics/report API calls.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

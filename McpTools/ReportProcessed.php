@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetProcessedApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Reports\GetProcessedApiWrapperInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
@@ -43,6 +44,11 @@ class ReportProcessed
             . "Purpose: resolve report selector, fetch processed report payload, "
             . "and return stable pagination metadata.\n"
             . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.",
+        // Keep readOnlyHint=false as the safe default:
+        // depending on dynamic Matomo archiving configuration, fetching processed reports
+        // can trigger report generation/archiving side effects. The true read-only value
+        // must be derived at runtime from current configuration.
+        annotations: new ToolAnnotations(readOnlyHint: false, openWorldHint: false),
         outputSchema: ReportProcessedToolOutputSchema::ITEM
     )]
     #[Schema(definition: [

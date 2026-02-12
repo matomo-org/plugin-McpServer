@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\ApiWrappers\CustomDimensions\GetApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\GetApiWrapperInterface;
@@ -37,6 +38,7 @@ class DimensionGet
         description: "Use when: idSite and idDimension are known.\n"
             . "Purpose: fetch authoritative details for exactly one configured custom dimension.\n"
             . "Do not use: if dimension id is unknown—discover candidates first.",
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: DimensionDetailToolOutputSchema::ITEM
     )]
     #[Schema(
