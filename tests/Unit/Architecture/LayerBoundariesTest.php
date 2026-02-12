@@ -23,19 +23,10 @@ class LayerBoundariesTest extends TestCase
     private const API_WRAPPERS_NAMESPACE = self::PLUGIN_NAMESPACE . 'ApiWrappers\\';
 
     /**
-     * Keep this list explicit so additional exceptions fail fast.
-     *
-     * @var list<string>
-     */
-    private const SERVICE_TO_WRAPPER_EXCEPTION_FILES = [
-        'Services/Reports/ReportProcessedQueryService.php',
-    ];
-
-    /**
      * @var list<string>
      */
     private const MCPTOOLS_NEW_CLASS_ALLOW_PREFIXES = [
-        self::API_WRAPPERS_NAMESPACE,
+        self::PLUGIN_NAMESPACE . 'Services\\',
         self::PLUGIN_NAMESPACE . 'Support\\Tooling\\',
     ];
 
@@ -58,10 +49,6 @@ class LayerBoundariesTest extends TestCase
                 continue;
             }
 
-            if (in_array($relativePath, self::SERVICE_TO_WRAPPER_EXCEPTION_FILES, true)) {
-                continue;
-            }
-
             $violations[] = $relativePath;
         }
 
@@ -69,15 +56,6 @@ class LayerBoundariesTest extends TestCase
             [],
             $violations,
             "Service -> ApiWrappers dependency violations:\n" . implode("\n", $violations)
-        );
-    }
-
-    public function testServiceWrapperExceptionRegistryContainsOnlyKnownPhaseOneException(): void
-    {
-        self::assertSame(
-            ['Services/Reports/ReportProcessedQueryService.php'],
-            self::SERVICE_TO_WRAPPER_EXCEPTION_FILES,
-            'Phase 1 exception registry changed. Additions are not allowed in this phase.'
         );
     }
 

@@ -14,7 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 
@@ -588,7 +588,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testDoesNotInjectTopLevelIdGoalIntoPrimaryMetadataLookup(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             public int $calls = 0;
 
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
@@ -663,7 +663,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testRetriesMetadataLookupWithTopLevelSelectorsWhenInitialLookupNotFound(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             public int $calls = 0;
 
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
@@ -776,9 +776,9 @@ class ReportProcessedQueryServiceTest extends TestCase
         }
     }
 
-    private function makeMetadataWrapper(): GetMetadataApiWrapperInterface
+    private function makeMetadataWrapper(): ReportMetadataQueryServiceInterface
     {
-        return new class () implements GetMetadataApiWrapperInterface {
+        return new class () implements ReportMetadataQueryServiceInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
             {
                 return new ReportMetadataRecord(
@@ -813,9 +813,9 @@ class ReportProcessedQueryServiceTest extends TestCase
         };
     }
 
-    private function makeMetadataWrapperWithIdGoalParameter(): GetMetadataApiWrapperInterface
+    private function makeMetadataWrapperWithIdGoalParameter(): ReportMetadataQueryServiceInterface
     {
-        return new class () implements GetMetadataApiWrapperInterface {
+        return new class () implements ReportMetadataQueryServiceInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
             {
                 return new ReportMetadataRecord(

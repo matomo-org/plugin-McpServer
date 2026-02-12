@@ -14,7 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Goals\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\GoalList;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 
@@ -26,8 +26,8 @@ class GoalListTest extends TestCase
 {
     public function testListReturnsSortedSummariesFromApiWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getGoalsForSite(int $idSite): array
+        $wrapper = new class () implements GoalSummaryQueryServiceInterface {
+            public function getGoalSummariesForSite(int $idSite): array
             {
                 return [
                     new GoalSummaryRecord(2, $idSite, 'Goal B', '', 'event_action', false, '0', false),
@@ -68,8 +68,8 @@ class GoalListTest extends TestCase
 
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getGoalsForSite(int $idSite): array
+        $wrapper = new class () implements GoalSummaryQueryServiceInterface {
+            public function getGoalSummariesForSite(int $idSite): array
             {
                 throw new ToolCallException("Goal list item is incomplete (missing 'name').");
             }
@@ -83,8 +83,8 @@ class GoalListTest extends TestCase
 
     public function testListRejectsInvalidCursor(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getGoalsForSite(int $idSite): array
+        $wrapper = new class () implements GoalSummaryQueryServiceInterface {
+            public function getGoalSummariesForSite(int $idSite): array
             {
                 return [];
             }
@@ -98,8 +98,8 @@ class GoalListTest extends TestCase
 
     public function testListRejectsCursorSortMismatch(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getGoalsForSite(int $idSite): array
+        $wrapper = new class () implements GoalSummaryQueryServiceInterface {
+            public function getGoalSummariesForSite(int $idSite): array
             {
                 return [
                     new GoalSummaryRecord(1, $idSite, 'Goal A', '', 'event_action', false, '0', false),
@@ -121,8 +121,8 @@ class GoalListTest extends TestCase
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getGoalsForSite(int $idSite): array
+        $wrapper = new class () implements GoalSummaryQueryServiceInterface {
+            public function getGoalSummariesForSite(int $idSite): array
             {
                 return [
                     new GoalSummaryRecord(1, $idSite, 'Goal A', '', 'event_action', false, '0', false),

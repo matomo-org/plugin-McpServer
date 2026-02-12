@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\CustomDimensions\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\DimensionSummaryPaginationResponder;
 
@@ -29,7 +29,7 @@ class DimensionList
     public const TOOL_NAME = 'matomo_dimension_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?DimensionSummaryQueryServiceInterface $queryService = null,
         private ?DimensionSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -85,7 +85,7 @@ class DimensionList
     {
         $cursorContext = hash('sha256', 'dimension-list:idSite:' . (string) $idSite);
         return $this->getPaginationResponder()->paginateDimensionSummaryRecords(
-            $this->getApiWrapper()->getDimensionsForSite($idSite),
+            $this->getQueryService()->getDimensionSummariesForSite($idSite),
             $limit,
             $cursor,
             $sort,
@@ -93,9 +93,9 @@ class DimensionList
         );
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): DimensionSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new DimensionSummaryQueryService();
     }
 
     private function getPaginationResponder(): DimensionSummaryPaginationResponder

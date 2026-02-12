@@ -18,9 +18,8 @@ use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetMetadataApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
@@ -49,7 +48,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private $processedReportCaller;
 
     public function __construct(
-        private ?GetMetadataApiWrapperInterface $metadataApiWrapper = null,
+        private ?ReportMetadataQueryServiceInterface $metadataQueryService = null,
         ?callable $processedReportCaller = null
     ) {
         $this->processedReportCaller = $processedReportCaller;
@@ -82,7 +81,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         );
 
         if ($reportUniqueId !== null) {
-            $reportMetadata = $this->getMetadataApiWrapper()->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+            $reportMetadata = $this->getMetadataQueryService()->getReportMetadataByUniqueId($idSite, $reportUniqueId);
             if ($reportSpecificParameters !== []) {
                 throw new ToolCallException(
                     'Invalid apiParameters for reportUniqueId lookup. '
@@ -167,7 +166,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         string $date
     ): ReportMetadataRecord {
         try {
-            return $this->getMetadataApiWrapper()->getReportMetadataByModuleAction(
+            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -189,7 +188,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 throw $e;
             }
 
-            return $this->getMetadataApiWrapper()->getReportMetadataByModuleAction(
+            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -635,9 +634,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         unset($childData);
     }
 
-    private function getMetadataApiWrapper(): GetMetadataApiWrapperInterface
+    private function getMetadataQueryService(): ReportMetadataQueryServiceInterface
     {
-        return $this->metadataApiWrapper ??= new GetMetadataApiWrapper();
+        return $this->metadataQueryService ??= new ReportMetadataQueryService();
     }
 
     /**

@@ -13,7 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 
@@ -25,7 +25,7 @@ class ReportMetadataTest extends TestCase
 {
     public function testGetReturnsRecordByUniqueId(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
             {
                 return new ReportMetadataRecord(
@@ -60,7 +60,7 @@ class ReportMetadataTest extends TestCase
 
     public function testGetReturnsRecordByModuleActionWithDefaults(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             /** @var array<string, mixed> */
             public array $captured = [];
 
@@ -110,7 +110,7 @@ class ReportMetadataTest extends TestCase
 
     public function testGetAllowsUniqueIdCombinedWithPeriodDate(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             /** @var array<string, mixed> */
             public array $captured = [];
 
@@ -155,7 +155,7 @@ class ReportMetadataTest extends TestCase
 
     public function testGetRejectsUniqueIdCombinedWithModuleActionOrApiParameters(): void
     {
-        $wrapper = new class () implements GetMetadataApiWrapperInterface {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
             {
                 throw new \RuntimeException('unexpected');

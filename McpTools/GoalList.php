@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Goals\ListApiWrapper;
 use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Goals\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\GoalSummaryPaginationResponder;
 
@@ -29,7 +29,7 @@ class GoalList
     public const TOOL_NAME = 'matomo_goal_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?GoalSummaryQueryServiceInterface $queryService = null,
         private ?GoalSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -85,7 +85,7 @@ class GoalList
     {
         $cursorContext = hash('sha256', 'goal-list:idSite:' . (string) $idSite);
         return $this->getPaginationResponder()->paginateGoalSummaryRecords(
-            $this->getApiWrapper()->getGoalsForSite($idSite),
+            $this->getQueryService()->getGoalSummariesForSite($idSite),
             $limit,
             $cursor,
             $sort,
@@ -93,9 +93,9 @@ class GoalList
         );
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): GoalSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new GoalSummaryQueryService();
     }
 
     private function getPaginationResponder(): GoalSummaryPaginationResponder

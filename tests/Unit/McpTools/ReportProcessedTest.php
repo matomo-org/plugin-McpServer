@@ -12,7 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetProcessedApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
 
 /**
@@ -23,13 +24,12 @@ class ReportProcessedTest extends TestCase
 {
     public function testGetUsesDefaultsAndUniqueIdSelector(): void
     {
-        $wrapper = new class () implements GetProcessedApiWrapperInterface {
+        $wrapper = new class () implements ReportProcessedQueryServiceInterface {
             /** @var array<string, mixed> */
             public array $captured = [];
 
             /**
              * @param list<int|string>|null $goalMetricsProcessGoals
-             * @return array<string, mixed>
              */
             public function getProcessedReport(
                 int $idSite,
@@ -47,7 +47,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idSubtable,
                 int $filterLimit,
                 int $filterOffset
-            ): array {
+            ): ReportProcessedRecord {
                 $this->captured = [
                     'idSite' => $idSite,
                     'period' => $period,
@@ -66,21 +66,17 @@ class ReportProcessedTest extends TestCase
                     'filterOffset' => $filterOffset,
                 ];
 
-                return [
-                    'report' => [],
-                    'pagination' => [
-                        'filter_limit' => $filterLimit,
-                        'filter_offset' => $filterOffset,
-                        'returned_rows' => 0,
-                        'has_more' => false,
-                    ],
-                    'resolvedReport' => [
-                        'uniqueId' => (string) $reportUniqueId,
-                        'apiModule' => 'Actions',
-                        'apiAction' => 'getPageUrls',
-                        'apiParameters' => [],
-                    ],
-                ];
+                return new ReportProcessedRecord(
+                    report: [],
+                    filterLimit: $filterLimit,
+                    filterOffset: $filterOffset,
+                    returnedRows: 0,
+                    hasMore: false,
+                    uniqueId: (string) $reportUniqueId,
+                    apiModule: 'Actions',
+                    apiAction: 'getPageUrls',
+                    apiParameters: []
+                );
             }
         };
 
@@ -101,13 +97,12 @@ class ReportProcessedTest extends TestCase
 
     public function testGetPassesOptionalArguments(): void
     {
-        $wrapper = new class () implements GetProcessedApiWrapperInterface {
+        $wrapper = new class () implements ReportProcessedQueryServiceInterface {
             /** @var array<string, mixed> */
             public array $captured = [];
 
             /**
              * @param list<int|string>|null $goalMetricsProcessGoals
-             * @return array<string, mixed>
              */
             public function getProcessedReport(
                 int $idSite,
@@ -125,7 +120,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idSubtable,
                 int $filterLimit,
                 int $filterOffset
-            ): array {
+            ): ReportProcessedRecord {
                 $this->captured = [
                     'apiModule' => $apiModule,
                     'apiAction' => $apiAction,
@@ -140,21 +135,17 @@ class ReportProcessedTest extends TestCase
                     'filterOffset' => $filterOffset,
                 ];
 
-                return [
-                    'report' => [],
-                    'pagination' => [
-                        'filter_limit' => $filterLimit,
-                        'filter_offset' => $filterOffset,
-                        'returned_rows' => 0,
-                        'has_more' => false,
-                    ],
-                    'resolvedReport' => [
-                        'uniqueId' => 'VisitsSummary_get',
-                        'apiModule' => (string) $apiModule,
-                        'apiAction' => (string) $apiAction,
-                        'apiParameters' => $apiParameters ?? [],
-                    ],
-                ];
+                return new ReportProcessedRecord(
+                    report: [],
+                    filterLimit: $filterLimit,
+                    filterOffset: $filterOffset,
+                    returnedRows: 0,
+                    hasMore: false,
+                    uniqueId: 'VisitsSummary_get',
+                    apiModule: (string) $apiModule,
+                    apiAction: (string) $apiAction,
+                    apiParameters: $apiParameters ?? []
+                );
             }
         };
 

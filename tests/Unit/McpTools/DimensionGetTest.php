@@ -14,7 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 
 /**
@@ -25,8 +25,8 @@ class DimensionGetTest extends TestCase
 {
     public function testGetReturnsRecordFromApiWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
-            public function getDimensionById(int $idSite, int $idDimension): DimensionDetailRecord
+        $wrapper = new class () implements DimensionDetailQueryServiceInterface {
+            public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
             {
                 return new DimensionDetailRecord(
                     idDimension: $idDimension,
@@ -57,11 +57,11 @@ class DimensionGetTest extends TestCase
 
     public function testGetPassesArgumentsToApiWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
+        $wrapper = new class () implements DimensionDetailQueryServiceInterface {
             /** @var array<string, int> */
             public array $captured = [];
 
-            public function getDimensionById(int $idSite, int $idDimension): DimensionDetailRecord
+            public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
             {
                 $this->captured = [
                     'idSite' => $idSite,
@@ -88,8 +88,8 @@ class DimensionGetTest extends TestCase
 
     public function testGetPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
-            public function getDimensionById(int $idSite, int $idDimension): DimensionDetailRecord
+        $wrapper = new class () implements DimensionDetailQueryServiceInterface {
+            public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
             {
                 throw new ToolCallException("Dimension data is incomplete (missing 'name').");
             }

@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Sites\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
 
@@ -29,7 +29,7 @@ class SiteList
     public const TOOL_NAME = 'matomo_site_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?SiteSummaryQueryServiceInterface $queryService = null,
         private ?SiteSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -78,16 +78,16 @@ class SiteList
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         return $this->getPaginationResponder()->paginateSiteSummaryRecords(
-            $this->getApiWrapper()->getSitesWithViewAccess(),
+            $this->getQueryService()->getSiteSummariesForList(),
             $limit,
             $cursor,
             $sort
         );
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): SiteSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new SiteSummaryQueryService();
     }
 
     private function getPaginationResponder(): SiteSummaryPaginationResponder

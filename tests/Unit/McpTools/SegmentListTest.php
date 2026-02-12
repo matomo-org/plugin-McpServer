@@ -13,7 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Segments\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
@@ -26,8 +26,8 @@ class SegmentListTest extends TestCase
 {
     public function testListReturnsSortedSummariesFromApiWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getSegmentsForSite(int $idSite): array
+        $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
+            public function getSegmentSummariesForSite(int $idSite): array
             {
                 return [
                     new SegmentSummaryRecord(2, 'Segment B', 'countryCode==fr', null),
@@ -50,8 +50,8 @@ class SegmentListTest extends TestCase
 
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getSegmentsForSite(int $idSite): array
+        $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
+            public function getSegmentSummariesForSite(int $idSite): array
             {
                 throw new ToolCallException("Segment list item is incomplete (missing 'definition').");
             }
@@ -65,8 +65,8 @@ class SegmentListTest extends TestCase
 
     public function testListRejectsInvalidCursor(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getSegmentsForSite(int $idSite): array
+        $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
+            public function getSegmentSummariesForSite(int $idSite): array
             {
                 return [];
             }
@@ -80,8 +80,8 @@ class SegmentListTest extends TestCase
 
     public function testListRejectsCursorSortMismatch(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getSegmentsForSite(int $idSite): array
+        $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
+            public function getSegmentSummariesForSite(int $idSite): array
             {
                 return [
                     new SegmentSummaryRecord(1, 'Segment A', 'countryCode==de', 1),
@@ -103,8 +103,8 @@ class SegmentListTest extends TestCase
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getSegmentsForSite(int $idSite): array
+        $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
+            public function getSegmentSummariesForSite(int $idSite): array
             {
                 return [
                     new SegmentSummaryRecord(1, 'Segment A', 'countryCode==de', $idSite),

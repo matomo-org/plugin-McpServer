@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\ReportSummaryPaginationResponder;
 
@@ -29,7 +29,7 @@ class ReportList
     public const TOOL_NAME = 'matomo_report_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?ReportSummaryQueryServiceInterface $queryService = null,
         private ?ReportSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -85,7 +85,7 @@ class ReportList
     {
         $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
         return $this->getPaginationResponder()->paginateReportSummaryRecords(
-            $this->getApiWrapper()->getReportsForSite($idSite),
+            $this->getQueryService()->getReportSummariesForSite($idSite),
             $limit,
             $cursor,
             $sort,
@@ -93,9 +93,9 @@ class ReportList
         );
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): ReportSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new ReportSummaryQueryService();
     }
 
     private function getPaginationResponder(): ReportSummaryPaginationResponder

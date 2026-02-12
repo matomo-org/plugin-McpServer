@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\GetApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Sites\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 
 /**
  * @phpstan-import-type SiteDetailArray from SiteDetailRecord
@@ -26,7 +26,7 @@ class SiteGet
 {
     public const TOOL_NAME = 'matomo_site_get';
 
-    public function __construct(private ?GetApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?SiteDetailQueryServiceInterface $queryService = null)
     {
     }
 
@@ -57,14 +57,14 @@ class SiteGet
     )]
     public function get(int $idSite): array
     {
-        // See SitesManager\GetApiWrapper for normalization contract and intentional
+        // See SiteDetailQueryService for normalization contract and intentional
         // not-found/access-denied message collapsing behavior.
-        $site = $this->getApiWrapper()->getSiteDetailFromId($idSite);
+        $site = $this->getQueryService()->getSiteDetailFromId($idSite);
         return $site->toArray();
     }
 
-    private function getApiWrapper(): GetApiWrapperInterface
+    private function getQueryService(): SiteDetailQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetApiWrapper();
+        return $this->queryService ??= new SiteDetailQueryService();
     }
 }

@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SegmentEditor\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Segments\ListApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\SegmentSummaryPaginationResponder;
 
@@ -29,7 +29,7 @@ class SegmentList
     public const TOOL_NAME = 'matomo_segment_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
+        private ?SegmentSummaryQueryServiceInterface $queryService = null,
         private ?SegmentSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -85,7 +85,7 @@ class SegmentList
     {
         $cursorContext = hash('sha256', 'segment-list:idSite:' . (string) $idSite);
         return $this->getPaginationResponder()->paginateSegmentSummaryRecords(
-            $this->getApiWrapper()->getSegmentsForSite($idSite),
+            $this->getQueryService()->getSegmentSummariesForSite($idSite),
             $limit,
             $cursor,
             $sort,
@@ -93,9 +93,9 @@ class SegmentList
         );
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): SegmentSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new SegmentSummaryQueryService();
     }
 
     private function getPaginationResponder(): SegmentSummaryPaginationResponder

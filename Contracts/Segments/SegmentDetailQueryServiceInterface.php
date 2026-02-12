@@ -17,4 +17,11 @@ interface SegmentDetailQueryServiceInterface
      * @return array<int, SegmentDetailRecord>
      */
     public function getSegmentDetailsForSite(int $idSite): array;
+
+    public function getSegmentBySelector(
+        int $idSite,
+        ?int $idSegment = null,
+        ?string $name = null,
+        ?string $definition = null
+    ): SegmentDetailRecord;
 }

@@ -14,7 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 
@@ -26,8 +26,8 @@ class DimensionListTest extends TestCase
 {
     public function testListReturnsSortedSummariesFromApiWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getDimensionsForSite(int $idSite): array
+        $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
+            public function getDimensionSummariesForSite(int $idSite): array
             {
                 return [
                     new DimensionSummaryRecord(8, 'Zeta Dimension', 'action'),
@@ -62,8 +62,8 @@ class DimensionListTest extends TestCase
 
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getDimensionsForSite(int $idSite): array
+        $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
+            public function getDimensionSummariesForSite(int $idSite): array
             {
                 throw new ToolCallException("Dimension list item is incomplete (missing 'name').");
             }
@@ -77,8 +77,8 @@ class DimensionListTest extends TestCase
 
     public function testListRejectsInvalidCursor(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getDimensionsForSite(int $idSite): array
+        $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
+            public function getDimensionSummariesForSite(int $idSite): array
             {
                 return [];
             }
@@ -92,8 +92,8 @@ class DimensionListTest extends TestCase
 
     public function testListRejectsCursorSortMismatch(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getDimensionsForSite(int $idSite): array
+        $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
+            public function getDimensionSummariesForSite(int $idSite): array
             {
                 return [
                     new DimensionSummaryRecord(2, 'Dimension A', 'visit'),
@@ -115,8 +115,8 @@ class DimensionListTest extends TestCase
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getDimensionsForSite(int $idSite): array
+        $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
+            public function getDimensionSummariesForSite(int $idSite): array
             {
                 return [
                     new DimensionSummaryRecord(1, 'Dimension A', 'visit'),

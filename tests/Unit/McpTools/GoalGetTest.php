@@ -13,7 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Goals\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
 
@@ -25,8 +25,8 @@ class GoalGetTest extends TestCase
 {
     public function testGetReturnsRecordFromApiWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
-            public function getGoalById(int $idSite, int $idGoal): GoalDetailRecord
+        $wrapper = new class () implements GoalDetailQueryServiceInterface {
+            public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
             {
                 return new GoalDetailRecord(
                     idGoal: $idGoal,
@@ -63,11 +63,11 @@ class GoalGetTest extends TestCase
 
     public function testGetPassesArgumentsToApiWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
+        $wrapper = new class () implements GoalDetailQueryServiceInterface {
             /** @var array<string, int> */
             public array $captured = [];
 
-            public function getGoalById(int $idSite, int $idGoal): GoalDetailRecord
+            public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
             {
                 $this->captured = [
                     'idSite' => $idSite,
@@ -97,8 +97,8 @@ class GoalGetTest extends TestCase
 
     public function testGetPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
-            public function getGoalById(int $idSite, int $idGoal): GoalDetailRecord
+        $wrapper = new class () implements GoalDetailQueryServiceInterface {
+            public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
             {
                 throw new ToolCallException("Goal data is incomplete (missing 'name').");
             }

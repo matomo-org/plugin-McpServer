@@ -15,10 +15,10 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\SearchApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
 
@@ -30,7 +30,7 @@ class SiteSearch
     public const TOOL_NAME = 'matomo_site_search';
 
     public function __construct(
-        private ?SearchApiWrapperInterface $apiWrapper = null,
+        private ?SiteSummaryQueryServiceInterface $queryService = null,
         private ?SiteSummaryPaginationResponder $paginationResponder = null
     ) {
     }
@@ -96,7 +96,7 @@ class SiteSearch
 
         $cursorContext = hash('sha256', $search);
         return $this->getPaginationResponder()->paginateSiteSummaryRecords(
-            $this->getApiWrapper()->searchSitesWithViewAccess($search),
+            $this->getQueryService()->getSiteSummariesForSearch($search),
             $limit,
             $cursor,
             $sort,
@@ -104,9 +104,9 @@ class SiteSearch
         );
     }
 
-    private function getApiWrapper(): SearchApiWrapperInterface
+    private function getQueryService(): SiteSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new SearchApiWrapper();
+        return $this->queryService ??= new SiteSummaryQueryService();
     }
 
     private function getPaginationResponder(): SiteSummaryPaginationResponder

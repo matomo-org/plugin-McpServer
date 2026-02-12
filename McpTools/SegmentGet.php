@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SegmentEditor\GetApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Segments\GetApiWrapperInterface;
 use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 
 /**
  * @phpstan-import-type SegmentDetailArray from SegmentDetailRecord
@@ -26,7 +26,7 @@ class SegmentGet
 {
     public const TOOL_NAME = 'matomo_segment_get';
 
-    public function __construct(private ?GetApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?SegmentDetailQueryServiceInterface $queryService = null)
     {
     }
 
@@ -79,7 +79,7 @@ class SegmentGet
         ?string $name = null,
         ?string $definition = null
     ): array {
-        return $this->getApiWrapper()->getSegmentBySelector(
+        return $this->getQueryService()->getSegmentBySelector(
             $idSite,
             $idSegment,
             $name,
@@ -87,8 +87,8 @@ class SegmentGet
         )->toArray();
     }
 
-    private function getApiWrapper(): GetApiWrapperInterface
+    private function getQueryService(): SegmentDetailQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetApiWrapper();
+        return $this->queryService ??= new SegmentDetailQueryService();
     }
 }
