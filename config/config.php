@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
@@ -33,10 +34,13 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
+use Piwik\Plugins\McpServer\Session\DbSessionStore;
+use Piwik\Plugins\McpServer\Session\DbSessionTable;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
     DimensionDetailQueryServiceInterface::class => DI::autowire(DimensionDetailQueryService::class),
@@ -55,6 +59,7 @@ return [
     TranslatorContextRunnerInterface::class => DI::autowire(TranslatorContextRunner::class),
     // ReportProcessedQueryService depends on this interface transitively.
     GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
+    SessionStoreInterface::class => DI::autowire(DbSessionStore::class),
 
     CoreApiModuleGateway::class => DI::autowire(),
     CoreProcessedReportGateway::class => DI::autowire(),
@@ -75,4 +80,7 @@ return [
     // Explicit support bindings keep container composition as the construction source of truth.
     PaginatedCollectionResponder::class => DI::autowire(),
     CursorPaginator::class => DI::autowire(),
+    McpServerFactory::class => DI::autowire(),
+    DbSessionStore::class => DI::autowire(),
+    DbSessionTable::class => DI::autowire(),
 ];

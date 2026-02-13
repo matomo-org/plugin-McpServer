@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\Container;
 
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
@@ -23,6 +24,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
@@ -47,6 +49,8 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
+use Piwik\Plugins\McpServer\Session\DbSessionStore;
+use Piwik\Plugins\McpServer\Session\DbSessionTable;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
@@ -123,6 +127,7 @@ class ContainerResolvabilityTest extends IntegrationTestCase
             'interface.site.detail' => [SiteDetailQueryServiceInterface::class, SiteDetailQueryService::class],
             'interface.site.summary' => [SiteSummaryQueryServiceInterface::class, SiteSummaryQueryService::class],
             'interface.request.scope' => [GetRequestScopeMutatorInterface::class, GetRequestScopeMutator::class],
+            'interface.session.store' => [SessionStoreInterface::class, DbSessionStore::class],
 
             'tool.dimension.get' => [DimensionGet::class, DimensionGet::class],
             'tool.dimension.list' => [DimensionList::class, DimensionList::class],
@@ -156,6 +161,9 @@ class ContainerResolvabilityTest extends IntegrationTestCase
                 PaginatedCollectionResponder::class,
                 PaginatedCollectionResponder::class,
             ],
+            'composition.mcp.server.factory' => [McpServerFactory::class, McpServerFactory::class],
+            'composition.session.db.store' => [DbSessionStore::class, DbSessionStore::class],
+            'composition.session.db.table' => [DbSessionTable::class, DbSessionTable::class],
         ];
     }
 }

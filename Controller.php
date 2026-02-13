@@ -52,9 +52,10 @@ class Controller extends \Piwik\Plugin\Controller
     protected function buildServer(): Server
     {
         $logger = StaticContainer::get(LoggerInterface::class);
-        $sessionStore = new DbSessionStore(DbSessionStore::resolveConfiguredTtl());
+        $sessionStore = StaticContainer::get(DbSessionStore::class);
+        $factory = StaticContainer::get(McpServerFactory::class);
 
-        return (new McpServerFactory())->createServer(
+        return $factory->createServer(
             $logger,
             $sessionStore,
             StaticContainer::getContainer()
