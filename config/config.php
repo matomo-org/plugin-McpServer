@@ -59,7 +59,6 @@ return [
     SiteDetailQueryServiceInterface::class => DI::autowire(SiteDetailQueryService::class),
     SiteSummaryQueryServiceInterface::class => DI::autowire(SiteSummaryQueryService::class),
     TranslatorContextRunnerInterface::class => DI::autowire(TranslatorContextRunner::class),
-    // ReportProcessedQueryService depends on this interface transitively.
     GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
     SessionStoreInterface::class => DI::autowire(DbSessionStore::class),
 
@@ -79,7 +78,6 @@ return [
     TranslatorContextRunner::class => DI::autowire(),
 
     GetRequestScopeMutator::class => DI::autowire(),
-    // Explicit support bindings keep container composition as the construction source of truth.
     PaginatedCollectionResponder::class => DI::autowire(),
     CursorPaginator::class => DI::autowire(),
     McpServerFactory::class => DI::autowire(),

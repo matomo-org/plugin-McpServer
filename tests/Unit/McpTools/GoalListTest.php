@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\GoalList;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -37,7 +38,7 @@ class GoalListTest extends TestCase
             }
         };
 
-        $actual = (new GoalList($wrapper, new PaginatedCollectionResponder()))->list(
+        $actual = (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
             sort: GoalsPagination::SORT_NAME_ASC
@@ -83,7 +84,7 @@ class GoalListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Goal list item is incomplete (missing 'name').");
 
-        (new GoalList($wrapper, new PaginatedCollectionResponder()))->list(1);
+        (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -98,7 +99,7 @@ class GoalListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new GoalList($wrapper, new PaginatedCollectionResponder()))->list(1, cursor: 'invalid');
+        (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -113,7 +114,7 @@ class GoalListTest extends TestCase
             }
         };
 
-        $tool = new GoalList($wrapper, new PaginatedCollectionResponder());
+        $tool = new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: GoalsPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
@@ -136,7 +137,7 @@ class GoalListTest extends TestCase
             }
         };
 
-        $tool = new GoalList($wrapper, new PaginatedCollectionResponder());
+        $tool = new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: GoalsPagination::SORT_ID_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);

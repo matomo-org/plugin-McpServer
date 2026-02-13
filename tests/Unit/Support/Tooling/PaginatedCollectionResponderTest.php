@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Support\Tooling;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
 use Piwik\Plugins\McpServer\Support\Pagination\SortDirection;
@@ -27,7 +28,7 @@ class PaginatedCollectionResponderTest extends TestCase
 {
     public function testReturnsCollectionUnderProvidedKeyWithPaginationMetadata(): void
     {
-        $responder = new PaginatedCollectionResponder();
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
         $records = [
             new class ('Beta', 2) {
                 public function __construct(
@@ -75,7 +76,7 @@ class PaginatedCollectionResponderTest extends TestCase
 
     public function testUsesExplicitSortWhenProvided(): void
     {
-        $responder = new PaginatedCollectionResponder();
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
         /** @var list<array{name: string, id: int}> $records */
         $records = [
             ['name' => 'Alpha', 'id' => 1],
@@ -102,7 +103,7 @@ class PaginatedCollectionResponderTest extends TestCase
 
     public function testUsesDefaultSortWhenSortIsNull(): void
     {
-        $responder = new PaginatedCollectionResponder();
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
         /** @var list<array{name: string, id: int}> $records */
         $records = [
             ['name' => 'Alpha', 'id' => 1],
@@ -128,7 +129,7 @@ class PaginatedCollectionResponderTest extends TestCase
 
     public function testRejectsCursorWhenContextMismatches(): void
     {
-        $responder = new PaginatedCollectionResponder();
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
         /** @var list<array{name: string, id: int}> $records */
         $records = [
             ['name' => 'Alpha', 'id' => 1],

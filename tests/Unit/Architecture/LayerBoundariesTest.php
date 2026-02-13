@@ -115,7 +115,7 @@ class LayerBoundariesTest extends TestCase
     {
         $violations = [];
 
-        foreach (['McpTools', 'Services'] as $directory) {
+        foreach (['McpTools', 'Services', 'Support'] as $directory) {
             foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
                 $contents = file_get_contents($absolutePath);
                 self::assertNotFalse($contents);
@@ -148,7 +148,7 @@ class LayerBoundariesTest extends TestCase
     {
         $violations = [];
 
-        foreach (['McpTools', 'Services'] as $directory) {
+        foreach (['McpTools', 'Services', 'Support'] as $directory) {
             foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
                 $contents = file_get_contents($absolutePath);
                 self::assertNotFalse($contents);
@@ -507,6 +507,11 @@ class LayerBoundariesTest extends TestCase
             }
 
             $parameter = preg_replace('/^(public|protected|private)\s+/', '', $parameter);
+            if (!is_string($parameter)) {
+                continue;
+            }
+
+            $parameter = preg_replace('/^readonly\s+/', '', $parameter);
             if (!is_string($parameter)) {
                 continue;
             }

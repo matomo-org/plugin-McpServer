@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentList;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -37,7 +38,7 @@ class SegmentListTest extends TestCase
             }
         };
 
-        $actual = (new SegmentList($wrapper, new PaginatedCollectionResponder()))->list(
+        $actual = (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
             sort: SegmentsPagination::SORT_NAME_ASC
@@ -65,7 +66,7 @@ class SegmentListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Segment list item is incomplete (missing 'definition').");
 
-        (new SegmentList($wrapper, new PaginatedCollectionResponder()))->list(1);
+        (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -80,7 +81,10 @@ class SegmentListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new SegmentList($wrapper, new PaginatedCollectionResponder()))->list(1, cursor: 'invalid');
+        (new SegmentList(
+            $wrapper,
+            new PaginatedCollectionResponder(new CursorPaginator())
+        ))->list(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -95,7 +99,7 @@ class SegmentListTest extends TestCase
             }
         };
 
-        $tool = new SegmentList($wrapper, new PaginatedCollectionResponder());
+        $tool = new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: SegmentsPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
@@ -118,7 +122,7 @@ class SegmentListTest extends TestCase
             }
         };
 
-        $tool = new SegmentList($wrapper, new PaginatedCollectionResponder());
+        $tool = new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: SegmentsPagination::SORT_ID_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
