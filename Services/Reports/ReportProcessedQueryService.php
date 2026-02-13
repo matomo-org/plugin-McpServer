@@ -13,21 +13,19 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access;
-use Piwik\Container\StaticContainer;
 use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
-use Piwik\Plugins\API\API as ApiModuleApi;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
-use Piwik\Translation\Translator;
 
 final class ReportProcessedQueryService implements ReportProcessedQueryServiceInterface
 {
@@ -50,9 +48,11 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private $processedReportCaller;
 
     public function __construct(
-        private ?ReportMetadataQueryServiceInterface $metadataQueryService = null,
+        private ReportMetadataQueryServiceInterface $metadataQueryService,
+        private GetRequestScopeMutatorInterface $getRequestScopeMutator,
+        private CoreApiModuleGatewayInterface $coreApiModuleGateway,
+        private TranslatorContextRunnerInterface $translatorContextRunner,
         ?callable $processedReportCaller = null,
-        private ?GetRequestScopeMutatorInterface $getRequestScopeMutator = null
     ) {
         $this->processedReportCaller = $processedReportCaller;
     }
@@ -84,7 +84,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         );
 
         if ($reportUniqueId !== null) {
-            $reportMetadata = $this->getMetadataQueryService()->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+            $reportMetadata = $this->metadataQueryService->getReportMetadataByUniqueId($idSite, $reportUniqueId);
             if ($reportSpecificParameters !== []) {
                 throw new ToolCallException(
                     'Invalid apiParameters for reportUniqueId lookup. '
@@ -169,7 +169,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         string $date
     ): ReportMetadataRecord {
         try {
-            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
+            return $this->metadataQueryService->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -191,7 +191,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 throw $e;
             }
 
-            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
+            return $this->metadataQueryService->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -462,7 +462,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         $scopedRequestParameters = array_merge($scopedRequestParameters, $requestScopeParameters);
 
         try {
-            $processed = $this->getRequestScopeMutator()->runWithParameters(
+            $processed = $this->getRequestScopeMutator->runWithParameters(
                 $scopedRequestParameters,
                 function () use (
                     $idSite,
@@ -475,7 +475,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                     $idDimension,
                     $idSubtable
                 ): mixed {
-                    return $this->withEnglishTranslator(function () use (
+                    return $this->translatorContextRunner->runInEnglish(function () use (
                         $idSite,
                         $period,
                         $date,
@@ -648,16 +648,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         unset($childData);
     }
 
-    private function getMetadataQueryService(): ReportMetadataQueryServiceInterface
-    {
-        return $this->metadataQueryService ??= new ReportMetadataQueryService();
-    }
-
-    private function getRequestScopeMutator(): GetRequestScopeMutatorInterface
-    {
-        return $this->getRequestScopeMutator ??= new GetRequestScopeMutator();
-    }
-
     /**
      * @param array<string, mixed> $apiParameters
      */
@@ -688,22 +678,17 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             );
         }
 
-        return ApiModuleApi::getInstance()->getProcessedReport(
+        return $this->coreApiModuleGateway->getProcessedReport(
             $idSite,
             $period,
             $date,
             $apiModule,
             $apiAction,
-            $segment ?? false,
+            $segment,
             $apiParameters,
-            $idGoal ?? false,
-            false,
-            false,
-            true,
-            $idSubtable ?? false,
-            false,
-            null,
-            $idDimension ?? false
+            $idGoal,
+            $idDimension,
+            $idSubtable
         );
     }
 
@@ -721,19 +706,5 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         return str_contains($message, 'no access')
             || str_contains($message, 'checkuserhasviewaccess')
             || str_contains($message, 'view access');
-    }
-
-    private function withEnglishTranslator(callable $callback): mixed
-    {
-        /** @var Translator $translator */
-        $translator = StaticContainer::get(Translator::class);
-        $originalLanguage = $translator->getCurrentLanguage();
-
-        try {
-            $translator->setCurrentLanguage('en');
-            return $callback();
-        } finally {
-            $translator->setCurrentLanguage($originalLanguage);
-        }
     }
 }

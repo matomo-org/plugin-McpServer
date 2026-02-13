@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\Services\Reports;
+
+use Piwik\Plugins\API\API as ApiModuleApi;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+
+final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
+{
+    /**
+     * @param array<string, mixed> $apiParameters
+     */
+    public function getProcessedReport(
+        int $idSite,
+        string $period,
+        string $date,
+        string $apiModule,
+        string $apiAction,
+        ?string $segment,
+        array $apiParameters,
+        int|string|null $idGoal,
+        ?int $idDimension,
+        ?int $idSubtable
+    ): mixed {
+        return ApiModuleApi::getInstance()->getProcessedReport(
+            $idSite,
+            $period,
+            $date,
+            $apiModule,
+            $apiAction,
+            $segment ?? false,
+            $apiParameters,
+            $idGoal ?? false,
+            false,
+            false,
+            true,
+            $idSubtable ?? false,
+            false,
+            null,
+            $idDimension ?? false
+        );
+    }
+}

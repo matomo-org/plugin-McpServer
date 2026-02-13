@@ -38,32 +38,6 @@ class LayerBoundariesTest extends TestCase
         'Matomo\\Dependencies\\McpServer\\Mcp\\Exception\\ToolCallException',
     ];
 
-    /**
-     * Temporary migration allowlist.
-     * Remove-by marker: REMOVE_BY_PHASE_2.
-     *
-     * @var list<string>
-     */
-    private const NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST = [
-        'Services/Reports/ReportProcessedQueryService.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportMetadataQueryServiceInterface',
-        'Services/Reports/ReportProcessedQueryService.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Support\\RequestScope\\GetRequestScopeMutatorInterface',
-    ];
-
-    /**
-     * Temporary migration allowlist.
-     * Remove-by marker: REMOVE_BY_PHASE_2.
-     *
-     * @var list<string>
-     */
-    private const FALLBACK_INSTANTIATION_ALLOWLIST = [
-        'Services/Reports/ReportProcessedQueryService.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
-        'Services/Reports/ReportProcessedQueryService.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Support\\RequestScope\\GetRequestScopeMutator',
-    ];
-
     public function testServicesDoNotDependOnApiWrappers(): void
     {
         $violations = [];
@@ -139,7 +113,6 @@ class LayerBoundariesTest extends TestCase
     public function testNoNewNullableServiceConstructorDependenciesInRuntimeLayers(): void
     {
         $violations = [];
-        $observed = [];
 
         foreach (['McpTools', 'Services'] as $directory) {
             foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
@@ -156,35 +129,23 @@ class LayerBoundariesTest extends TestCase
                     }
 
                     $entry = $relativePath . ' -> ' . $parameter['resolvedType'];
-                    $observed[] = $entry;
-
-                    if (!in_array($entry, self::NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST, true)) {
-                        $violations[] = $entry;
-                    }
+                    $violations[] = $entry;
                 }
             }
         }
 
-        $missingAllowlistEntries = array_values(array_diff(self::NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST, $observed));
         sort($violations);
-        sort($missingAllowlistEntries);
 
         self::assertSame(
             [],
             $violations,
             "New nullable service constructor dependencies detected:\n" . implode("\n", $violations)
         );
-        self::assertSame(
-            [],
-            $missingAllowlistEntries,
-            "Nullable service allowlist is stale; remove obsolete entries:\n" . implode("\n", $missingAllowlistEntries)
-        );
     }
 
     public function testNoNewFallbackServiceInstantiationPatternsInRuntimeLayers(): void
     {
         $violations = [];
-        $observed = [];
 
         foreach (['McpTools', 'Services'] as $directory) {
             foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
@@ -197,29 +158,17 @@ class LayerBoundariesTest extends TestCase
 
                 foreach ($resolvedClasses as $resolvedClass) {
                     $entry = $relativePath . ' -> ' . $resolvedClass;
-                    $observed[] = $entry;
-
-                    if (!in_array($entry, self::FALLBACK_INSTANTIATION_ALLOWLIST, true)) {
-                        $violations[] = $entry;
-                    }
+                    $violations[] = $entry;
                 }
             }
         }
 
-        $missingAllowlistEntries = array_values(array_diff(self::FALLBACK_INSTANTIATION_ALLOWLIST, $observed));
         sort($violations);
-        sort($missingAllowlistEntries);
 
         self::assertSame(
             [],
             $violations,
             "New fallback instantiation patterns detected:\n" . implode("\n", $violations)
-        );
-        self::assertSame(
-            [],
-            $missingAllowlistEntries,
-            "Fallback-instantiation allowlist is stale; remove obsolete entries:\n"
-            . implode("\n", $missingAllowlistEntries)
         );
     }
 

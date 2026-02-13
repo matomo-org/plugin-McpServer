@@ -12,25 +12,31 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\NoAccessException;
-use Piwik\Plugins\API\ProcessedReport;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Translation\Translator;
 
 final class ReportMetadataQueryService implements ReportMetadataQueryServiceInterface
 {
+    public function __construct(
+        private CoreProcessedReportGatewayInterface $coreProcessedReportGateway,
+        private TranslatorContextRunnerInterface $translatorContextRunner
+    ) {
+    }
+
     public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
     {
         try {
-            $metadata = $this->withEnglishTranslator(static function () use ($idSite, $reportUniqueId): mixed {
-                return StaticContainer::get(ProcessedReport::class)
-                    ->getReportMetadataByUniqueId($idSite, $reportUniqueId);
-            });
+            $metadata = $this->translatorContextRunner->runInEnglish(
+                function () use ($idSite, $reportUniqueId): mixed {
+                    return $this->coreProcessedReportGateway->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+                }
+            );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
         } catch (\Throwable $e) {
@@ -68,14 +74,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         $metadataDate = $this->normalizeReportMetadataDate($date);
 
         try {
-            $reports = $this->withEnglishTranslator(static function () use (
-                $idSite,
-                $period,
-                $metadataDate
-            ): mixed {
-                return StaticContainer::get(ProcessedReport::class)
-                    ->getReportMetadata($idSite, $period, $metadataDate, false, false);
-            });
+            $reports = $this->translatorContextRunner->runInEnglish(
+                function () use ($idSite, $period, $metadataDate): mixed {
+                    return $this->coreProcessedReportGateway->getReportMetadata(
+                        $idSite,
+                        $period,
+                        $metadataDate,
+                        false,
+                        false
+                    );
+                }
+            );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
         } catch (\Throwable $e) {
@@ -264,19 +273,5 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         $alias = $report['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
-    }
-
-    private function withEnglishTranslator(callable $callback): mixed
-    {
-        /** @var Translator $translator */
-        $translator = StaticContainer::get(Translator::class);
-        $originalLanguage = $translator->getCurrentLanguage();
-
-        try {
-            $translator->setCurrentLanguage('en');
-            return $callback();
-        } finally {
-            $translator->setCurrentLanguage($originalLanguage);
-        }
     }
 }
