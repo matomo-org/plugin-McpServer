@@ -22,14 +22,13 @@ class LayerBoundariesTest extends TestCase
     private const PLUGIN_NAMESPACE = 'Piwik\\Plugins\\McpServer\\';
     private const API_WRAPPERS_NAMESPACE = self::PLUGIN_NAMESPACE . 'ApiWrappers\\';
     private const CONTRACTS_NAMESPACE = self::PLUGIN_NAMESPACE . 'Contracts\\';
+    private const SERVICES_NAMESPACE = self::PLUGIN_NAMESPACE . 'Services\\';
+    private const SUPPORT_TOOLING_NAMESPACE = self::PLUGIN_NAMESPACE . 'Support\\Tooling\\';
 
     /**
      * @var list<string>
      */
-    private const MCPTOOLS_NEW_CLASS_ALLOW_PREFIXES = [
-        self::PLUGIN_NAMESPACE . 'Services\\',
-        self::PLUGIN_NAMESPACE . 'Support\\Tooling\\',
-    ];
+    private const MCPTOOLS_NEW_CLASS_ALLOW_PREFIXES = [self::SUPPORT_TOOLING_NAMESPACE];
 
     /**
      * @var list<string>
@@ -37,6 +36,97 @@ class LayerBoundariesTest extends TestCase
     private const MCPTOOLS_NEW_CLASS_ALLOW_EXACT = [
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\ToolAnnotations',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Exception\\ToolCallException',
+    ];
+
+    /**
+     * Temporary migration allowlist.
+     * Remove-by marker: REMOVE_BY_PHASE_2.
+     *
+     * @var list<string>
+     */
+    private const NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST = [
+        'McpTools/DimensionGet.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Dimensions\\DimensionDetailQueryServiceInterface',
+        'McpTools/DimensionList.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Dimensions\\DimensionSummaryQueryServiceInterface',
+        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Goals\\GoalDetailQueryServiceInterface',
+        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Goals\\GoalSummaryQueryServiceInterface',
+        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/ReportList.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportSummaryQueryServiceInterface',
+        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/ReportMetadata.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportMetadataQueryServiceInterface',
+        'McpTools/ReportProcessed.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportProcessedQueryServiceInterface',
+        'McpTools/SegmentGet.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Segments\\SegmentDetailQueryServiceInterface',
+        'McpTools/SegmentList.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Segments\\SegmentSummaryQueryServiceInterface',
+        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteDetailQueryServiceInterface',
+        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteSummaryQueryServiceInterface',
+        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/SiteSearch.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteSummaryQueryServiceInterface',
+        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'Services/Reports/ReportProcessedQueryService.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportMetadataQueryServiceInterface',
+        'Services/Reports/ReportProcessedQueryService.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Support\\RequestScope\\GetRequestScopeMutatorInterface',
+    ];
+
+    /**
+     * Temporary migration allowlist.
+     * Remove-by marker: REMOVE_BY_PHASE_2.
+     *
+     * @var list<string>
+     */
+    private const FALLBACK_INSTANTIATION_ALLOWLIST = [
+        'McpTools/DimensionGet.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionDetailQueryService',
+        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionSummaryQueryService',
+        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalDetailQueryService',
+        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalSummaryQueryService',
+        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportSummaryQueryService',
+        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/ReportMetadata.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
+        'McpTools/ReportProcessed.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportProcessedQueryService',
+        'McpTools/SegmentGet.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentDetailQueryService',
+        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentSummaryQueryService',
+        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteDetailQueryService',
+        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
+        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
+        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
+        'Services/Reports/ReportProcessedQueryService.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
+        'Services/Reports/ReportProcessedQueryService.php -> '
+            . 'Piwik\\Plugins\\McpServer\\Support\\RequestScope\\GetRequestScopeMutator',
+    ];
+
+    /**
+     * Temporary migration allowlist.
+     * Remove-by marker: REMOVE_BY_PHASE_2.
+     *
+     * @var list<string>
+     */
+    private const MCPTOOLS_SERVICE_NEW_ALLOWLIST = [
+        'McpTools/DimensionGet.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionDetailQueryService',
+        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionSummaryQueryService',
+        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalDetailQueryService',
+        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalSummaryQueryService',
+        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportSummaryQueryService',
+        'McpTools/ReportMetadata.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
+        'McpTools/ReportProcessed.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportProcessedQueryService',
+        'McpTools/SegmentGet.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentDetailQueryService',
+        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentSummaryQueryService',
+        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteDetailQueryService',
+        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
+        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
     ];
 
     public function testServicesDoNotDependOnApiWrappers(): void
@@ -91,6 +181,15 @@ class LayerBoundariesTest extends TestCase
                     continue;
                 }
 
+                if (str_starts_with($resolved, self::SERVICES_NAMESPACE)) {
+                    $entry = $relativePath . ' -> ' . $resolved;
+                    if (!in_array($entry, self::MCPTOOLS_SERVICE_NEW_ALLOWLIST, true)) {
+                        $violations[] = $entry;
+                    }
+
+                    continue;
+                }
+
                 if ($this->isApprovedMcpToolNewTarget($resolved)) {
                     continue;
                 }
@@ -103,6 +202,93 @@ class LayerBoundariesTest extends TestCase
             [],
             $violations,
             "McpTools instantiate forbidden concrete classes:\n" . implode("\n", $violations)
+        );
+    }
+
+    public function testNoNewNullableServiceConstructorDependenciesInRuntimeLayers(): void
+    {
+        $violations = [];
+        $observed = [];
+
+        foreach (['McpTools', 'Services'] as $directory) {
+            foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
+                $contents = file_get_contents($absolutePath);
+                self::assertNotFalse($contents);
+
+                foreach ($this->parseConstructorParameters($contents) as $parameter) {
+                    if (!$parameter['nullable']) {
+                        continue;
+                    }
+
+                    if ($parameter['resolvedType'] === null || $this->isBuiltinType($parameter['resolvedType'])) {
+                        continue;
+                    }
+
+                    $entry = $relativePath . ' -> ' . $parameter['resolvedType'];
+                    $observed[] = $entry;
+
+                    if (!in_array($entry, self::NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST, true)) {
+                        $violations[] = $entry;
+                    }
+                }
+            }
+        }
+
+        $missingAllowlistEntries = array_values(array_diff(self::NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST, $observed));
+        sort($violations);
+        sort($missingAllowlistEntries);
+
+        self::assertSame(
+            [],
+            $violations,
+            "New nullable service constructor dependencies detected:\n" . implode("\n", $violations)
+        );
+        self::assertSame(
+            [],
+            $missingAllowlistEntries,
+            "Nullable service allowlist is stale; remove obsolete entries:\n" . implode("\n", $missingAllowlistEntries)
+        );
+    }
+
+    public function testNoNewFallbackServiceInstantiationPatternsInRuntimeLayers(): void
+    {
+        $violations = [];
+        $observed = [];
+
+        foreach (['McpTools', 'Services'] as $directory) {
+            foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
+                $contents = file_get_contents($absolutePath);
+                self::assertNotFalse($contents);
+
+                $imports = $this->parseImports($contents);
+                $namespace = $this->parseNamespace($contents);
+                $resolvedClasses = $this->parseFallbackInstantiationClassNames($contents, $imports, $namespace);
+
+                foreach ($resolvedClasses as $resolvedClass) {
+                    $entry = $relativePath . ' -> ' . $resolvedClass;
+                    $observed[] = $entry;
+
+                    if (!in_array($entry, self::FALLBACK_INSTANTIATION_ALLOWLIST, true)) {
+                        $violations[] = $entry;
+                    }
+                }
+            }
+        }
+
+        $missingAllowlistEntries = array_values(array_diff(self::FALLBACK_INSTANTIATION_ALLOWLIST, $observed));
+        sort($violations);
+        sort($missingAllowlistEntries);
+
+        self::assertSame(
+            [],
+            $violations,
+            "New fallback instantiation patterns detected:\n" . implode("\n", $violations)
+        );
+        self::assertSame(
+            [],
+            $missingAllowlistEntries,
+            "Fallback-instantiation allowlist is stale; remove obsolete entries:\n"
+            . implode("\n", $missingAllowlistEntries)
         );
     }
 
@@ -253,17 +439,29 @@ class LayerBoundariesTest extends TestCase
     /**
      * @param array<string, string> $imports
      */
-    private function resolveClassName(string $className, array $imports): ?string
+    private function resolveClassName(string $className, array $imports, ?string $namespace = null): ?string
     {
         if (str_starts_with($className, '\\')) {
             return ltrim($className, '\\');
         }
 
         if (str_contains($className, '\\')) {
-            return ltrim($className, '\\');
+            if ($namespace === null) {
+                return ltrim($className, '\\');
+            }
+
+            return $namespace . '\\' . ltrim($className, '\\');
         }
 
-        return $imports[$className] ?? null;
+        if (isset($imports[$className])) {
+            return $imports[$className];
+        }
+
+        if ($namespace !== null) {
+            return $namespace . '\\' . $className;
+        }
+
+        return null;
     }
 
     private function isApprovedMcpToolNewTarget(string $className): bool
@@ -306,5 +504,125 @@ class LayerBoundariesTest extends TestCase
         }
 
         return $violations;
+    }
+
+    private function parseNamespace(string $contents): ?string
+    {
+        if (preg_match('/\bnamespace\s+([^;]+);/', $contents, $matches) !== 1) {
+            return null;
+        }
+
+        return trim($matches[1]);
+    }
+
+    /**
+     * @return list<array{nullable: bool, resolvedType: string|null}>
+     */
+    private function parseConstructorParameters(string $contents): array
+    {
+        if (preg_match('/function\s+__construct\s*\((.*?)\)\s*[{]/s', $contents, $matches) !== 1) {
+            return [];
+        }
+
+        $parameterList = trim($matches[1]);
+        if ($parameterList === '') {
+            return [];
+        }
+
+        $imports = $this->parseImports($contents);
+        $namespace = $this->parseNamespace($contents);
+        $chunks = preg_split('/,(?![^()]*\))/', $parameterList);
+        if (!is_array($chunks)) {
+            return [];
+        }
+
+        $parameters = [];
+        foreach ($chunks as $chunk) {
+            $parameter = trim($chunk);
+            if ($parameter === '') {
+                continue;
+            }
+
+            $parameter = preg_replace('/\s+/', ' ', $parameter);
+            if (!is_string($parameter)) {
+                continue;
+            }
+
+            $parameter = preg_replace('/^(public|protected|private)\s+/', '', $parameter);
+            if (!is_string($parameter)) {
+                continue;
+            }
+
+            if (preg_match('/^([^\$]+)\s+\$[A-Za-z_][A-Za-z0-9_]*/', $parameter, $typeMatches) !== 1) {
+                $parameters[] = ['nullable' => false, 'resolvedType' => null];
+                continue;
+            }
+
+            $typeDeclaration = trim($typeMatches[1]);
+            $nullable = str_contains($typeDeclaration, '?') || str_contains(strtolower($typeDeclaration), '|null');
+            $resolved = $this->resolveDeclaredType($typeDeclaration, $imports, $namespace);
+
+            $parameters[] = ['nullable' => $nullable, 'resolvedType' => $resolved];
+        }
+
+        return $parameters;
+    }
+
+    /**
+     * @param array<string, string> $imports
+     * @return list<string>
+     */
+    private function parseFallbackInstantiationClassNames(string $contents, array $imports, ?string $namespace): array
+    {
+        if (preg_match_all('/\?\?=\s*new\s+([\\\\A-Za-z_][\\\\A-Za-z0-9_]*)\s*\(/', $contents, $matches) < 1) {
+            return [];
+        }
+
+        $resolved = [];
+        foreach ($matches[1] as $className) {
+            $resolvedClass = $this->resolveClassName($className, $imports, $namespace);
+            if ($resolvedClass !== null) {
+                $resolved[] = $resolvedClass;
+            }
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * @param array<string, string> $imports
+     */
+    private function resolveDeclaredType(string $typeDeclaration, array $imports, ?string $namespace): ?string
+    {
+        $typeDeclaration = trim($typeDeclaration);
+        if ($typeDeclaration === '') {
+            return null;
+        }
+
+        $candidates = explode('|', str_replace('?', '', $typeDeclaration));
+        foreach ($candidates as $candidate) {
+            $candidate = trim($candidate);
+            if ($candidate === '' || strtolower($candidate) === 'null') {
+                continue;
+            }
+
+            if ($this->isBuiltinType($candidate)) {
+                return $candidate;
+            }
+
+            return $this->resolveClassName($candidate, $imports, $namespace);
+        }
+
+        return null;
+    }
+
+    private function isBuiltinType(string $type): bool
+    {
+        $normalized = strtolower(trim($type, '\\'));
+        return in_array(
+            $normalized,
+            ['int', 'float', 'string', 'bool', 'array', 'object', 'mixed', 'callable', 'iterable', 'void', 'never'],
+            true
+        );
     }
 }
