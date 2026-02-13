@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  */
 class TasksTest extends TestCase
 {
-    public function testCleanupExpiredSessionsRunsGarbageCollectionOnResolvedStore(): void
+    public function testCleanupExpiredSessionsRunsGarbageCollectionOnInjectedStore(): void
     {
         $store = $this
             ->getMockBuilder(DbSessionStore::class)
@@ -32,11 +32,7 @@ class TasksTest extends TestCase
             ->method('gc')
             ->willReturn([]);
 
-        $tasks = $this
-            ->getMockBuilder(Tasks::class)
-            ->onlyMethods(['getSessionStore'])
-            ->getMock();
-        $tasks->method('getSessionStore')->willReturn($store);
+        $tasks = new Tasks($store);
 
         $tasks->cleanupExpiredSessions();
     }

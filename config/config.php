@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
@@ -40,6 +41,7 @@ use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Piwik\Plugins\McpServer\Tasks;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
@@ -81,6 +83,8 @@ return [
     PaginatedCollectionResponder::class => DI::autowire(),
     CursorPaginator::class => DI::autowire(),
     McpServerFactory::class => DI::autowire(),
+    Controller::class => DI::autowire(),
+    Tasks::class => DI::autowire(),
     DbSessionStore::class => DI::autowire(),
     DbSessionTable::class => DI::autowire(),
 ];

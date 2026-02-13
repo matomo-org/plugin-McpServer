@@ -17,14 +17,22 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
-use Piwik\Container\StaticContainer;
 use Piwik\Log\LoggerInterface;
 use Piwik\NoAccessException;
-use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use Piwik\Piwik;
+use Psr\Container\ContainerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 class Controller extends \Piwik\Plugin\Controller
 {
+    public function __construct(
+        private LoggerInterface $logger,
+        private SessionStoreInterface $sessionStore,
+        private McpServerFactory $factory,
+        private ContainerInterface $container
+    ) {
+    }
+
     public function mcp(): void
     {
         $request = $this->createRequestFromGlobals();
@@ -51,14 +59,10 @@ class Controller extends \Piwik\Plugin\Controller
 
     protected function buildServer(): Server
     {
-        $logger = StaticContainer::get(LoggerInterface::class);
-        $sessionStore = StaticContainer::get(DbSessionStore::class);
-        $factory = StaticContainer::get(McpServerFactory::class);
-
-        return $factory->createServer(
-            $logger,
-            $sessionStore,
-            StaticContainer::getContainer()
+        return $this->factory->createServer(
+            $this->logger,
+            $this->sessionStore,
+            $this->container
         );
     }
 

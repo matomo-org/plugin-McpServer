@@ -24,6 +24,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
@@ -55,6 +56,7 @@ use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Piwik\Plugins\McpServer\Tasks;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 use Throwable;
 
@@ -162,6 +164,8 @@ class ContainerResolvabilityTest extends IntegrationTestCase
                 PaginatedCollectionResponder::class,
             ],
             'composition.mcp.server.factory' => [McpServerFactory::class, McpServerFactory::class],
+            'composition.controller' => [Controller::class, Controller::class],
+            'composition.tasks' => [Tasks::class, Tasks::class],
             'composition.session.db.store' => [DbSessionStore::class, DbSessionStore::class],
             'composition.session.db.table' => [DbSessionTable::class, DbSessionTable::class],
         ];

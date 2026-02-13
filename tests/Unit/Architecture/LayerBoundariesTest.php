@@ -24,6 +24,7 @@ class LayerBoundariesTest extends TestCase
     private const CONTRACTS_NAMESPACE = self::PLUGIN_NAMESPACE . 'Contracts\\';
     private const SERVICES_NAMESPACE = self::PLUGIN_NAMESPACE . 'Services\\';
     private const SUPPORT_TOOLING_NAMESPACE = self::PLUGIN_NAMESPACE . 'Support\\Tooling\\';
+    private const STATIC_CONTAINER_NAMESPACE = 'Piwik\\Container\\StaticContainer';
 
     /**
      * @var list<string>
@@ -169,6 +170,61 @@ class LayerBoundariesTest extends TestCase
             [],
             $violations,
             "New fallback instantiation patterns detected:\n" . implode("\n", $violations)
+        );
+    }
+
+    public function testRuntimeLayersDoNotUseServiceLocator(): void
+    {
+        $violations = [];
+
+        foreach (['McpTools', 'Services'] as $directory) {
+            foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
+                $contents = file_get_contents($absolutePath);
+                self::assertNotFalse($contents);
+
+                foreach ($this->findServiceLocatorUsages($contents) as $pattern) {
+                    $violations[] = $relativePath . ' -> ' . $pattern;
+                }
+            }
+        }
+
+        sort($violations);
+
+        self::assertSame(
+            [],
+            $violations,
+            "Runtime layer service-locator usage detected:\n" . implode("\n", $violations)
+        );
+    }
+
+    public function testRuntimeLayersDoNotInstantiatePluginServiceCollaborators(): void
+    {
+        $violations = [];
+
+        foreach (['McpTools', 'Services'] as $directory) {
+            foreach ($this->listPhpFiles($directory) as $relativePath => $absolutePath) {
+                $contents = file_get_contents($absolutePath);
+                self::assertNotFalse($contents);
+
+                $imports = $this->parseImports($contents);
+                $namespace = $this->parseNamespace($contents);
+                foreach ($this->parseNewClassNames($contents) as $className) {
+                    $resolved = $this->resolveClassName($className, $imports, $namespace);
+                    if ($resolved === null || !str_starts_with($resolved, self::SERVICES_NAMESPACE)) {
+                        continue;
+                    }
+
+                    $violations[] = $relativePath . ' -> ' . $resolved;
+                }
+            }
+        }
+
+        sort($violations);
+
+        self::assertSame(
+            [],
+            $violations,
+            "Runtime layer direct service collaborator instantiation detected:\n" . implode("\n", $violations)
         );
     }
 
@@ -393,6 +449,28 @@ class LayerBoundariesTest extends TestCase
         }
 
         return trim($matches[1]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function findServiceLocatorUsages(string $contents): array
+    {
+        $patterns = [];
+
+        if (str_contains($contents, 'StaticContainer::get(')) {
+            $patterns[] = 'StaticContainer::get';
+        }
+
+        if (str_contains($contents, 'StaticContainer::getContainer(')) {
+            $patterns[] = 'StaticContainer::getContainer';
+        }
+
+        if (str_contains($contents, self::STATIC_CONTAINER_NAMESPACE)) {
+            $patterns[] = self::STATIC_CONTAINER_NAMESPACE;
+        }
+
+        return $patterns;
     }
 
     /**

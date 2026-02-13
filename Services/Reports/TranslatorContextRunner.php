@@ -11,23 +11,24 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Translation\Translator;
 
 final class TranslatorContextRunner implements TranslatorContextRunnerInterface
 {
+    public function __construct(private Translator $translator)
+    {
+    }
+
     public function runInEnglish(callable $callback): mixed
     {
-        /** @var Translator $translator */
-        $translator = StaticContainer::get(Translator::class);
-        $originalLanguage = $translator->getCurrentLanguage();
+        $originalLanguage = $this->translator->getCurrentLanguage();
 
         try {
-            $translator->setCurrentLanguage('en');
+            $this->translator->setCurrentLanguage('en');
             return $callback();
         } finally {
-            $translator->setCurrentLanguage($originalLanguage);
+            $this->translator->setCurrentLanguage($originalLanguage);
         }
     }
 }

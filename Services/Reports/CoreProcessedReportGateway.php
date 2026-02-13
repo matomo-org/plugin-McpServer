@@ -11,17 +11,19 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 
 final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInterface
 {
+    public function __construct(private ProcessedReport $processedReport)
+    {
+    }
+
     public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
     {
-        return StaticContainer::get(ProcessedReport::class)
-            ->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+        return $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
     }
 
     public function getReportMetadata(
@@ -31,7 +33,12 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
         bool $hideMetricsDoc,
         bool $showSubtableReports
     ): mixed {
-        return StaticContainer::get(ProcessedReport::class)
-            ->getReportMetadata($idSite, $period, $date, $hideMetricsDoc, $showSubtableReports);
+        return $this->processedReport->getReportMetadata(
+            $idSite,
+            $period,
+            $date,
+            $hideMetricsDoc,
+            $showSubtableReports
+        );
     }
 }

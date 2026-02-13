@@ -11,11 +11,14 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer;
 
-use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 
 class Tasks extends \Piwik\Plugin\Tasks
 {
+    public function __construct(private DbSessionStore $sessionStore)
+    {
+    }
+
     public function schedule(): void
     {
         $this->daily('cleanupExpiredSessions');
@@ -23,11 +26,6 @@ class Tasks extends \Piwik\Plugin\Tasks
 
     public function cleanupExpiredSessions(): void
     {
-        $this->getSessionStore()->gc();
-    }
-
-    protected function getSessionStore(): DbSessionStore
-    {
-        return StaticContainer::get(DbSessionStore::class);
+        $this->sessionStore->gc();
     }
 }
