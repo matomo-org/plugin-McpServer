@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\CustomDimensions\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\ListApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\DimensionSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type DimensionSummaryArray from DimensionSummaryRecord
@@ -29,8 +29,8 @@ class DimensionList
     public const TOOL_NAME = 'matomo_dimension_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
-        private ?DimensionSummaryPaginationResponder $paginationResponder = null
+        private ?DimensionSummaryQueryServiceInterface $queryService = null,
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,22 +84,29 @@ class DimensionList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'dimension-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateDimensionSummaryRecords(
-            $this->getApiWrapper()->getDimensionsForSite($idSite),
+        $response = $this->getPaginationResponder()->paginateRecords(
+            $this->getQueryService()->getDimensionSummariesForSite($idSite),
+            static fn(DimensionSummaryRecord $dimension): array => $dimension->toArray(),
+            'dimensions',
+            DimensionsPagination::createConfig(),
+            DimensionsPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): DimensionSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new DimensionSummaryQueryService();
     }
 
-    private function getPaginationResponder(): DimensionSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new DimensionSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

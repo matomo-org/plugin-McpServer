@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 

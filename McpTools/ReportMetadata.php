@@ -15,10 +15,10 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetMetadataApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 
 /**
  * @phpstan-import-type ReportMetadataArray from ReportMetadataRecord
@@ -27,7 +27,7 @@ class ReportMetadata
 {
     public const TOOL_NAME = 'matomo_report_metadata';
 
-    public function __construct(private ?GetMetadataApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?ReportMetadataQueryServiceInterface $queryService = null)
     {
     }
 
@@ -122,10 +122,10 @@ class ReportMetadata
                 );
             }
 
-            return $this->getApiWrapper()->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
+            return $this->getQueryService()->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
         }
 
-        return $this->getApiWrapper()->getReportMetadataByModuleAction(
+        return $this->getQueryService()->getReportMetadataByModuleAction(
             $idSite,
             (string) $apiModule,
             (string) $apiAction,
@@ -135,8 +135,8 @@ class ReportMetadata
         )->toArray();
     }
 
-    private function getApiWrapper(): GetMetadataApiWrapperInterface
+    private function getQueryService(): ReportMetadataQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetMetadataApiWrapper();
+        return $this->queryService ??= new ReportMetadataQueryService();
     }
 }

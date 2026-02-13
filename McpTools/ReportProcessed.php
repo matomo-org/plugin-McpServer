@@ -14,13 +14,14 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetProcessedApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetProcessedApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 
 /**
- * @phpstan-import-type ReportProcessedArray from \Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord
+ * @phpstan-import-type ReportProcessedArray from ReportProcessedRecord
  */
 class ReportProcessed
 {
@@ -29,7 +30,7 @@ class ReportProcessed
     public const FILTER_LIMIT_MAX = 250;
     public const FILTER_OFFSET_DEFAULT = 0;
 
-    public function __construct(private ?GetProcessedApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?ReportProcessedQueryServiceInterface $queryService = null)
     {
     }
 
@@ -182,7 +183,7 @@ class ReportProcessed
         ?int $filter_limit = null,
         ?int $filter_offset = null
     ): array {
-        return $this->getApiWrapper()->getProcessedReport(
+        return $this->getQueryService()->getProcessedReport(
             idSite: $idSite,
             period: $period,
             date: $date,
@@ -198,11 +199,11 @@ class ReportProcessed
             idSubtable: $idSubtable,
             filterLimit: $filter_limit ?? self::FILTER_LIMIT_DEFAULT,
             filterOffset: $filter_offset ?? self::FILTER_OFFSET_DEFAULT
-        );
+        )->toArray();
     }
 
-    private function getApiWrapper(): GetProcessedApiWrapperInterface
+    private function getQueryService(): ReportProcessedQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetProcessedApiWrapper();
+        return $this->queryService ??= new ReportProcessedQueryService();
     }
 }

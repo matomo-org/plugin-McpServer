@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\CustomDimensions\GetApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\DimensionDetailRecord;
-use Piwik\Plugins\McpServer\Contracts\Dimensions\GetApiWrapperInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 
 /**
  * @phpstan-import-type DimensionDetailArray from DimensionDetailRecord
@@ -26,7 +26,7 @@ class DimensionGet
 {
     public const TOOL_NAME = 'matomo_dimension_get';
 
-    public function __construct(private ?GetApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?DimensionDetailQueryServiceInterface $queryService = null)
     {
     }
 
@@ -60,11 +60,11 @@ class DimensionGet
     )]
     public function get(int $idSite, int $idDimension): array
     {
-        return $this->getApiWrapper()->getDimensionById($idSite, $idDimension)->toArray();
+        return $this->getQueryService()->getDimensionDetailForSite($idSite, $idDimension)->toArray();
     }
 
-    private function getApiWrapper(): GetApiWrapperInterface
+    private function getQueryService(): DimensionDetailQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetApiWrapper();
+        return $this->queryService ??= new DimensionDetailQueryService();
     }
 }

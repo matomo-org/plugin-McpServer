@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Reports\ListApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportList;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
 
@@ -26,8 +26,8 @@ class ReportListTest extends TestCase
 {
     public function testListReturnsSortedSummariesFromApiWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getReportsForSite(int $idSite): array
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
             {
                 return [
                     new ReportSummaryRecord(
@@ -82,8 +82,8 @@ class ReportListTest extends TestCase
 
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getReportsForSite(int $idSite): array
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
             {
                 throw new ToolCallException("Report list item is incomplete (missing 'name').");
             }
@@ -97,8 +97,8 @@ class ReportListTest extends TestCase
 
     public function testListRejectsInvalidCursor(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getReportsForSite(int $idSite): array
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
             {
                 return [];
             }
@@ -112,8 +112,8 @@ class ReportListTest extends TestCase
 
     public function testListRejectsCursorSortMismatch(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getReportsForSite(int $idSite): array
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
             {
                 return [
                     new ReportSummaryRecord(
@@ -149,8 +149,8 @@ class ReportListTest extends TestCase
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
     {
-        $wrapper = new class () implements ListApiWrapperInterface {
-            public function getReportsForSite(int $idSite): array
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
             {
                 return [
                     new ReportSummaryRecord(

@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Sites\SearchApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 
@@ -26,8 +26,13 @@ class SiteSearchTest extends TestCase
 {
     public function testSearchReturnsSortedSummariesFromApiWrapper(): void
     {
-        $wrapper = new class () implements SearchApiWrapperInterface {
-            public function searchSitesWithViewAccess(string $search): array
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
             {
                 return [
                     new SiteSummaryRecord(2, 'Site B', 'https://b.test', 'website'),
@@ -50,8 +55,13 @@ class SiteSearchTest extends TestCase
 
     public function testSearchPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
-        $wrapper = new class () implements SearchApiWrapperInterface {
-            public function searchSitesWithViewAccess(string $search): array
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
             {
                 throw new ToolCallException("Site search item is incomplete (missing 'main_url').");
             }
@@ -65,8 +75,13 @@ class SiteSearchTest extends TestCase
 
     public function testSearchRejectsInvalidCursor(): void
     {
-        $wrapper = new class () implements SearchApiWrapperInterface {
-            public function searchSitesWithViewAccess(string $search): array
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
             {
                 return [];
             }
@@ -80,8 +95,13 @@ class SiteSearchTest extends TestCase
 
     public function testSearchRejectsCursorSortMismatch(): void
     {
-        $wrapper = new class () implements SearchApiWrapperInterface {
-            public function searchSitesWithViewAccess(string $search): array
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
             {
                 return [
                     new SiteSummaryRecord(1, 'Site A', 'https://a.test', 'website'),
@@ -103,8 +123,13 @@ class SiteSearchTest extends TestCase
 
     public function testSearchRejectsCursorSearchMismatch(): void
     {
-        $wrapper = new class () implements SearchApiWrapperInterface {
-            public function searchSitesWithViewAccess(string $search): array
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
             {
                 return [
                     new SiteSummaryRecord(1, 'Site A', 'https://a.test', 'website'),

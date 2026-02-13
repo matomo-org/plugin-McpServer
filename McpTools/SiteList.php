@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SitesManager\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Sites\ListApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\SiteSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type SiteSummaryArray from SiteSummaryRecord
@@ -29,8 +29,8 @@ class SiteList
     public const TOOL_NAME = 'matomo_site_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
-        private ?SiteSummaryPaginationResponder $paginationResponder = null
+        private ?SiteSummaryQueryServiceInterface $queryService = null,
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -77,21 +77,28 @@ class SiteList
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        return $this->getPaginationResponder()->paginateSiteSummaryRecords(
-            $this->getApiWrapper()->getSitesWithViewAccess(),
+        $response = $this->getPaginationResponder()->paginateRecords(
+            $this->getQueryService()->getSiteSummariesForList(),
+            static fn(SiteSummaryRecord $site): array => $site->toArray(),
+            'sites',
+            SitesPagination::createConfig(),
+            SitesPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort
         );
+
+        /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): SiteSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new SiteSummaryQueryService();
     }
 
-    private function getPaginationResponder(): SiteSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new SiteSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

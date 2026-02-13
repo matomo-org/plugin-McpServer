@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\Services\Segments;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugin\Manager;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
@@ -43,6 +43,39 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
             'Segment detail data is invalid.',
             'Segment detail item'
         );
+    }
+
+    public function getSegmentBySelector(
+        int $idSite,
+        ?int $idSegment = null,
+        ?string $name = null,
+        ?string $definition = null
+    ): SegmentDetailRecord {
+        $segments = $this->getSegmentDetailsForSite($idSite);
+        $matches = array_values(array_filter(
+            $segments,
+            static function (SegmentDetailRecord $segment) use ($idSegment, $name, $definition): bool {
+                if ($idSegment !== null) {
+                    return $segment->idSegment === $idSegment;
+                }
+
+                if ($name !== null) {
+                    return $segment->name === $name;
+                }
+
+                return $segment->definition === $definition;
+            }
+        ));
+
+        if ($matches === []) {
+            throw new ToolCallException('Segment not found.');
+        }
+
+        if (count($matches) > 1) {
+            throw new ToolCallException('Multiple segments matched. Provide idSegment.');
+        }
+
+        return $matches[0];
     }
 
     /**

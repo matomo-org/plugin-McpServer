@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\SegmentEditor\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Segments\ListApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\SegmentSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type SegmentSummaryArray from SegmentSummaryRecord
@@ -29,8 +29,8 @@ class SegmentList
     public const TOOL_NAME = 'matomo_segment_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
-        private ?SegmentSummaryPaginationResponder $paginationResponder = null
+        private ?SegmentSummaryQueryServiceInterface $queryService = null,
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,22 +84,29 @@ class SegmentList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'segment-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateSegmentSummaryRecords(
-            $this->getApiWrapper()->getSegmentsForSite($idSite),
+        $response = $this->getPaginationResponder()->paginateRecords(
+            $this->getQueryService()->getSegmentSummariesForSite($idSite),
+            static fn(SegmentSummaryRecord $segment): array => $segment->toArray(),
+            'segments',
+            SegmentsPagination::createConfig(),
+            SegmentsPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): SegmentSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new SegmentSummaryQueryService();
     }
 
-    private function getPaginationResponder(): SegmentSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new SegmentSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

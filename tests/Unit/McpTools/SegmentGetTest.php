@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Segments\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Segments\SegmentDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentGet;
 
 /**
@@ -24,7 +24,12 @@ class SegmentGetTest extends TestCase
 {
     public function testGetReturnsRecordFromApiWrapper(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
+        $wrapper = new class () implements SegmentDetailQueryServiceInterface {
+            public function getSegmentDetailsForSite(int $idSite): array
+            {
+                return [];
+            }
+
             public function getSegmentBySelector(
                 int $idSite,
                 ?int $idSegment = null,
@@ -58,9 +63,14 @@ class SegmentGetTest extends TestCase
 
     public function testGetPassesSelectorsToApiWrapperWithoutRuntimeValidation(): void
     {
-        $wrapper = new class () implements GetApiWrapperInterface {
+        $wrapper = new class () implements SegmentDetailQueryServiceInterface {
             /** @var array<string, mixed> */
             public array $captured = [];
+
+            public function getSegmentDetailsForSite(int $idSite): array
+            {
+                return [];
+            }
 
             public function getSegmentBySelector(
                 int $idSite,

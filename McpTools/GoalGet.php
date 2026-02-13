@@ -14,10 +14,10 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Goals\GetApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Goals\GetApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Goals\GoalDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 
 /**
  * @phpstan-import-type GoalDetailArray from GoalDetailRecord
@@ -26,7 +26,7 @@ class GoalGet
 {
     public const TOOL_NAME = 'matomo_goal_get';
 
-    public function __construct(private ?GetApiWrapperInterface $apiWrapper = null)
+    public function __construct(private ?GoalDetailQueryServiceInterface $queryService = null)
     {
     }
 
@@ -61,11 +61,11 @@ class GoalGet
     )]
     public function get(int $idSite, int $idGoal): array
     {
-        return $this->getApiWrapper()->getGoalById($idSite, $idGoal)->toArray();
+        return $this->getQueryService()->getGoalDetailForSite($idSite, $idGoal)->toArray();
     }
 
-    private function getApiWrapper(): GetApiWrapperInterface
+    private function getQueryService(): GoalDetailQueryServiceInterface
     {
-        return $this->apiWrapper ??= new GetApiWrapper();
+        return $this->queryService ??= new GoalDetailQueryService();
     }
 }

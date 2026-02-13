@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\ListApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\ListApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
-use Piwik\Plugins\McpServer\Support\Tooling\ReportSummaryPaginationResponder;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @phpstan-import-type ReportSummaryArray from ReportSummaryRecord
@@ -29,8 +29,8 @@ class ReportList
     public const TOOL_NAME = 'matomo_report_list';
 
     public function __construct(
-        private ?ListApiWrapperInterface $apiWrapper = null,
-        private ?ReportSummaryPaginationResponder $paginationResponder = null
+        private ?ReportSummaryQueryServiceInterface $queryService = null,
+        private ?PaginatedCollectionResponder $paginationResponder = null
     ) {
     }
 
@@ -84,22 +84,29 @@ class ReportList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
-        return $this->getPaginationResponder()->paginateReportSummaryRecords(
-            $this->getApiWrapper()->getReportsForSite($idSite),
+        $response = $this->getPaginationResponder()->paginateRecords(
+            $this->getQueryService()->getReportSummariesForSite($idSite),
+            static fn(ReportSummaryRecord $report): array => $report->toArray(),
+            'reports',
+            ReportsPagination::createConfig(),
+            ReportsPagination::SORT_CATEGORY_ASC,
             $limit,
             $cursor,
             $sort,
             $cursorContext
         );
+
+        /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        return $response;
     }
 
-    private function getApiWrapper(): ListApiWrapperInterface
+    private function getQueryService(): ReportSummaryQueryServiceInterface
     {
-        return $this->apiWrapper ??= new ListApiWrapper();
+        return $this->queryService ??= new ReportSummaryQueryService();
     }
 
-    private function getPaginationResponder(): ReportSummaryPaginationResponder
+    private function getPaginationResponder(): PaginatedCollectionResponder
     {
-        return $this->paginationResponder ??= new ReportSummaryPaginationResponder();
+        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

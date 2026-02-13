@@ -18,13 +18,14 @@ use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
-use Piwik\Plugins\McpServer\ApiWrappers\Reports\GetMetadataApiWrapper;
-use Piwik\Plugins\McpServer\Contracts\Reports\GetMetadataApiWrapperInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportMetadataRecord;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Reports\ReportProcessedRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 use Piwik\Translation\Translator;
 
@@ -49,8 +50,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private $processedReportCaller;
 
     public function __construct(
-        private ?GetMetadataApiWrapperInterface $metadataApiWrapper = null,
-        ?callable $processedReportCaller = null
+        private ?ReportMetadataQueryServiceInterface $metadataQueryService = null,
+        ?callable $processedReportCaller = null,
+        private ?GetRequestScopeMutatorInterface $getRequestScopeMutator = null
     ) {
         $this->processedReportCaller = $processedReportCaller;
     }
@@ -82,7 +84,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         );
 
         if ($reportUniqueId !== null) {
-            $reportMetadata = $this->getMetadataApiWrapper()->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+            $reportMetadata = $this->getMetadataQueryService()->getReportMetadataByUniqueId($idSite, $reportUniqueId);
             if ($reportSpecificParameters !== []) {
                 throw new ToolCallException(
                     'Invalid apiParameters for reportUniqueId lookup. '
@@ -167,7 +169,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         string $date
     ): ReportMetadataRecord {
         try {
-            return $this->getMetadataApiWrapper()->getReportMetadataByModuleAction(
+            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -189,7 +191,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 throw $e;
             }
 
-            return $this->getMetadataApiWrapper()->getReportMetadataByModuleAction(
+            return $this->getMetadataQueryService()->getReportMetadataByModuleAction(
                 $idSite,
                 $apiModule,
                 $apiAction,
@@ -451,41 +453,54 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
         }
 
-        $previousGet = $_GET;
-
         // Keep pagination deterministic by forcing filter_limit/filter_offset in request scope.
         // TODO: remove this workaround once core exposes stable total-rows metadata for processed reports.
-        $_GET['filter_limit'] = (string) $filterLimit;
-        $_GET['filter_offset'] = (string) $filterOffset;
-        foreach ($requestScopeParameters as $key => $value) {
-            $_GET[$key] = $value;
-        }
+        $scopedRequestParameters = [
+            'filter_limit' => (string) $filterLimit,
+            'filter_offset' => (string) $filterOffset,
+        ];
+        $scopedRequestParameters = array_merge($scopedRequestParameters, $requestScopeParameters);
 
         try {
-            $processed = $this->withEnglishTranslator(function () use (
-                $idSite,
-                $period,
-                $date,
-                $reportMetadata,
-                $segment,
-                $apiParameters,
-                $idGoal,
-                $idDimension,
-                $idSubtable
-            ): mixed {
-                return $this->invokeProcessedReport(
+            $processed = $this->getRequestScopeMutator()->runWithParameters(
+                $scopedRequestParameters,
+                function () use (
                     $idSite,
                     $period,
                     $date,
-                    $reportMetadata->module,
-                    $reportMetadata->action,
+                    $reportMetadata,
                     $segment,
                     $apiParameters,
                     $idGoal,
                     $idDimension,
                     $idSubtable
-                );
-            });
+                ): mixed {
+                    return $this->withEnglishTranslator(function () use (
+                        $idSite,
+                        $period,
+                        $date,
+                        $reportMetadata,
+                        $segment,
+                        $apiParameters,
+                        $idGoal,
+                        $idDimension,
+                        $idSubtable
+                    ): mixed {
+                        return $this->invokeProcessedReport(
+                            $idSite,
+                            $period,
+                            $date,
+                            $reportMetadata->module,
+                            $reportMetadata->action,
+                            $segment,
+                            $apiParameters,
+                            $idGoal,
+                            $idDimension,
+                            $idSubtable
+                        );
+                    });
+                }
+            );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
         } catch (\Throwable $e) {
@@ -497,8 +512,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
 
             throw new ToolCallException('Report retrieval failed.');
-        } finally {
-            $_GET = $previousGet;
         }
 
         if (!is_array($processed)) {
@@ -635,9 +648,14 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         unset($childData);
     }
 
-    private function getMetadataApiWrapper(): GetMetadataApiWrapperInterface
+    private function getMetadataQueryService(): ReportMetadataQueryServiceInterface
     {
-        return $this->metadataApiWrapper ??= new GetMetadataApiWrapper();
+        return $this->metadataQueryService ??= new ReportMetadataQueryService();
+    }
+
+    private function getRequestScopeMutator(): GetRequestScopeMutatorInterface
+    {
+        return $this->getRequestScopeMutator ??= new GetRequestScopeMutator();
     }
 
     /**
