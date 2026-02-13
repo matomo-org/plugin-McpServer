@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 
 /**
@@ -30,7 +29,7 @@ class ReportProcessed
     public const FILTER_LIMIT_MAX = 250;
     public const FILTER_OFFSET_DEFAULT = 0;
 
-    public function __construct(private ?ReportProcessedQueryServiceInterface $queryService = null)
+    public function __construct(private ReportProcessedQueryServiceInterface $queryService)
     {
     }
 
@@ -183,7 +182,7 @@ class ReportProcessed
         ?int $filter_limit = null,
         ?int $filter_offset = null
     ): array {
-        return $this->getQueryService()->getProcessedReport(
+        return $this->queryService->getProcessedReport(
             idSite: $idSite,
             period: $period,
             date: $date,
@@ -200,10 +199,5 @@ class ReportProcessed
             filterLimit: $filter_limit ?? self::FILTER_LIMIT_DEFAULT,
             filterOffset: $filter_offset ?? self::FILTER_OFFSET_DEFAULT
         )->toArray();
-    }
-
-    private function getQueryService(): ReportProcessedQueryServiceInterface
-    {
-        return $this->queryService ??= new ReportProcessedQueryService();
     }
 }

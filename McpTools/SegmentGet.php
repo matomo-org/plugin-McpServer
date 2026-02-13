@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 
 /**
  * @phpstan-import-type SegmentDetailArray from SegmentDetailRecord
@@ -26,7 +25,7 @@ class SegmentGet
 {
     public const TOOL_NAME = 'matomo_segment_get';
 
-    public function __construct(private ?SegmentDetailQueryServiceInterface $queryService = null)
+    public function __construct(private SegmentDetailQueryServiceInterface $queryService)
     {
     }
 
@@ -79,16 +78,11 @@ class SegmentGet
         ?string $name = null,
         ?string $definition = null
     ): array {
-        return $this->getQueryService()->getSegmentBySelector(
+        return $this->queryService->getSegmentBySelector(
             $idSite,
             $idSegment,
             $name,
             $definition
         )->toArray();
-    }
-
-    private function getQueryService(): SegmentDetailQueryServiceInterface
-    {
-        return $this->queryService ??= new SegmentDetailQueryService();
     }
 }

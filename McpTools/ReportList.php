@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -29,8 +28,8 @@ class ReportList
     public const TOOL_NAME = 'matomo_report_list';
 
     public function __construct(
-        private ?ReportSummaryQueryServiceInterface $queryService = null,
-        private ?PaginatedCollectionResponder $paginationResponder = null
+        private ReportSummaryQueryServiceInterface $queryService,
+        private PaginatedCollectionResponder $paginationResponder
     ) {
     }
 
@@ -84,8 +83,8 @@ class ReportList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
-        $response = $this->getPaginationResponder()->paginateRecords(
-            $this->getQueryService()->getReportSummariesForSite($idSite),
+        $response = $this->paginationResponder->paginateRecords(
+            $this->queryService->getReportSummariesForSite($idSite),
             static fn(ReportSummaryRecord $report): array => $report->toArray(),
             'reports',
             ReportsPagination::createConfig(),
@@ -98,15 +97,5 @@ class ReportList
 
         /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
         return $response;
-    }
-
-    private function getQueryService(): ReportSummaryQueryServiceInterface
-    {
-        return $this->queryService ??= new ReportSummaryQueryService();
-    }
-
-    private function getPaginationResponder(): PaginatedCollectionResponder
-    {
-        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

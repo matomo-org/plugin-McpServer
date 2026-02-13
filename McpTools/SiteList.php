@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -29,8 +28,8 @@ class SiteList
     public const TOOL_NAME = 'matomo_site_list';
 
     public function __construct(
-        private ?SiteSummaryQueryServiceInterface $queryService = null,
-        private ?PaginatedCollectionResponder $paginationResponder = null
+        private SiteSummaryQueryServiceInterface $queryService,
+        private PaginatedCollectionResponder $paginationResponder
     ) {
     }
 
@@ -77,8 +76,8 @@ class SiteList
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $response = $this->getPaginationResponder()->paginateRecords(
-            $this->getQueryService()->getSiteSummariesForList(),
+        $response = $this->paginationResponder->paginateRecords(
+            $this->queryService->getSiteSummariesForList(),
             static fn(SiteSummaryRecord $site): array => $site->toArray(),
             'sites',
             SitesPagination::createConfig(),
@@ -90,15 +89,5 @@ class SiteList
 
         /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
         return $response;
-    }
-
-    private function getQueryService(): SiteSummaryQueryServiceInterface
-    {
-        return $this->queryService ??= new SiteSummaryQueryService();
-    }
-
-    private function getPaginationResponder(): PaginatedCollectionResponder
-    {
-        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

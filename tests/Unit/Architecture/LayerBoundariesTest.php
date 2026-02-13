@@ -45,32 +45,6 @@ class LayerBoundariesTest extends TestCase
      * @var list<string>
      */
     private const NULLABLE_SERVICE_CONSTRUCTOR_ALLOWLIST = [
-        'McpTools/DimensionGet.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Dimensions\\DimensionDetailQueryServiceInterface',
-        'McpTools/DimensionList.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Dimensions\\DimensionSummaryQueryServiceInterface',
-        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Goals\\GoalDetailQueryServiceInterface',
-        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Goals\\GoalSummaryQueryServiceInterface',
-        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/ReportList.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportSummaryQueryServiceInterface',
-        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/ReportMetadata.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportMetadataQueryServiceInterface',
-        'McpTools/ReportProcessed.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportProcessedQueryServiceInterface',
-        'McpTools/SegmentGet.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Segments\\SegmentDetailQueryServiceInterface',
-        'McpTools/SegmentList.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Segments\\SegmentSummaryQueryServiceInterface',
-        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteDetailQueryServiceInterface',
-        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteSummaryQueryServiceInterface',
-        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/SiteSearch.php -> '
-            . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Sites\\SiteSummaryQueryServiceInterface',
-        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
         'Services/Reports/ReportProcessedQueryService.php -> '
             . 'Piwik\\Plugins\\McpServer\\Contracts\\Ports\\Reports\\ReportMetadataQueryServiceInterface',
         'Services/Reports/ReportProcessedQueryService.php -> '
@@ -84,49 +58,10 @@ class LayerBoundariesTest extends TestCase
      * @var list<string>
      */
     private const FALLBACK_INSTANTIATION_ALLOWLIST = [
-        'McpTools/DimensionGet.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionDetailQueryService',
-        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionSummaryQueryService',
-        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalDetailQueryService',
-        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalSummaryQueryService',
-        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportSummaryQueryService',
-        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/ReportMetadata.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
-        'McpTools/ReportProcessed.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportProcessedQueryService',
-        'McpTools/SegmentGet.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentDetailQueryService',
-        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentSummaryQueryService',
-        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteDetailQueryService',
-        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
-        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
-        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
-        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Support\\Tooling\\PaginatedCollectionResponder',
         'Services/Reports/ReportProcessedQueryService.php -> '
             . 'Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
         'Services/Reports/ReportProcessedQueryService.php -> '
             . 'Piwik\\Plugins\\McpServer\\Support\\RequestScope\\GetRequestScopeMutator',
-    ];
-
-    /**
-     * Temporary migration allowlist.
-     * Remove-by marker: REMOVE_BY_PHASE_2.
-     *
-     * @var list<string>
-     */
-    private const MCPTOOLS_SERVICE_NEW_ALLOWLIST = [
-        'McpTools/DimensionGet.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionDetailQueryService',
-        'McpTools/DimensionList.php -> Piwik\\Plugins\\McpServer\\Services\\Dimensions\\DimensionSummaryQueryService',
-        'McpTools/GoalGet.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalDetailQueryService',
-        'McpTools/GoalList.php -> Piwik\\Plugins\\McpServer\\Services\\Goals\\GoalSummaryQueryService',
-        'McpTools/ReportList.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportSummaryQueryService',
-        'McpTools/ReportMetadata.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportMetadataQueryService',
-        'McpTools/ReportProcessed.php -> Piwik\\Plugins\\McpServer\\Services\\Reports\\ReportProcessedQueryService',
-        'McpTools/SegmentGet.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentDetailQueryService',
-        'McpTools/SegmentList.php -> Piwik\\Plugins\\McpServer\\Services\\Segments\\SegmentSummaryQueryService',
-        'McpTools/SiteGet.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteDetailQueryService',
-        'McpTools/SiteList.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
-        'McpTools/SiteSearch.php -> Piwik\\Plugins\\McpServer\\Services\\Sites\\SiteSummaryQueryService',
     ];
 
     public function testServicesDoNotDependOnApiWrappers(): void
@@ -182,11 +117,7 @@ class LayerBoundariesTest extends TestCase
                 }
 
                 if (str_starts_with($resolved, self::SERVICES_NAMESPACE)) {
-                    $entry = $relativePath . ' -> ' . $resolved;
-                    if (!in_array($entry, self::MCPTOOLS_SERVICE_NEW_ALLOWLIST, true)) {
-                        $violations[] = $entry;
-                    }
-
+                    $violations[] = $relativePath . ' -> ' . $resolved;
                     continue;
                 }
 
