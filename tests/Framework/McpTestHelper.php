@@ -45,9 +45,8 @@ final class McpTestHelper
 {
     public static function buildServer(): Server
     {
-        $factory = new McpServerFactory();
-        $sessionTtl = 3600;
-        $sessionStore = new DbSessionStore($sessionTtl);
+        $factory = StaticContainer::get(McpServerFactory::class);
+        $sessionStore = StaticContainer::get(DbSessionStore::class);
 
         return $factory->createServer(
             new NullLogger(),

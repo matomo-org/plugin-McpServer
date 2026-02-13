@@ -18,7 +18,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 
 /**
  * @phpstan-import-type ReportMetadataArray from ReportMetadataRecord
@@ -27,7 +26,7 @@ class ReportMetadata
 {
     public const TOOL_NAME = 'matomo_report_metadata';
 
-    public function __construct(private ?ReportMetadataQueryServiceInterface $queryService = null)
+    public function __construct(private ReportMetadataQueryServiceInterface $queryService)
     {
     }
 
@@ -122,10 +121,10 @@ class ReportMetadata
                 );
             }
 
-            return $this->getQueryService()->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
+            return $this->queryService->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
         }
 
-        return $this->getQueryService()->getReportMetadataByModuleAction(
+        return $this->queryService->getReportMetadataByModuleAction(
             $idSite,
             (string) $apiModule,
             (string) $apiAction,
@@ -133,10 +132,5 @@ class ReportMetadata
             $period ?? 'day',
             $date ?? 'today'
         )->toArray();
-    }
-
-    private function getQueryService(): ReportMetadataQueryServiceInterface
-    {
-        return $this->queryService ??= new ReportMetadataQueryService();
     }
 }

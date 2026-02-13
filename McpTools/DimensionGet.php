@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 
 /**
  * @phpstan-import-type DimensionDetailArray from DimensionDetailRecord
@@ -26,7 +25,7 @@ class DimensionGet
 {
     public const TOOL_NAME = 'matomo_dimension_get';
 
-    public function __construct(private ?DimensionDetailQueryServiceInterface $queryService = null)
+    public function __construct(private DimensionDetailQueryServiceInterface $queryService)
     {
     }
 
@@ -60,11 +59,6 @@ class DimensionGet
     )]
     public function get(int $idSite, int $idDimension): array
     {
-        return $this->getQueryService()->getDimensionDetailForSite($idSite, $idDimension)->toArray();
-    }
-
-    private function getQueryService(): DimensionDetailQueryServiceInterface
-    {
-        return $this->queryService ??= new DimensionDetailQueryService();
+        return $this->queryService->getDimensionDetailForSite($idSite, $idDimension)->toArray();
     }
 }

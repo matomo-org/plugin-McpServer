@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 
 /**
  * @phpstan-import-type SiteDetailArray from SiteDetailRecord
@@ -26,7 +25,7 @@ class SiteGet
 {
     public const TOOL_NAME = 'matomo_site_get';
 
-    public function __construct(private ?SiteDetailQueryServiceInterface $queryService = null)
+    public function __construct(private SiteDetailQueryServiceInterface $queryService)
     {
     }
 
@@ -59,12 +58,7 @@ class SiteGet
     {
         // See SiteDetailQueryService for normalization contract and intentional
         // not-found/access-denied message collapsing behavior.
-        $site = $this->getQueryService()->getSiteDetailFromId($idSite);
+        $site = $this->queryService->getSiteDetailFromId($idSite);
         return $site->toArray();
-    }
-
-    private function getQueryService(): SiteDetailQueryServiceInterface
-    {
-        return $this->queryService ??= new SiteDetailQueryService();
     }
 }

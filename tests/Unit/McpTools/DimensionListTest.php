@@ -16,7 +16,9 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @group McpServer
@@ -36,7 +38,7 @@ class DimensionListTest extends TestCase
             }
         };
 
-        $actual = (new DimensionList($wrapper))->list(
+        $actual = (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
             sort: DimensionsPagination::SORT_NAME_ASC
@@ -72,7 +74,7 @@ class DimensionListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Dimension list item is incomplete (missing 'name').");
 
-        (new DimensionList($wrapper))->list(1);
+        (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -87,7 +89,10 @@ class DimensionListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new DimensionList($wrapper))->list(1, cursor: 'invalid');
+        (new DimensionList(
+            $wrapper,
+            new PaginatedCollectionResponder(new CursorPaginator())
+        ))->list(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -102,7 +107,7 @@ class DimensionListTest extends TestCase
             }
         };
 
-        $tool = new DimensionList($wrapper);
+        $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: DimensionsPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
@@ -125,7 +130,7 @@ class DimensionListTest extends TestCase
             }
         };
 
-        $tool = new DimensionList($wrapper);
+        $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(1, limit: 1, sort: DimensionsPagination::SORT_ID_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);

@@ -12,12 +12,18 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
+use Matomo\Dependencies\McpServer\Mcp\Server;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
 use Piwik\Plugins\McpServer\Controller;
+use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
+use Piwik\Log\LoggerInterface;
+use Psr\Container\ContainerInterface;
 
 /**
  * @group McpServer
@@ -32,7 +38,7 @@ class ControllerTest extends TestCase
 
             $request = $this->createRequest();
 
-            $controller = new TestController();
+            $controller = $this->createController(McpTestHelper::buildServer());
             $controller->setRequest($request);
             $controller->mcp();
 
@@ -50,7 +56,7 @@ class ControllerTest extends TestCase
     {
         $request = $this->createRequest();
 
-        $controller = new TestController();
+        $controller = $this->createController();
         $controller->setRequest($request);
         $controller->mcp();
 
@@ -73,12 +79,35 @@ class ControllerTest extends TestCase
             ->withHeader('Content-Type', 'application/json')
             ->withBody($body);
     }
+
+    private function createController(?Server $server = null): TestController
+    {
+        return new TestController(
+            $this->createMock(LoggerInterface::class),
+            new InMemorySessionStore(),
+            new McpServerFactory(),
+            $this->createMock(ContainerInterface::class),
+            $server
+        );
+    }
 }
 
 final class TestController extends Controller
 {
     private ?ServerRequestInterface $request = null;
     private ?ResponseInterface $response = null;
+    private ?Server $server = null;
+
+    public function __construct(
+        LoggerInterface $logger,
+        SessionStoreInterface $sessionStore,
+        McpServerFactory $factory,
+        ContainerInterface $container,
+        ?Server $server = null
+    ) {
+        parent::__construct($logger, $sessionStore, $factory, $container);
+        $this->server = $server;
+    }
 
     public function setRequest(ServerRequestInterface $request): void
     {
@@ -102,5 +131,14 @@ final class TestController extends Controller
     protected function emit(ResponseInterface $response): void
     {
         $this->response = $response;
+    }
+
+    protected function buildServer(): Server
+    {
+        if ($this->server === null) {
+            throw new \RuntimeException('Server not set.');
+        }
+
+        return $this->server;
     }
 }

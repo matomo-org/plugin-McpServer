@@ -16,7 +16,9 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
  * @group McpServer
@@ -41,7 +43,11 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $actual = (new SiteSearch($wrapper))->search('site', limit: 10, sort: SitesPagination::SORT_NAME_ASC);
+        $actual = (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->search(
+            'site',
+            limit: 10,
+            sort: SitesPagination::SORT_NAME_ASC
+        );
 
         self::assertSame([
             'sites' => [
@@ -70,7 +76,7 @@ class SiteSearchTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Site search item is incomplete (missing 'main_url').");
 
-        (new SiteSearch($wrapper))->search('site');
+        (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->search('site');
     }
 
     public function testSearchRejectsInvalidCursor(): void
@@ -90,7 +96,10 @@ class SiteSearchTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new SiteSearch($wrapper))->search('site', cursor: 'invalid');
+        (new SiteSearch(
+            $wrapper,
+            new PaginatedCollectionResponder(new CursorPaginator())
+        ))->search('site', cursor: 'invalid');
     }
 
     public function testSearchRejectsCursorSortMismatch(): void
@@ -110,7 +119,7 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $tool = new SiteSearch($wrapper);
+        $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->search('site', limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
@@ -138,7 +147,7 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $tool = new SiteSearch($wrapper);
+        $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->search('alpha', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);

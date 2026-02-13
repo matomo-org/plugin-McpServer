@@ -15,6 +15,10 @@ use Piwik\Plugins\McpServer\Session\DbSessionStore;
 
 class Tasks extends \Piwik\Plugin\Tasks
 {
+    public function __construct(private DbSessionStore $sessionStore)
+    {
+    }
+
     public function schedule(): void
     {
         $this->daily('cleanupExpiredSessions');
@@ -22,6 +26,6 @@ class Tasks extends \Piwik\Plugin\Tasks
 
     public function cleanupExpiredSessions(): void
     {
-        (new DbSessionStore())->gc();
+        $this->sessionStore->gc();
     }
 }

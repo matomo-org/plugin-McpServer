@@ -17,9 +17,8 @@ use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
 
 final class PaginatedCollectionResponder
 {
-    public function __construct(
-        private ?CursorPaginator $paginator = null
-    ) {
+    public function __construct(private CursorPaginator $paginator)
+    {
     }
 
     /**
@@ -44,7 +43,7 @@ final class PaginatedCollectionResponder
         /** @var list<TItem> $items */
         $items = array_map($recordToArray, $records);
 
-        $page = $this->getPaginator()->paginate(
+        $page = $this->paginator->paginate(
             $items,
             new PageRequest($limit, $sort, $cursor, $cursorContext),
             $paginationConfig
@@ -55,10 +54,5 @@ final class PaginatedCollectionResponder
             'next_cursor' => $page->nextCursor,
             'has_more' => $page->hasMore,
         ];
-    }
-
-    private function getPaginator(): CursorPaginator
-    {
-        return $this->paginator ??= new CursorPaginator();
     }
 }

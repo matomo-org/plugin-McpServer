@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -29,8 +28,8 @@ class SegmentList
     public const TOOL_NAME = 'matomo_segment_list';
 
     public function __construct(
-        private ?SegmentSummaryQueryServiceInterface $queryService = null,
-        private ?PaginatedCollectionResponder $paginationResponder = null
+        private SegmentSummaryQueryServiceInterface $queryService,
+        private PaginatedCollectionResponder $paginationResponder
     ) {
     }
 
@@ -84,8 +83,8 @@ class SegmentList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'segment-list:idSite:' . (string) $idSite);
-        $response = $this->getPaginationResponder()->paginateRecords(
-            $this->getQueryService()->getSegmentSummariesForSite($idSite),
+        $response = $this->paginationResponder->paginateRecords(
+            $this->queryService->getSegmentSummariesForSite($idSite),
             static fn(SegmentSummaryRecord $segment): array => $segment->toArray(),
             'segments',
             SegmentsPagination::createConfig(),
@@ -98,15 +97,5 @@ class SegmentList
 
         /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */
         return $response;
-    }
-
-    private function getQueryService(): SegmentSummaryQueryServiceInterface
-    {
-        return $this->queryService ??= new SegmentSummaryQueryService();
-    }
-
-    private function getPaginationResponder(): PaginatedCollectionResponder
-    {
-        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

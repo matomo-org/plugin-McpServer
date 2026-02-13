@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -29,8 +28,8 @@ class GoalList
     public const TOOL_NAME = 'matomo_goal_list';
 
     public function __construct(
-        private ?GoalSummaryQueryServiceInterface $queryService = null,
-        private ?PaginatedCollectionResponder $paginationResponder = null
+        private GoalSummaryQueryServiceInterface $queryService,
+        private PaginatedCollectionResponder $paginationResponder
     ) {
     }
 
@@ -84,8 +83,8 @@ class GoalList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'goal-list:idSite:' . (string) $idSite);
-        $response = $this->getPaginationResponder()->paginateRecords(
-            $this->getQueryService()->getGoalSummariesForSite($idSite),
+        $response = $this->paginationResponder->paginateRecords(
+            $this->queryService->getGoalSummariesForSite($idSite),
             static fn(GoalSummaryRecord $goal): array => $goal->toArray(),
             'goals',
             GoalsPagination::createConfig(),
@@ -98,15 +97,5 @@ class GoalList
 
         /** @var array{goals: list<GoalSummaryArray>, next_cursor: string|null, has_more: bool} $response */
         return $response;
-    }
-
-    private function getQueryService(): GoalSummaryQueryServiceInterface
-    {
-        return $this->queryService ??= new GoalSummaryQueryService();
-    }
-
-    private function getPaginationResponder(): PaginatedCollectionResponder
-    {
-        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

@@ -15,7 +15,9 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -41,7 +43,10 @@ class SiteListTest extends TestCase
             }
         };
 
-        $actual = (new SiteList($wrapper))->list(limit: 10, sort: SitesPagination::SORT_NAME_ASC);
+        $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+            limit: 10,
+            sort: SitesPagination::SORT_NAME_ASC
+        );
 
         self::assertSame([
             'sites' => [
@@ -70,7 +75,7 @@ class SiteListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Site list item is incomplete (missing 'main_url').");
 
-        (new SiteList($wrapper))->list();
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list();
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -90,7 +95,7 @@ class SiteListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new SiteList($wrapper))->list(cursor: 'invalid');
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -110,7 +115,7 @@ class SiteListTest extends TestCase
             }
         };
 
-        $tool = new SiteList($wrapper);
+        $tool = new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->list(limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);

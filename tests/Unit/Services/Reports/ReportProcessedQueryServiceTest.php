@@ -14,9 +14,12 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
@@ -27,7 +30,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 {
     public function testRejectsDangerousApiParameterKey(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Unsupported apiParameters key 'method'.");
@@ -53,7 +56,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testUniqueIdSelectorRejectsReportSpecificApiParameters(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid apiParameters for reportUniqueId lookup.');
@@ -84,7 +87,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedApiParameters = null;
         $observedFlat = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (
                 int $idSite,
@@ -171,7 +174,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (
                 int $idSite,
@@ -242,7 +245,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             }
         };
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (): array {
                 return [
@@ -283,7 +286,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testRejectsGoalModeCoreFilterInApiParameters(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage(
@@ -311,7 +314,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testRejectsInvalidGoalMetricsModeValue(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Invalid goalMetricsMode value 'invalid'.");
@@ -337,7 +340,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testSpecificGoalModeRequiresIdGoal(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("goalMetricsMode 'specific_goal' requires idGoal");
@@ -363,7 +366,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testRejectsEmptyGoalMetricsProcessGoals(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage(
@@ -394,7 +397,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (
                 int $idSite,
@@ -450,7 +453,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (
                 int $idSite,
@@ -509,7 +512,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapperWithIdGoalParameter(),
             function (
                 int $idSite,
@@ -568,7 +571,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (
                 int $idSite,
@@ -620,7 +623,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     public function testRejectsSnakeCaseEcommerceGoalAliasInProcessGoals(): void
     {
-        $service = new ReportProcessedQueryService($this->makeMetadataWrapper());
+        $service = $this->makeService($this->makeMetadataWrapper());
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('core ecommerce goal ID');
@@ -687,7 +690,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             }
         };
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $wrapper,
             function (): array {
                 return [
@@ -762,7 +765,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             }
         };
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $wrapper,
             function (): array {
                 return [
@@ -801,7 +804,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $wasSuperUser = $access->hasSuperUserAccess();
         $access->setSuperUserAccess(true);
 
-        $service = new ReportProcessedQueryService(
+        $service = $this->makeService(
             $this->makeMetadataWrapper(),
             function (): array {
                 throw new \RuntimeException("core\nfailed");
@@ -832,6 +835,49 @@ class ReportProcessedQueryServiceTest extends TestCase
         } finally {
             $access->setSuperUserAccess($wasSuperUser);
         }
+    }
+
+    private function makeService(
+        ?ReportMetadataQueryServiceInterface $metadataWrapper = null,
+        ?callable $processedReportCaller = null,
+        ?GetRequestScopeMutatorInterface $mutator = null
+    ): ReportProcessedQueryService {
+        $metadataWrapper = $metadataWrapper ?? $this->makeMetadataWrapper();
+        $mutator = $mutator ?? new GetRequestScopeMutator();
+        $apiGateway = new class () implements CoreApiModuleGatewayInterface {
+            public function getProcessedReport(
+                int $idSite,
+                string $period,
+                string $date,
+                string $apiModule,
+                string $apiAction,
+                ?string $segment,
+                array $apiParameters,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable
+            ): mixed {
+                return [
+                    'reportData' => [['label' => 'A']],
+                    'reportMetadata' => [['idsubdatatable' => 1]],
+                    'columns' => ['label' => 'Label'],
+                ];
+            }
+        };
+        $translatorRunner = new class () implements TranslatorContextRunnerInterface {
+            public function runInEnglish(callable $callback): mixed
+            {
+                return $callback();
+            }
+        };
+
+        return new ReportProcessedQueryService(
+            $metadataWrapper,
+            $mutator,
+            $apiGateway,
+            $translatorRunner,
+            $processedReportCaller
+        );
     }
 
     private function makeMetadataWrapper(): ReportMetadataQueryServiceInterface

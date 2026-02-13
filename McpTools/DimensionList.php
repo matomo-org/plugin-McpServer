@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -29,8 +28,8 @@ class DimensionList
     public const TOOL_NAME = 'matomo_dimension_list';
 
     public function __construct(
-        private ?DimensionSummaryQueryServiceInterface $queryService = null,
-        private ?PaginatedCollectionResponder $paginationResponder = null
+        private DimensionSummaryQueryServiceInterface $queryService,
+        private PaginatedCollectionResponder $paginationResponder
     ) {
     }
 
@@ -84,8 +83,8 @@ class DimensionList
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = hash('sha256', 'dimension-list:idSite:' . (string) $idSite);
-        $response = $this->getPaginationResponder()->paginateRecords(
-            $this->getQueryService()->getDimensionSummariesForSite($idSite),
+        $response = $this->paginationResponder->paginateRecords(
+            $this->queryService->getDimensionSummariesForSite($idSite),
             static fn(DimensionSummaryRecord $dimension): array => $dimension->toArray(),
             'dimensions',
             DimensionsPagination::createConfig(),
@@ -98,15 +97,5 @@ class DimensionList
 
         /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool} $response */
         return $response;
-    }
-
-    private function getQueryService(): DimensionSummaryQueryServiceInterface
-    {
-        return $this->queryService ??= new DimensionSummaryQueryService();
-    }
-
-    private function getPaginationResponder(): PaginatedCollectionResponder
-    {
-        return $this->paginationResponder ??= new PaginatedCollectionResponder();
     }
 }

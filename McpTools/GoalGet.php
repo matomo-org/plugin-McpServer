@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 
 /**
  * @phpstan-import-type GoalDetailArray from GoalDetailRecord
@@ -26,7 +25,7 @@ class GoalGet
 {
     public const TOOL_NAME = 'matomo_goal_get';
 
-    public function __construct(private ?GoalDetailQueryServiceInterface $queryService = null)
+    public function __construct(private GoalDetailQueryServiceInterface $queryService)
     {
     }
 
@@ -61,11 +60,6 @@ class GoalGet
     )]
     public function get(int $idSite, int $idGoal): array
     {
-        return $this->getQueryService()->getGoalDetailForSite($idSite, $idGoal)->toArray();
-    }
-
-    private function getQueryService(): GoalDetailQueryServiceInterface
-    {
-        return $this->queryService ??= new GoalDetailQueryService();
+        return $this->queryService->getGoalDetailForSite($idSite, $idGoal)->toArray();
     }
 }
