@@ -13,17 +13,25 @@ namespace Piwik\Plugins\McpServer;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Server;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
+use Piwik\Config;
 use Piwik\Plugin\Manager;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
+use Psr\Log\NullLogger;
 
 final class McpServerFactory
 {
     public function __construct(
         private LoggerInterface $logger,
         private SessionStoreInterface $sessionStore,
-        private ContainerInterface $container
+        private ContainerInterface $container,
+        private ToolCallParameterFormatter $toolCallParameterFormatter
     ) {
     }
 
@@ -31,9 +39,12 @@ final class McpServerFactory
     {
         $version = (string) Manager::getInstance()->getVersion('McpServer');
 
-        return Server::builder()
+        $registry = new Registry(logger: new NullLogger());
+
+        $builder = Server::builder()
             ->setServerInfo('Matomo MCP Server', $version)
-            ->setLogger($this->logger)
+            ->setLogger(new NullLogger())
+            ->setRegistry($registry)
             ->setSession($this->sessionStore)
             ->setContainer($this->container)
             ->setDiscovery(__DIR__, ['McpTools'])
@@ -48,7 +59,49 @@ final class McpServerFactory
                 promptsListChanged: null,
                 logging: false,
                 completions: false,
-            ))
-            ->build();
+            ));
+
+        if ($this->isToolCallLoggingEnabled()) {
+            $referenceHandler = new ReferenceHandler($this->container);
+            $callToolHandler = new CallToolHandler($registry, $referenceHandler, new NullLogger());
+            $builder->addRequestHandler(new ObservedCallToolHandler(
+                $callToolHandler,
+                $this->logger,
+                $this->toolCallParameterFormatter,
+                $this->isFullParameterLoggingEnabled()
+            ));
+        }
+
+        return $builder->build();
+    }
+
+    private function isToolCallLoggingEnabled(): bool
+    {
+        $config = $this->getMcpServerConfig();
+        if (!array_key_exists('log_tool_calls', $config)) {
+            return false;
+        }
+
+        return $config['log_tool_calls'] == 1;
+    }
+
+    private function isFullParameterLoggingEnabled(): bool
+    {
+        $config = $this->getMcpServerConfig();
+        if (!array_key_exists('log_tool_call_parameters_full', $config)) {
+            return false;
+        }
+
+        return $config['log_tool_call_parameters_full'] == 1;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getMcpServerConfig(): array
+    {
+        $config = Config::getInstance()->McpServer ?? [];
+
+        return is_array($config) ? $config : [];
     }
 }
