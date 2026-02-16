@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
@@ -837,14 +838,46 @@ class ReportProcessedQueryServiceTest extends TestCase
         }
     }
 
+    public function testMapsInfrastructureDataFailureToInvalidReportDataMessage(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapper(),
+            function (): array {
+                throw new InfrastructureDataException('bad payload');
+            }
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report data is invalid.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
     private function makeService(
         ?ReportMetadataQueryServiceInterface $metadataWrapper = null,
         ?callable $processedReportCaller = null,
-        ?GetRequestScopeMutatorInterface $mutator = null
+        ?GetRequestScopeMutatorInterface $mutator = null,
+        ?CoreApiModuleGatewayInterface $apiGateway = null
     ): ReportProcessedQueryService {
         $metadataWrapper = $metadataWrapper ?? $this->makeMetadataWrapper();
         $mutator = $mutator ?? new GetRequestScopeMutator();
-        $apiGateway = new class () implements CoreApiModuleGatewayInterface {
+        $apiGateway = $apiGateway ?? new class () implements CoreApiModuleGatewayInterface {
             public function getProcessedReport(
                 int $idSite,
                 string $period,

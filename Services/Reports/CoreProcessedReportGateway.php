@@ -11,11 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Date;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
-use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInterface
 {
@@ -26,7 +25,7 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
     public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
     {
         $metadata = $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
-        return ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
+        return $this->requireStringKeyedArray($metadata, 'Report not found.');
     }
 
     public function getReportMetadata(
@@ -44,18 +43,40 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
             $showSubtableReports
         );
 
-        // @phpstan-ignore-next-line Runtime guard for unexpected core payloads.
-        if (!is_array($reports)) {
-            throw new ToolCallException('Report metadata data is invalid.');
+        return $this->requireListOfStringKeyedArrays($reports, 'Report metadata data is invalid.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireStringKeyedArray(mixed $value, string $message): array
+    {
+        if (!is_array($value)) {
+            throw new InfrastructureDataException($message);
         }
 
-        if (!array_is_list($reports)) {
-            throw new ToolCallException('Report metadata data is invalid.');
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                throw new InfrastructureDataException($message);
+            }
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function requireListOfStringKeyedArrays(mixed $value, string $message): array
+    {
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new InfrastructureDataException($message);
         }
 
         $normalized = [];
-        foreach ($reports as $report) {
-            $normalized[] = ToolDataNormalizer::requireStringKeyedArray($report, 'Report metadata data is invalid.');
+        foreach ($value as $item) {
+            $normalized[] = $this->requireStringKeyedArray($item, $message);
         }
 
         return $normalized;

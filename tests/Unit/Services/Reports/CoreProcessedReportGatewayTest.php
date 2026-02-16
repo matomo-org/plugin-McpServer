@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Services\Reports\CoreProcessedReportGateway;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 /**
  * @group McpServer
@@ -46,7 +46,7 @@ class CoreProcessedReportGatewayTest extends TestCase
 
         $gateway = new CoreProcessedReportGateway($processedReport);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report not found.');
         $gateway->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
     }
@@ -79,7 +79,7 @@ class CoreProcessedReportGatewayTest extends TestCase
 
         $gateway = new CoreProcessedReportGateway($processedReport);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report metadata data is invalid.');
         $gateway->getReportMetadata(1, 'day', false, false, false);
     }
@@ -96,7 +96,7 @@ class CoreProcessedReportGatewayTest extends TestCase
 
         $gateway = new CoreProcessedReportGateway($processedReport);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report metadata data is invalid.');
         $gateway->getReportMetadata(1, 'day', false, false, false);
     }

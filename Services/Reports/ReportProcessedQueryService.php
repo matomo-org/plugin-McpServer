@@ -23,6 +23,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceI
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
@@ -503,6 +504,8 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (InfrastructureDataException $e) {
+            throw new ToolCallException('Report data is invalid.');
         } catch (ToolCallException $e) {
             throw $e;
         } catch (\Throwable $e) {
