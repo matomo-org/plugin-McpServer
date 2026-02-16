@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
 {
@@ -30,8 +31,8 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
-    ): mixed {
-        return ApiModuleApi::getInstance()->getProcessedReport(
+    ): array {
+        $report = ApiModuleApi::getInstance()->getProcessedReport(
             $idSite,
             $period,
             $date,
@@ -48,5 +49,7 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
             null,
             $idDimension ?? false
         );
+
+        return ToolDataNormalizer::requireStringKeyedArray($report, 'Report data is invalid.');
     }
 }

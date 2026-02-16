@@ -856,7 +856,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
-            ): mixed {
+            ): array {
                 return [
                     'reportData' => [['label' => 'A']],
                     'reportMetadata' => [['idsubdatatable' => 1]],

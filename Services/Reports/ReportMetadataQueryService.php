@@ -33,22 +33,20 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     {
         try {
             $metadata = $this->translatorContextRunner->runInEnglish(
-                function () use ($idSite, $reportUniqueId): mixed {
+                function () use ($idSite, $reportUniqueId) {
                     return $this->coreProcessedReportGateway->getReportMetadataByUniqueId($idSite, $reportUniqueId);
                 }
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (ToolCallException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
             }
 
             throw new ToolCallException('Report retrieval failed.');
-        }
-
-        if (!is_array($metadata)) {
-            throw new ToolCallException('Report not found.');
         }
 
         $metadataData = ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
@@ -75,7 +73,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         try {
             $reports = $this->translatorContextRunner->runInEnglish(
-                function () use ($idSite, $period, $metadataDate): mixed {
+                function () use ($idSite, $period, $metadataDate) {
                     return $this->coreProcessedReportGateway->getReportMetadata(
                         $idSite,
                         $period,
@@ -87,6 +85,8 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (ToolCallException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
@@ -101,10 +101,6 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         $matches = [];
         foreach ($reports as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
-
             $reportData = ToolDataNormalizer::requireStringKeyedArray($report, 'Report metadata data is invalid.');
             if ($this->isSubtableReport($reportData)) {
                 continue;

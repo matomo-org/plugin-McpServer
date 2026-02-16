@@ -15,6 +15,7 @@ interface CoreApiModuleGatewayInterface
 {
     /**
      * @param array<string, mixed> $apiParameters
+     * @return array<string, mixed>
      */
     public function getProcessedReport(
         int $idSite,
@@ -27,5 +28,5 @@ interface CoreApiModuleGatewayInterface
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
-    ): mixed;
+    ): array;
 }

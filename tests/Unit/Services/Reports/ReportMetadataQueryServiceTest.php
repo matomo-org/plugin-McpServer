@@ -70,7 +70,7 @@ class ReportMetadataQueryServiceTest extends TestCase
     {
         $service = $this->makeService(
             new class () implements CoreProcessedReportGatewayInterface {
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
                 {
                     throw new \Piwik\NoAccessException('denied');
                 }
@@ -81,7 +81,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                     \Piwik\Date|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
-                ): mixed {
+                ): array {
                     return [];
                 }
             }
@@ -103,7 +103,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 {
                 }
 
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
                 {
                     return $this->metadata;
                 }
@@ -111,10 +111,10 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    mixed $date,
+                    \Piwik\Date|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
-                ): mixed {
+                ): array {
                     return [$this->metadata];
                 }
             }
@@ -135,7 +135,7 @@ class ReportMetadataQueryServiceTest extends TestCase
     private function makeService(?CoreProcessedReportGatewayInterface $gateway = null): ReportMetadataQueryService
     {
         $gateway = $gateway ?? new class () implements CoreProcessedReportGatewayInterface {
-            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
             {
                 return [];
             }
@@ -146,7 +146,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 \Piwik\Date|bool $date,
                 bool $hideMetricsDoc,
                 bool $showSubtableReports
-            ): mixed {
+            ): array {
                 return [];
             }
         };

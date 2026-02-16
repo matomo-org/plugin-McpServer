@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Date;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInterface
 {
@@ -21,9 +23,10 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
     {
     }
 
-    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
     {
-        return $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+        $metadata = $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+        return ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
     }
 
     public function getReportMetadata(
@@ -32,13 +35,29 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
         Date|bool $date,
         bool $hideMetricsDoc,
         bool $showSubtableReports
-    ): mixed {
-        return $this->processedReport->getReportMetadata(
+    ): array {
+        $reports = $this->processedReport->getReportMetadata(
             $idSite,
             $period,
             $date,
             $hideMetricsDoc,
             $showSubtableReports
         );
+
+        // @phpstan-ignore-next-line Runtime guard for unexpected core payloads.
+        if (!is_array($reports)) {
+            throw new ToolCallException('Report metadata data is invalid.');
+        }
+
+        if (!array_is_list($reports)) {
+            throw new ToolCallException('Report metadata data is invalid.');
+        }
+
+        $normalized = [];
+        foreach ($reports as $report) {
+            $normalized[] = ToolDataNormalizer::requireStringKeyedArray($report, 'Report metadata data is invalid.');
+        }
+
+        return $normalized;
     }
 }

@@ -15,13 +15,19 @@ use Piwik\Date;
 
 interface CoreProcessedReportGatewayInterface
 {
-    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed;
+    /**
+     * @return array<string, mixed>
+     */
+    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array;
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function getReportMetadata(
         int $idSite,
         string $period,
         Date|bool $date,
         bool $hideMetricsDoc,
         bool $showSubtableReports
-    ): mixed;
+    ): array;
 }
