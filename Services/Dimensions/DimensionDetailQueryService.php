@@ -44,10 +44,6 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
             throw new ToolCallException('Dimension retrieval failed.');
         }
 
-        if (!is_array($dimensions)) {
-            throw new ToolCallException('Dimension not found.');
-        }
-
         foreach ($dimensions as $dimension) {
             $dimensionData = ToolDataNormalizer::requireStringKeyedArray($dimension, 'Dimension data');
 

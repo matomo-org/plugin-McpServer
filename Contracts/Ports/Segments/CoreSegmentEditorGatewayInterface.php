@@ -16,7 +16,7 @@ interface CoreSegmentEditorGatewayInterface
     public function isSegmentEditorPluginActivated(): bool;
 
     /**
-     * @return mixed
+     * @return list<array<string, mixed>>
      */
-    public function getAll(int $idSite);
+    public function getAll(int $idSite): array;
 }

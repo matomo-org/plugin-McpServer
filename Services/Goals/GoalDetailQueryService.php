@@ -36,6 +36,8 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
             $goal = $this->coreGoalsGateway->getGoal($idSite, $idGoal);
         } catch (NoAccessException $e) {
             throw new ToolCallException('Goal not found.');
+        } catch (ToolCallException $e) {
+            throw new ToolCallException('Goal not found.');
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Goal not found.');

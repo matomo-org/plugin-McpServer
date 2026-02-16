@@ -11,9 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreGoalsGateway implements CoreGoalsGatewayInterface
 {
@@ -22,13 +24,38 @@ final class CoreGoalsGateway implements CoreGoalsGatewayInterface
         return Manager::getInstance()->isPluginActivated('Goals');
     }
 
-    public function getGoals(int $idSite)
+    public function getGoals(int $idSite): array
     {
-        return GoalsApi::getInstance()->getGoals((string) $idSite, true);
+        $goals = GoalsApi::getInstance()->getGoals((string) $idSite, true);
+
+        return $this->normalizeRows($goals, 'Goals data is invalid.');
     }
 
-    public function getGoal(int $idSite, int $idGoal)
+    public function getGoal(int $idSite, int $idGoal): array
     {
-        return GoalsApi::getInstance()->getGoal($idSite, $idGoal);
+        $goal = GoalsApi::getInstance()->getGoal($idSite, $idGoal);
+
+        return ToolDataNormalizer::requireStringKeyedArray($goal, 'Goal data is invalid.');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeRows(mixed $rows, string $invalidDataMessage): array
+    {
+        if (!is_array($rows)) {
+            throw new ToolCallException($invalidDataMessage);
+        }
+
+        if (!array_is_list($rows)) {
+            $rows = array_values($rows);
+        }
+
+        $normalized = [];
+        foreach ($rows as $row) {
+            $normalized[] = ToolDataNormalizer::requireStringKeyedArray($row, $invalidDataMessage);
+        }
+
+        return $normalized;
     }
 }

@@ -16,12 +16,12 @@ interface CoreGoalsGatewayInterface
     public function isGoalsPluginActivated(): bool;
 
     /**
-     * @return mixed
+     * @return list<array<string, mixed>>
      */
-    public function getGoals(int $idSite);
+    public function getGoals(int $idSite): array;
 
     /**
-     * @return mixed
+     * @return array<string, mixed>
      */
-    public function getGoal(int $idSite, int $idGoal);
+    public function getGoal(int $idSite, int $idGoal): array;
 }

@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\Contracts\Ports\Sites;
 interface CoreSitesManagerGatewayInterface
 {
     /**
-     * @return mixed
+     * @return list<array<string, mixed>>
      */
-    public function getSitesWithMinimumAccess(string $minimumAccess, string $search, ?int $limit);
+    public function getSitesWithMinimumAccess(string $minimumAccess, string $search, ?int $limit): array;
 
     /**
-     * @return mixed
+     * @return array<string, mixed>
      */
-    public function getSiteFromId(int $idSite);
+    public function getSiteFromId(int $idSite): array;
 }

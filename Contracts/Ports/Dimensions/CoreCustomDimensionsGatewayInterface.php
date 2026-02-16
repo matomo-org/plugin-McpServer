@@ -16,7 +16,7 @@ interface CoreCustomDimensionsGatewayInterface
     public function isCustomDimensionsPluginActivated(): bool;
 
     /**
-     * @return mixed
+     * @return list<array<string, mixed>>
      */
-    public function getConfiguredCustomDimensions(int $idSite);
+    public function getConfiguredCustomDimensions(int $idSite): array;
 }

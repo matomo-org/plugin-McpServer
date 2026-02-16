@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterface
@@ -22,8 +24,31 @@ final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterfac
         return Manager::getInstance()->isPluginActivated('SegmentEditor');
     }
 
-    public function getAll(int $idSite)
+    public function getAll(int $idSite): array
     {
-        return SegmentEditorApi::getInstance()->getAll($idSite);
+        $segments = SegmentEditorApi::getInstance()->getAll($idSite);
+
+        return $this->normalizeRows($segments, 'Segment data is invalid.');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeRows(mixed $rows, string $invalidDataMessage): array
+    {
+        if (!is_array($rows)) {
+            throw new ToolCallException($invalidDataMessage);
+        }
+
+        if (!array_is_list($rows)) {
+            $rows = array_values($rows);
+        }
+
+        $normalized = [];
+        foreach ($rows as $row) {
+            $normalized[] = ToolDataNormalizer::requireStringKeyedArray($row, $invalidDataMessage);
+        }
+
+        return $normalized;
     }
 }
