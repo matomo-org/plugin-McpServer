@@ -36,8 +36,6 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
-use Piwik\Plugins\McpServer\Session\DbSessionTable;
-use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -45,44 +43,26 @@ use Piwik\Plugins\McpServer\Tasks;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
-    DimensionDetailQueryServiceInterface::class => DI::autowire(DimensionDetailQueryService::class),
-    DimensionSummaryQueryServiceInterface::class => DI::autowire(DimensionSummaryQueryService::class),
-    GoalDetailQueryServiceInterface::class => DI::autowire(GoalDetailQueryService::class),
-    GoalSummaryQueryServiceInterface::class => DI::autowire(GoalSummaryQueryService::class),
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
     CoreProcessedReportGatewayInterface::class => DI::autowire(CoreProcessedReportGateway::class),
+    DimensionDetailQueryServiceInterface::class => DI::autowire(DimensionDetailQueryService::class),
+    DimensionSummaryQueryServiceInterface::class => DI::autowire(DimensionSummaryQueryService::class),
+    GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
+    GoalDetailQueryServiceInterface::class => DI::autowire(GoalDetailQueryService::class),
+    GoalSummaryQueryServiceInterface::class => DI::autowire(GoalSummaryQueryService::class),
     ReportMetadataQueryServiceInterface::class => DI::autowire(ReportMetadataQueryService::class),
     ReportProcessedQueryServiceInterface::class => DI::autowire(ReportProcessedQueryService::class),
     ReportSummaryQueryServiceInterface::class => DI::autowire(ReportSummaryQueryService::class),
     SegmentDetailQueryServiceInterface::class => DI::autowire(SegmentDetailQueryService::class),
     SegmentSummaryQueryServiceInterface::class => DI::autowire(SegmentSummaryQueryService::class),
+    SessionStoreInterface::class => DI::autowire(DbSessionStore::class),
     SiteDetailQueryServiceInterface::class => DI::autowire(SiteDetailQueryService::class),
     SiteSummaryQueryServiceInterface::class => DI::autowire(SiteSummaryQueryService::class),
     TranslatorContextRunnerInterface::class => DI::autowire(TranslatorContextRunner::class),
-    GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
-    SessionStoreInterface::class => DI::autowire(DbSessionStore::class),
 
-    CoreApiModuleGateway::class => DI::autowire(),
-    CoreProcessedReportGateway::class => DI::autowire(),
-    DimensionDetailQueryService::class => DI::autowire(),
-    DimensionSummaryQueryService::class => DI::autowire(),
-    GoalDetailQueryService::class => DI::autowire(),
-    GoalSummaryQueryService::class => DI::autowire(),
-    ReportMetadataQueryService::class => DI::autowire(),
-    ReportProcessedQueryService::class => DI::autowire(),
-    ReportSummaryQueryService::class => DI::autowire(),
-    SegmentDetailQueryService::class => DI::autowire(),
-    SegmentSummaryQueryService::class => DI::autowire(),
-    SiteDetailQueryService::class => DI::autowire(),
-    SiteSummaryQueryService::class => DI::autowire(),
-    TranslatorContextRunner::class => DI::autowire(),
-
-    GetRequestScopeMutator::class => DI::autowire(),
-    PaginatedCollectionResponder::class => DI::autowire(),
-    CursorPaginator::class => DI::autowire(),
-    McpServerFactory::class => DI::autowire(),
     Controller::class => DI::autowire(),
-    Tasks::class => DI::autowire(),
     DbSessionStore::class => DI::autowire(),
-    DbSessionTable::class => DI::autowire(),
+    McpServerFactory::class => DI::autowire(),
+    PaginatedCollectionResponder::class => DI::autowire(),
+    Tasks::class => DI::autowire(),
 ];
