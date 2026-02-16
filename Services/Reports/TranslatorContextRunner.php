@@ -23,6 +23,9 @@ final class TranslatorContextRunner implements TranslatorContextRunnerInterface
     public function runInEnglish(callable $callback): mixed
     {
         $originalLanguage = $this->translator->getCurrentLanguage();
+        if ($originalLanguage === '') {
+            $originalLanguage = $this->translator->getDefaultLanguage();
+        }
 
         try {
             $this->translator->setCurrentLanguage('en');
