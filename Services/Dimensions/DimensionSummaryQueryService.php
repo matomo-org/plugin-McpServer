@@ -13,8 +13,7 @@ namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
-use Piwik\Plugin\Manager;
-use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
@@ -22,17 +21,22 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class DimensionSummaryQueryService implements DimensionSummaryQueryServiceInterface
 {
+    public function __construct(
+        private CoreCustomDimensionsGatewayInterface $coreCustomDimensionsGateway
+    ) {
+    }
+
     /**
      * @return array<int, DimensionSummaryRecord>
      */
     public function getDimensionSummariesForSite(int $idSite): array
     {
-        if (!Manager::getInstance()->isPluginActivated('CustomDimensions')) {
+        if (!$this->coreCustomDimensionsGateway->isCustomDimensionsPluginActivated()) {
             throw new ToolCallException('CustomDimensions plugin is not available.');
         }
 
         try {
-            $dimensions = CustomDimensionsApi::getInstance()->getConfiguredCustomDimensions($idSite);
+            $dimensions = $this->coreCustomDimensionsGateway->getConfiguredCustomDimensions($idSite);
         } catch (NoAccessException $e) {
             // Keep list behavior aligned with site/segment/goal list: no view access yields no rows.
             return [];

@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 
 /**
@@ -23,7 +24,7 @@ class GoalDetailQueryServiceTest extends TestCase
 {
     public function testNormalizeGoalDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         unset($data['name']);
 
@@ -35,7 +36,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataThrowsWhenFieldIsInvalid(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['case_sensitive'] = 'invalid';
 
@@ -47,7 +48,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
 
         $goal = $service->normalizeGoalDetailData($this->makeValidGoalDetailData(), 'Goal data');
 
@@ -68,7 +69,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataCastsNumericRevenueToString(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['revenue'] = 12.5;
 
@@ -79,7 +80,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataSetsExpandedFieldsNullForManualGoal(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['match_attribute'] = 'manually';
         unset($data['pattern'], $data['pattern_type'], $data['case_sensitive']);
@@ -93,7 +94,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataThrowsWhenPatternMissingForNonManualGoal(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         unset($data['pattern']);
 
@@ -121,5 +122,10 @@ class GoalDetailQueryServiceTest extends TestCase
             'pattern_type' => 'exact',
             'case_sensitive' => '1',
         ];
+    }
+
+    private function createService(): GoalDetailQueryService
+    {
+        return new GoalDetailQueryService($this->createMock(CoreGoalsGatewayInterface::class));
     }
 }

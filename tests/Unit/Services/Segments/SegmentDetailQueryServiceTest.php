@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 
 /**
@@ -23,7 +24,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 {
     public function testNormalizeSegmentDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new SegmentDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentDetailData();
         unset($data['login']);
 
@@ -35,7 +36,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentDetailDataThrowsWhenFieldIsInvalid(): void
     {
-        $service = new SegmentDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentDetailData();
         $data['auto_archive'] = 'invalid';
 
@@ -47,7 +48,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new SegmentDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentDetailData();
 
         $segment = $service->normalizeSegmentDetailData($data, 'Segment detail item');
@@ -65,7 +66,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentDetailRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new SegmentDetailQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment detail data is invalid.');
@@ -79,7 +80,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentDetailRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new SegmentDetailQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment detail data is invalid.');
@@ -105,5 +106,10 @@ class SegmentDetailQueryServiceTest extends TestCase
             'enable_all_users' => '0',
             'login' => 'superUserLogin',
         ];
+    }
+
+    private function createService(): SegmentDetailQueryService
+    {
+        return new SegmentDetailQueryService($this->createMock(CoreSegmentEditorGatewayInterface::class));
     }
 }

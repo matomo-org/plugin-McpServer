@@ -5,8 +5,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Piwik\DI;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
@@ -15,14 +17,18 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\Goals\CoreGoalsGateway;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\CoreApiModuleGateway;
@@ -31,8 +37,10 @@ use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\TranslatorContextRunner;
+use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
@@ -44,7 +52,11 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
+    CoreCustomDimensionsGatewayInterface::class => DI::autowire(CoreCustomDimensionsGateway::class),
+    CoreGoalsGatewayInterface::class => DI::autowire(CoreGoalsGateway::class),
     CoreProcessedReportGatewayInterface::class => DI::autowire(CoreProcessedReportGateway::class),
+    CoreSegmentEditorGatewayInterface::class => DI::autowire(CoreSegmentEditorGateway::class),
+    CoreSitesManagerGatewayInterface::class => DI::autowire(CoreSitesManagerGateway::class),
     DimensionDetailQueryServiceInterface::class => DI::autowire(DimensionDetailQueryService::class),
     DimensionSummaryQueryServiceInterface::class => DI::autowire(DimensionSummaryQueryService::class),
     GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),

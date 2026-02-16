@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 
 /**
@@ -23,7 +24,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 {
     public function testNormalizeDimensionDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         unset($data['name']);
 
@@ -35,7 +36,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataThrowsWhenFieldIsInvalid(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['case_sensitive'] = 'invalid';
 
@@ -47,7 +48,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
 
         $dimension = $service->normalizeDimensionDetailData($this->makeValidDimensionDetailData(), 'Dimension data');
 
@@ -70,7 +71,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataRejectsInvalidExtractionsShape(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['extractions'] = ['invalid'];
 
@@ -82,7 +83,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataSupportsEmptyExtractions(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['extractions'] = [];
 
@@ -111,5 +112,10 @@ class DimensionDetailQueryServiceTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    private function createService(): DimensionDetailQueryService
+    {
+        return new DimensionDetailQueryService($this->createMock(CoreCustomDimensionsGatewayInterface::class));
     }
 }

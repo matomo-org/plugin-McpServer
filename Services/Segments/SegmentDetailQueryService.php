@@ -13,25 +13,29 @@ namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
-use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterface
 {
+    public function __construct(
+        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway
+    ) {
+    }
+
     /**
      * @return array<int, SegmentDetailRecord>
      */
     public function getSegmentDetailsForSite(int $idSite): array
     {
-        if (!Manager::getInstance()->isPluginActivated('SegmentEditor')) {
+        if (!$this->coreSegmentEditorGateway->isSegmentEditorPluginActivated()) {
             throw new ToolCallException('SegmentEditor plugin is not available.');
         }
 
         try {
-            $segments = SegmentEditorApi::getInstance()->getAll($idSite);
+            $segments = $this->coreSegmentEditorGateway->getAll($idSite);
         } catch (NoAccessException $e) {
             throw new ToolCallException('Segment not found.');
         } catch (\Throwable $e) {
