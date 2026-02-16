@@ -116,10 +116,12 @@ class McpServerFactoryTest extends TestCase
             ->method('debug')
             ->with(
                 self::callback(static function (string $message): bool {
-                    return str_contains($message, 'MCP Tool Call failed: Tool not found: "missing_tool".')
-                        && str_contains($message, 'query: "secret"');
+                    return $message === 'MCP Tool Call failed: {error_message} '
+                        . '[{formatted_arguments}] [session={session_id}]';
                 }),
-                self::callback(static fn(mixed $context): bool => is_array($context))
+                self::callback(static fn(mixed $context): bool => is_array($context)
+                    && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
+                    && ($context['formatted_arguments'] ?? null) === 'query: "secret"')
             );
 
         $factory = new McpServerFactory(
