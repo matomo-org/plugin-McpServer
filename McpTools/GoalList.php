@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -82,7 +83,7 @@ class GoalList
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $cursorContext = hash('sha256', 'goal-list:idSite:' . (string) $idSite);
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getGoalSummariesForSite($idSite),
             static fn(GoalSummaryRecord $goal): array => $goal->toArray(),
@@ -92,7 +93,11 @@ class GoalList
             $limit,
             $cursor,
             $sort,
-            $cursorContext
+            $cursorContext,
+            static fn(GoalSummaryRecord $goal): array => [
+                'name' => $goal->name,
+                'idgoal' => $goal->idGoal,
+            ]
         );
 
         /** @var array{goals: list<GoalSummaryArray>, next_cursor: string|null, has_more: bool} $response */

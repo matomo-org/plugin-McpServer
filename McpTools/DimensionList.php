@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -82,7 +83,7 @@ class DimensionList
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $cursorContext = hash('sha256', 'dimension-list:idSite:' . (string) $idSite);
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getDimensionSummariesForSite($idSite),
             static fn(DimensionSummaryRecord $dimension): array => $dimension->toArray(),
@@ -92,7 +93,11 @@ class DimensionList
             $limit,
             $cursor,
             $sort,
-            $cursorContext
+            $cursorContext,
+            static fn(DimensionSummaryRecord $dimension): array => [
+                'name' => $dimension->name,
+                'iddimension' => $dimension->idDimension,
+            ]
         );
 
         /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool} $response */

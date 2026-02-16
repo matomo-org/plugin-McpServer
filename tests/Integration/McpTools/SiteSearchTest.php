@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -335,6 +336,31 @@ class SiteSearchTest extends IntegrationTestCase
             $sessionId,
             SiteSearch::TOOL_NAME,
             ['search' => 'Alpha', 'cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
+            'Invalid cursor.',
+            __METHOD__ . '#2'
+        );
+    }
+
+    public function testRejectsCursorFromSiteListContext(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $listPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            SiteList::TOOL_NAME,
+            ['limit' => 1, 'sort' => SitesPagination::SORT_NAME_ASC],
+            __METHOD__ . '#1'
+        );
+        $nextCursor = $listPage['next_cursor'] ?? null;
+        self::assertIsString($nextCursor);
+
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            SiteSearch::TOOL_NAME,
+            ['search' => 'Test Site', 'cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
             'Invalid cursor.',
             __METHOD__ . '#2'
         );

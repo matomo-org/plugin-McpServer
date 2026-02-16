@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -82,7 +83,7 @@ class SegmentList
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $cursorContext = hash('sha256', 'segment-list:idSite:' . (string) $idSite);
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getSegmentSummariesForSite($idSite),
             static fn(SegmentSummaryRecord $segment): array => $segment->toArray(),
@@ -92,7 +93,11 @@ class SegmentList
             $limit,
             $cursor,
             $sort,
-            $cursorContext
+            $cursorContext,
+            static fn(SegmentSummaryRecord $segment): array => [
+                'name' => $segment->name,
+                'idsegment' => $segment->idSegment,
+            ]
         );
 
         /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */

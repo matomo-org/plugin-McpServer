@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -124,5 +125,39 @@ class SiteListTest extends TestCase
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+    }
+
+    public function testListRejectsCursorFromSiteSearchContext(): void
+    {
+        $wrapper = new class () implements SiteSummaryQueryServiceInterface {
+            public function getSiteSummariesForList(): array
+            {
+                return [
+                    new SiteSummaryRecord(1, 'Site A', 'https://a.test', 'website'),
+                    new SiteSummaryRecord(2, 'Site B', 'https://b.test', 'website'),
+                ];
+            }
+
+            public function getSiteSummariesForSearch(string $search): array
+            {
+                return [
+                    new SiteSummaryRecord(1, 'Site A', 'https://a.test', 'website'),
+                    new SiteSummaryRecord(2, 'Site B', 'https://b.test', 'website'),
+                ];
+            }
+        };
+
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
+        $searchTool = new SiteSearch($wrapper, $responder);
+        $listTool = new SiteList($wrapper, $responder);
+
+        $page = $searchTool->search('site', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $cursor = $page['next_cursor'] ?? null;
+        self::assertIsString($cursor);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+
+        $listTool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

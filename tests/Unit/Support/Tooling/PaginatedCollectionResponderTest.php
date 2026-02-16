@@ -172,6 +172,50 @@ class PaginatedCollectionResponderTest extends TestCase
         );
     }
 
+    public function testTransformsOnlyPageItemsWhenSortProjectionIsProvided(): void
+    {
+        $responder = new PaginatedCollectionResponder(new CursorPaginator());
+        /** @var list<array{id: int, name: string, payload: string}> $records */
+        $records = [];
+        for ($i = 1; $i <= 1000; $i++) {
+            $records[] = [
+                'id' => $i,
+                'name' => sprintf('Item %04d', $i),
+                'payload' => str_repeat('x', 64),
+            ];
+        }
+
+        $toArrayCalls = 0;
+        $toSortCalls = 0;
+
+        /** @var array{items: list<array{name: string, id: int, payload: string}>, next_cursor: string|null, has_more: bool} $result */
+        $result = $responder->paginateRecords(
+            $records,
+            /**
+             * @param array{id: int, name: string, payload: string} $record
+             * @return array{name: string, id: int, payload: string}
+             */
+            static function (array $record) use (&$toArrayCalls): array {
+                $toArrayCalls++;
+                return ['name' => $record['name'], 'id' => $record['id'], 'payload' => $record['payload']];
+            },
+            'items',
+            $this->buildConfig(),
+            'name_asc',
+            limit: 10,
+            recordToSortData: static function (array $record) use (&$toSortCalls): array {
+                $toSortCalls++;
+                return ['name' => $record['name'], 'id' => $record['id']];
+            }
+        );
+
+        self::assertCount(10, $result['items']);
+        self::assertTrue($result['has_more']);
+        self::assertIsString($result['next_cursor']);
+        self::assertSame(1000, $toSortCalls);
+        self::assertSame(10, $toArrayCalls);
+    }
+
     private function buildConfig(): PaginationConfig
     {
         return new PaginationConfig(
