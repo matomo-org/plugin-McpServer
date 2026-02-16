@@ -16,6 +16,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
@@ -37,6 +38,7 @@ use Piwik\Plugins\McpServer\Services\Reports\CoreProcessedReportGateway;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\Reports\StrictSegmentPolicyService;
 use Piwik\Plugins\McpServer\Services\Reports\TranslatorContextRunner;
 use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
@@ -68,6 +70,7 @@ return [
     ReportMetadataQueryServiceInterface::class => DI::autowire(ReportMetadataQueryService::class),
     ReportProcessedQueryServiceInterface::class => DI::autowire(ReportProcessedQueryService::class),
     ReportSummaryQueryServiceInterface::class => DI::autowire(ReportSummaryQueryService::class),
+    StrictSegmentPolicyServiceInterface::class => DI::autowire(StrictSegmentPolicyService::class),
     SegmentDetailQueryServiceInterface::class => DI::autowire(SegmentDetailQueryService::class),
     SegmentSummaryQueryServiceInterface::class => DI::autowire(SegmentSummaryQueryService::class),
     SessionStoreInterface::class => DI::autowire(DbSessionStore::class),

@@ -16,9 +16,11 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
+use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
@@ -29,6 +31,10 @@ use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface
  */
 class ReportProcessedQueryServiceTest extends TestCase
 {
+    private const STRICT_SEGMENT_ERROR_MESSAGE =
+        'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
+        . 'Use matomo_segment_list to select a saved segment definition.';
+
     public function testRejectsDangerousApiParameterKey(): void
     {
         $service = $this->makeService($this->makeMetadataWrapper());
@@ -1059,11 +1065,387 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
     }
 
+    public function testAllowsAdHocSegmentWhenStrictModeEnabledIfCoreRequestSucceeds(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                return [
+                    'reportData' => [['label' => 'A']],
+                    'reportMetadata' => [['idsubdatatable' => 1]],
+                    'columns' => ['label' => 'Label'],
+                ];
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+
+        $resolved = $record->toArray()['resolvedReport'];
+        self::assertSame('Actions_getPageUrls', $resolved['uniqueId']);
+    }
+
+    public function testReturnsStrictGuidanceWhenStrictModeEnabledAndSegmentIsNotPreprocessed(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException('report data has not been pre-processed')
+                );
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testReturnsStrictGuidanceForEmptySegmentedSuccessWhenStrictModeEnabled(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                return [
+                    'reportData' => [],
+                    'reportMetadata' => [],
+                    'columns' => ['label' => 'Label'],
+                ];
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testKeepsEmptySegmentedSuccessWhenStrictModeEnabledAndSegmentIsPreprocessed(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                return [
+                    'reportData' => [],
+                    'reportMetadata' => [],
+                    'columns' => ['label' => 'Label'],
+                ];
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+
+        self::assertSame(0, $record->toArray()['pagination']['returned_rows']);
+    }
+
+    public function testReturnsStrictGuidanceWhenCoreFailureMentionsSegmentNotYetProcessedBySystem(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException(
+                        'These reports have no data, because the Segment you requested has not yet been '
+                        . 'processed by the system.'
+                    )
+                );
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testDoesNotMapUnrelatedCoreFailureToStrictGuidanceAndSkipsPolicyEvaluation(): void
+    {
+        $strictSegmentPolicy = new class () implements StrictSegmentPolicyServiceInterface {
+            public int $calls = 0;
+
+            public function shouldMapToStrictSegmentGuidance(
+                int $idSite,
+                string $period,
+                string $date,
+                ?string $segment
+            ): bool {
+                $this->calls++;
+                return true;
+            }
+        };
+
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException('core failed', 0, new \RuntimeException('database timeout'));
+            },
+            strictSegmentPolicy: $strictSegmentPolicy
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report retrieval failed.');
+
+        try {
+            $service->getProcessedReport(
+                idSite: 1,
+                period: 'day',
+                date: 'today',
+                reportUniqueId: 'Actions_getPageUrls',
+                apiModule: null,
+                apiAction: null,
+                apiParameters: [],
+                goalMetricsMode: null,
+                goalMetricsProcessGoals: null,
+                segment: 'countryCode==de',
+                idGoal: null,
+                idDimension: null,
+                idSubtable: null,
+                filterLimit: 10,
+                filterOffset: 0
+            );
+        } finally {
+            self::assertSame(0, $strictSegmentPolicy->calls);
+        }
+    }
+
+    public function testKeepsGenericFailureWhenSegmentIsPreprocessedInStrictMode(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException('report data has not been pre-processed')
+                );
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report retrieval failed.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testKeepsGenericFailureWhenEligibilityCheckFails(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException('report data has not been pre-processed')
+                );
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(
+                false,
+                new \RuntimeException('boom')
+            )
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report retrieval failed.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testDoesNotApplyStrictGuidanceForNonGatewayToolCallException(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new ToolCallException('Original report failure.');
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Original report failure.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
+    public function testDoesNotApplyStrictGuidanceWhenStrictModeDisabled(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException('report data has not been pre-processed')
+                );
+            },
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report retrieval failed.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: 'countryCode==de',
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+    }
+
     private function makeService(
         ?ReportMetadataQueryServiceInterface $metadataWrapper = null,
         ?callable $processedReportCaller = null,
         ?GetRequestScopeMutatorInterface $mutator = null,
-        ?CoreApiModuleGatewayInterface $apiGateway = null
+        ?CoreApiModuleGatewayInterface $apiGateway = null,
+        ?StrictSegmentPolicyServiceInterface $strictSegmentPolicy = null
     ): ReportProcessedQueryService {
         $metadataWrapper = $metadataWrapper ?? $this->makeMetadataWrapper();
         $mutator = $mutator ?? new GetRequestScopeMutator();
@@ -1093,14 +1475,42 @@ class ReportProcessedQueryServiceTest extends TestCase
                 return $callback();
             }
         };
+        $strictSegmentPolicy = $strictSegmentPolicy ?? $this->makeStrictSegmentPolicyService(false);
 
         return new ReportProcessedQueryService(
             $metadataWrapper,
             $mutator,
             $apiGateway,
             $translatorRunner,
+            $strictSegmentPolicy,
             $processedReportCaller
         );
+    }
+
+    private function makeStrictSegmentPolicyService(
+        bool $shouldMapToStrictGuidance,
+        ?\Throwable $throwable = null
+    ): StrictSegmentPolicyServiceInterface {
+        return new class ($shouldMapToStrictGuidance, $throwable) implements StrictSegmentPolicyServiceInterface {
+            public function __construct(
+                private bool $shouldMapToStrictGuidance,
+                private ?\Throwable $throwable
+            ) {
+            }
+
+            public function shouldMapToStrictSegmentGuidance(
+                int $idSite,
+                string $period,
+                string $date,
+                ?string $segment
+            ): bool {
+                if ($this->throwable !== null) {
+                    throw $this->throwable;
+                }
+
+                return $this->shouldMapToStrictGuidance;
+            }
+        };
     }
 
     private function makeMetadataWrapper(): ReportMetadataQueryServiceInterface
