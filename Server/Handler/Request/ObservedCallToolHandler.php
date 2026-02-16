@@ -83,10 +83,30 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     private function logSuccess(string $toolName, array $arguments, string $mode, array $context): void
     {
         $formattedArguments = $this->parameterFormatter->format($arguments, $mode === 'full');
-        $message = sprintf('MCP Tool Call successful: %s [%s]', $toolName, $formattedArguments);
+        $sessionId = $this->resolveContextSessionId($context);
+        $responseBytes = $context['mcp_response_bytes'] ?? null;
+        $hasResponseBytes = is_int($responseBytes);
+
+        $message = 'MCP Tool Call successful: {tool_name} [{formatted_arguments}]';
+
+        if ($hasResponseBytes) {
+            $message .= ' [session={session_id}, response_bytes={response_bytes}]';
+        } else {
+            $message .= ' [session={session_id}]';
+        }
+
+        $loggingContext = $context;
+        $loggingContext['tool_name'] = $toolName;
+        $loggingContext['formatted_arguments'] = $formattedArguments;
+        $loggingContext['session_id'] = $sessionId;
+
+        if ($hasResponseBytes) {
+            $loggingContext['response_bytes'] = $responseBytes;
+        }
+
         $this->logger->debug(
-            $this->appendTraceSuffix($message, $context),
-            $context
+            $message,
+            $loggingContext
         );
     }
 
@@ -97,28 +117,25 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     private function logFailure(string $errorMessage, array $arguments, string $mode, array $context): void
     {
         $formattedArguments = $this->parameterFormatter->format($arguments, $mode === 'full');
-        $message = sprintf('MCP Tool Call failed: %s [%s]', $errorMessage, $formattedArguments);
+        $message = 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]';
+        $loggingContext = $context;
+        $loggingContext['error_message'] = $errorMessage;
+        $loggingContext['formatted_arguments'] = $formattedArguments;
+        $loggingContext['session_id'] = $this->resolveContextSessionId($context);
+
         $this->logger->debug(
-            $this->appendTraceSuffix($message, $context),
-            $context
+            $message,
+            $loggingContext
         );
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    private function appendTraceSuffix(string $message, array $context): string
+    private function resolveContextSessionId(array $context): string
     {
         $sessionId = $context['mcp_session_id'] ?? 'unknown';
-        $sessionId = is_scalar($sessionId) ? (string) $sessionId : 'unknown';
-
-        $suffixParts = ['session=' . $sessionId];
-        $responseBytes = $context['mcp_response_bytes'] ?? null;
-        if (is_int($responseBytes)) {
-            $suffixParts[] = 'response_bytes=' . $responseBytes;
-        }
-
-        return $message . ' [' . implode(', ', $suffixParts) . ']';
+        return is_scalar($sessionId) ? (string) $sessionId : 'unknown';
     }
 
     private function resolveSessionId(SessionInterface $session): string

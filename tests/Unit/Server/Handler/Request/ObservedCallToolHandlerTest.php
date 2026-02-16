@@ -56,22 +56,26 @@ class ObservedCallToolHandlerTest extends TestCase
         $logger->expects(self::once())
             ->method('debug')
             ->with(
-                self::callback(static function (string $message): bool {
-                    return str_starts_with(
-                        $message,
-                        'MCP Tool Call successful: demo_tool [id: <int>, query: <string:3>]'
-                    ) && str_contains($message, '[session=87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1, response_bytes=');
-                }),
+                'MCP Tool Call successful: {tool_name} [{formatted_arguments}] '
+                . '[session={session_id}, response_bytes={response_bytes}]',
                 self::callback(static function (array $context): bool {
                     return isset(
                         $context['mcp_session_id'],
                         $context['mcp_tool_name'],
                         $context['mcp_params_mode'],
-                        $context['mcp_response_bytes']
+                        $context['mcp_response_bytes'],
+                        $context['tool_name'],
+                        $context['formatted_arguments'],
+                        $context['session_id'],
+                        $context['response_bytes']
                     )
                         && $context['mcp_session_id'] === '87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1'
                         && $context['mcp_tool_name'] === 'demo_tool'
                         && $context['mcp_params_mode'] === 'redacted'
+                        && $context['tool_name'] === 'demo_tool'
+                        && $context['formatted_arguments'] === 'id: <int>, query: <string:3>'
+                        && $context['session_id'] === '87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1'
+                        && $context['response_bytes'] === $context['mcp_response_bytes']
                         && is_int($context['mcp_response_bytes'])
                         && $context['mcp_response_bytes'] > 0;
                 })
@@ -95,10 +99,12 @@ class ObservedCallToolHandlerTest extends TestCase
         $logger->expects(self::once())
             ->method('debug')
             ->with(
-                'MCP Tool Call failed: Tool not found: "missing_tool". [query: <string:6>]'
-                . ' [session=e6b0fd2f-24a8-4a74-bf74-ec56d99963dd]',
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
                 self::callback(static fn(array $context): bool => ($context['mcp_params_mode'] ?? null) === 'redacted'
-                    && ($context['mcp_session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd')
+                    && ($context['mcp_session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd'
+                    && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
+                    && ($context['formatted_arguments'] ?? null) === 'query: <string:6>'
+                    && ($context['session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd')
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -125,11 +131,23 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('debug')
             ->with(
                 self::callback(static function (string $message): bool {
-                    return str_contains($message, 'MCP Tool Call failed: Invalid parameters for tool')
-                        && str_contains($message, '[query: <string:6>]')
+                    return $message === 'MCP Tool Call failed: {error_message} '
+                        . '[{formatted_arguments}] [session={session_id}]'
                         && !str_contains($message, 'secret');
                 }),
-                self::callback(static fn(mixed $context): bool => is_array($context))
+                self::callback(static function (array $context): bool {
+                    if (
+                        !isset($context['error_message'], $context['formatted_arguments'])
+                        || !is_string($context['error_message'])
+                        || !is_string($context['formatted_arguments'])
+                    ) {
+                        return false;
+                    }
+
+                    return str_contains($context['error_message'], 'Invalid parameters for tool')
+                        && $context['formatted_arguments'] === 'query: <string:6>'
+                        && !str_contains($context['formatted_arguments'], 'secret');
+                })
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -160,9 +178,11 @@ class ObservedCallToolHandlerTest extends TestCase
         $logger->expects(self::once())
             ->method('debug')
             ->with(
-                'MCP Tool Call failed: Tool execution failed [id: <int>]'
-                . ' [session=9d7bbcf8-c0c4-4379-87be-ae04689f80e1]',
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
                 self::callback(static fn(mixed $context): bool => is_array($context)
+                    && ($context['error_message'] ?? null) === 'Tool execution failed'
+                    && ($context['formatted_arguments'] ?? null) === 'id: <int>'
+                    && ($context['session_id'] ?? null) === '9d7bbcf8-c0c4-4379-87be-ae04689f80e1'
                     && ($context['mcp_session_id'] ?? null) === '9d7bbcf8-c0c4-4379-87be-ae04689f80e1')
             );
 
@@ -195,9 +215,11 @@ class ObservedCallToolHandlerTest extends TestCase
         $logger->expects(self::once())
             ->method('debug')
             ->with(
-                'MCP Tool Call failed: Error while executing tool [id: <int>]'
-                . ' [session=f47ac10b-58cc-4372-a567-0e02b2c3d479]',
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
                 self::callback(static fn(mixed $context): bool => is_array($context)
+                    && ($context['error_message'] ?? null) === 'Error while executing tool'
+                    && ($context['formatted_arguments'] ?? null) === 'id: <int>'
+                    && ($context['session_id'] ?? null) === 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
                     && ($context['mcp_session_id'] ?? null) === 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
             );
 
@@ -298,6 +320,32 @@ class ObservedCallToolHandlerTest extends TestCase
 
             self::assertSame($this->encodeMessage($sdk), $this->encodeMessage($observed));
         }
+    }
+
+    public function testFailureLoggingSupportsPercentEncodedParametersInFullMode(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('c7f81059-95ee-406e-89b9-a3f3d8f61373');
+        $request = (new CallToolRequest('missing_tool', [
+            'segment' => 'pageUrl=^https%253A%252F%252Fexample.org%252Fuser-guide',
+        ]))->withId('r-percent-1');
+
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
+                self::callback(static fn(array $context): bool => ($context['mcp_params_mode'] ?? null) === 'full'
+                    && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
+                    && str_contains((string) ($context['formatted_arguments'] ?? ''), '%253A')
+                    && ($context['session_id'] ?? null) === 'c7f81059-95ee-406e-89b9-a3f3d8f61373')
+            );
+
+        $handler = $this->createObservedHandler($registry, $logger, true);
+        $error = $handler->handle($request, $session);
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
     }
 
     /**
