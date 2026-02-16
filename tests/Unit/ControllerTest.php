@@ -16,9 +16,11 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
+use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -29,10 +31,29 @@ use Psr\Container\ContainerInterface;
  */
 class ControllerTest extends TestCase
 {
+    /** @var array<string, mixed>|null */
+    private ?array $originalMcpServerConfig = null;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $originalConfig = Config::getInstance()->McpServer ?? null;
+        $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
+    }
+
+    public function tearDown(): void
+    {
+        Config::getInstance()->McpServer = $this->originalMcpServerConfig;
+
+        parent::tearDown();
+    }
+
     public function testMcpEmitsResponseForInitialize(): void
     {
         try {
             Access::getInstance()->setSuperUserAccess(true);
+            Config::getInstance()->McpServer = ['log_tool_calls' => 1];
 
             $request = $this->createRequest();
             $factory = $this->createFactory();
@@ -53,6 +74,8 @@ class ControllerTest extends TestCase
 
     public function testMcpRejectsUnauthenticatedRequestAndSendsBearerChallengeHint(): void
     {
+        Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+
         $request = $this->createRequest();
         $factory = $this->createFactory();
         $capturedResponse = null;
@@ -85,7 +108,8 @@ class ControllerTest extends TestCase
         return new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
-            $this->createMock(ContainerInterface::class)
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
         );
     }
 
