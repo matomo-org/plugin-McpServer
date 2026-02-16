@@ -13,26 +13,32 @@ namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
-use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInterface
 {
+    public function __construct(
+        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+    ) {
+    }
+
     /**
      * @return array<int, SegmentSummaryRecord>
      */
     public function getSegmentSummariesForSite(int $idSite): array
     {
-        if (!Manager::getInstance()->isPluginActivated('SegmentEditor')) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('SegmentEditor')) {
             throw new ToolCallException('SegmentEditor plugin is not available.');
         }
 
         try {
-            $segments = SegmentEditorApi::getInstance()->getAll($idSite);
+            $segments = $this->coreSegmentEditorGateway->getAll($idSite);
         } catch (NoAccessException $e) {
             // Keep segment list behavior aligned with site list: no view access yields no rows.
             return [];

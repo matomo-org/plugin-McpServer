@@ -14,17 +14,22 @@ namespace Piwik\Plugins\McpServer\Services\Sites;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Exception\UnexpectedWebsiteFoundException;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 
 final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
 {
+    public function __construct(
+        private CoreSitesManagerGatewayInterface $coreSitesManagerGateway
+    ) {
+    }
+
     public function getSiteDetailFromId(int $idSite): SiteDetailRecord
     {
         try {
-            $site = SitesManagerApi::getInstance()->getSiteFromId($idSite);
+            $site = $this->coreSitesManagerGateway->getSiteFromId($idSite);
         } catch (NoAccessException | UnexpectedWebsiteFoundException $e) {
             // Intentional: collapse not-found and no-access to avoid information disclosure.
             throw new ToolCallException('Site not found or access denied.');
@@ -32,7 +37,9 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
             throw new ToolCallException('Site retrieval failed.');
         }
 
-        return $this->normalizeSiteDetailData($site);
+        $siteData = ToolDataNormalizer::requireStringKeyedArray($site, 'Site retrieval failed.');
+
+        return $this->normalizeSiteDetailData($siteData);
     }
 
     /**

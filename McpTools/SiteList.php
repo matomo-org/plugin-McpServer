@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -76,6 +77,7 @@ class SiteList
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getSiteSummariesForList(),
             static fn(SiteSummaryRecord $site): array => $site->toArray(),
@@ -84,7 +86,12 @@ class SiteList
             SitesPagination::SORT_NAME_ASC,
             $limit,
             $cursor,
-            $sort
+            $sort,
+            $cursorContext,
+            static fn(SiteSummaryRecord $site): array => [
+                'name' => $site->name,
+                'idsite' => $site->idSite,
+            ]
         );
 
         /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */

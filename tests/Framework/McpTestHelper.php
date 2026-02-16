@@ -34,9 +34,7 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use PHPUnit\Framework\Assert;
-use Psr\Log\NullLogger;
 
 /**
  * @phpstan-import-type ToolData from Tool
@@ -46,13 +44,8 @@ final class McpTestHelper
     public static function buildServer(): Server
     {
         $factory = StaticContainer::get(McpServerFactory::class);
-        $sessionStore = StaticContainer::get(DbSessionStore::class);
 
-        return $factory->createServer(
-            new NullLogger(),
-            $sessionStore,
-            StaticContainer::getContainer()
-        );
+        return $factory->createServer();
     }
 
     /**

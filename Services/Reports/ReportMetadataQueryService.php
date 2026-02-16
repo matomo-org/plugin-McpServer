@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class ReportMetadataQueryService implements ReportMetadataQueryServiceInterface
@@ -33,22 +34,22 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     {
         try {
             $metadata = $this->translatorContextRunner->runInEnglish(
-                function () use ($idSite, $reportUniqueId): mixed {
+                function () use ($idSite, $reportUniqueId) {
                     return $this->coreProcessedReportGateway->getReportMetadataByUniqueId($idSite, $reportUniqueId);
                 }
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (InfrastructureDataException $e) {
+            throw new ToolCallException('Report not found.');
+        } catch (ToolCallException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
             }
 
             throw new ToolCallException('Report retrieval failed.');
-        }
-
-        if (!is_array($metadata)) {
-            throw new ToolCallException('Report not found.');
         }
 
         $metadataData = ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
@@ -75,7 +76,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         try {
             $reports = $this->translatorContextRunner->runInEnglish(
-                function () use ($idSite, $period, $metadataDate): mixed {
+                function () use ($idSite, $period, $metadataDate) {
                     return $this->coreProcessedReportGateway->getReportMetadata(
                         $idSite,
                         $period,
@@ -87,6 +88,10 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (InfrastructureDataException $e) {
+            throw new ToolCallException('Report metadata data is invalid.');
+        } catch (ToolCallException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
@@ -95,23 +100,15 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             throw new ToolCallException('Report retrieval failed.');
         }
 
-        if (!is_array($reports)) {
-            throw new ToolCallException('Report metadata data is invalid.');
-        }
-
+        /** @var list<array<string, mixed>> $reports */
         $matches = [];
         foreach ($reports as $report) {
-            if (!is_array($report)) {
+            if ($this->isSubtableReport($report)) {
                 continue;
             }
 
-            $reportData = ToolDataNormalizer::requireStringKeyedArray($report, 'Report metadata data is invalid.');
-            if ($this->isSubtableReport($reportData)) {
-                continue;
-            }
-
-            $module = $reportData['module'] ?? null;
-            $action = $reportData['action'] ?? null;
+            $module = $report['module'] ?? null;
+            $action = $report['action'] ?? null;
 
             if (!is_string($module) || !is_string($action)) {
                 throw new ToolCallException('Report metadata data is invalid.');
@@ -121,7 +118,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 continue;
             }
 
-            $reportParametersRaw = $reportData['parameters'] ?? [];
+            $reportParametersRaw = $report['parameters'] ?? [];
             if (!is_array($reportParametersRaw)) {
                 throw new ToolCallException("Report metadata item is invalid (field 'parameters').");
             }
@@ -130,7 +127,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 continue;
             }
 
-            $matches[] = $reportData;
+            $matches[] = $report;
         }
 
         if ($matches === []) {

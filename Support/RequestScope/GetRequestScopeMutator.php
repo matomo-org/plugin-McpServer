@@ -19,15 +19,18 @@ final class GetRequestScopeMutator implements GetRequestScopeMutatorInterface
     public function runWithParameters(array $parameters, callable $callback): mixed
     {
         $previousGet = $_GET;
+        $previousRequest = $_REQUEST;
 
         foreach ($parameters as $key => $value) {
             $_GET[$key] = $value;
+            $_REQUEST[$key] = $value;
         }
 
         try {
             return $callback();
         } finally {
             $_GET = $previousGet;
+            $_REQUEST = $previousRequest;
         }
     }
 }

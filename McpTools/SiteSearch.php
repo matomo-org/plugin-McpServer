@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -93,7 +94,7 @@ class SiteSearch
             throw new ToolCallException("Parameter 'search' missing or invalid.");
         }
 
-        $cursorContext = hash('sha256', $search);
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['search' => $search]);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getSiteSummariesForSearch($search),
             static fn(SiteSummaryRecord $site): array => $site->toArray(),
@@ -103,7 +104,11 @@ class SiteSearch
             $limit,
             $cursor,
             $sort,
-            $cursorContext
+            $cursorContext,
+            static fn(SiteSummaryRecord $site): array => [
+                'name' => $site->name,
+                'idsite' => $site->idSite,
+            ]
         );
 
         /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */

@@ -12,17 +12,15 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
-use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
+use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
-use Piwik\Log\LoggerInterface;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -37,12 +35,13 @@ class ControllerTest extends TestCase
             Access::getInstance()->setSuperUserAccess(true);
 
             $request = $this->createRequest();
+            $factory = $this->createFactory();
+            $capturedResponse = null;
 
-            $controller = $this->createController(McpTestHelper::buildServer());
-            $controller->setRequest($request);
+            $controller = $this->createController($factory, $request, $capturedResponse);
             $controller->mcp();
 
-            $response = $controller->getCapturedResponse();
+            $response = $capturedResponse;
             self::assertInstanceOf(ResponseInterface::class, $response);
             self::assertSame(200, $response->getStatusCode());
 
@@ -55,12 +54,13 @@ class ControllerTest extends TestCase
     public function testMcpRejectsUnauthenticatedRequestAndSendsBearerChallengeHint(): void
     {
         $request = $this->createRequest();
+        $factory = $this->createFactory();
+        $capturedResponse = null;
 
-        $controller = $this->createController();
-        $controller->setRequest($request);
+        $controller = $this->createController($factory, $request, $capturedResponse);
         $controller->mcp();
 
-        $response = $controller->getCapturedResponse();
+        $response = $capturedResponse;
         self::assertInstanceOf(ResponseInterface::class, $response);
         self::assertSame(401, $response->getStatusCode());
 
@@ -80,65 +80,34 @@ class ControllerTest extends TestCase
             ->withBody($body);
     }
 
-    private function createController(?Server $server = null): TestController
+    private function createFactory(): McpServerFactory
     {
-        return new TestController(
+        return new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
-            new McpServerFactory(),
-            $this->createMock(ContainerInterface::class),
-            $server
+            $this->createMock(ContainerInterface::class)
         );
     }
-}
 
-final class TestController extends Controller
-{
-    private ?ServerRequestInterface $request = null;
-    private ?ResponseInterface $response = null;
-    private ?Server $server = null;
-
-    public function __construct(
-        LoggerInterface $logger,
-        SessionStoreInterface $sessionStore,
+    private function createController(
         McpServerFactory $factory,
-        ContainerInterface $container,
-        ?Server $server = null
-    ) {
-        parent::__construct($logger, $sessionStore, $factory, $container);
-        $this->server = $server;
-    }
+        ServerRequestInterface $request,
+        ?ResponseInterface &$capturedResponse
+    ): Controller {
+        $controller = $this
+            ->getMockBuilder(Controller::class)
+            ->setConstructorArgs([$factory])
+            ->onlyMethods(['createRequestFromGlobals', 'emit'])
+            ->getMock();
 
-    public function setRequest(ServerRequestInterface $request): void
-    {
-        $this->request = $request;
-    }
+        $controller->method('createRequestFromGlobals')
+            ->willReturn($request);
+        $controller->expects(self::once())
+            ->method('emit')
+            ->willReturnCallback(static function (ResponseInterface $response) use (&$capturedResponse): void {
+                $capturedResponse = $response;
+            });
 
-    public function getCapturedResponse(): ?ResponseInterface
-    {
-        return $this->response;
-    }
-
-    protected function createRequestFromGlobals(): ServerRequestInterface
-    {
-        if ($this->request === null) {
-            throw new \RuntimeException('Request not set.');
-        }
-
-        return $this->request;
-    }
-
-    protected function emit(ResponseInterface $response): void
-    {
-        $this->response = $response;
-    }
-
-    protected function buildServer(): Server
-    {
-        if ($this->server === null) {
-            throw new \RuntimeException('Server not set.');
-        }
-
-        return $this->server;
+        return $controller;
     }
 }

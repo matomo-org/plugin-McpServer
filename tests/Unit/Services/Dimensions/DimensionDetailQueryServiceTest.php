@@ -13,6 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 
 /**
@@ -21,9 +23,27 @@ use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
  */
 class DimensionDetailQueryServiceTest extends TestCase
 {
+    public function testGetDimensionDetailForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreCustomDimensionsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getConfiguredCustomDimensions');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('CustomDimensions')
+            ->willReturn(false);
+
+        $service = new DimensionDetailQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('CustomDimensions plugin is not available.');
+        $service->getDimensionDetailForSite(5, 3);
+    }
+
     public function testNormalizeDimensionDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         unset($data['name']);
 
@@ -35,7 +55,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataThrowsWhenFieldIsInvalid(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['case_sensitive'] = 'invalid';
 
@@ -47,7 +67,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
 
         $dimension = $service->normalizeDimensionDetailData($this->makeValidDimensionDetailData(), 'Dimension data');
 
@@ -70,7 +90,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataRejectsInvalidExtractionsShape(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['extractions'] = ['invalid'];
 
@@ -82,7 +102,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionDetailDataSupportsEmptyExtractions(): void
     {
-        $service = new DimensionDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionDetailData();
         $data['extractions'] = [];
 
@@ -111,5 +131,16 @@ class DimensionDetailQueryServiceTest extends TestCase
                 ],
             ],
         ];
+    }
+
+    private function createService(): DimensionDetailQueryService
+    {
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new DimensionDetailQueryService(
+            $this->createMock(CoreCustomDimensionsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

@@ -13,6 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 
 /**
@@ -21,9 +23,27 @@ use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
  */
 class GoalSummaryQueryServiceTest extends TestCase
 {
+    public function testGetGoalSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreGoalsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getGoals');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('Goals')
+            ->willReturn(false);
+
+        $service = new GoalSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Goals plugin is not available.');
+        $service->getGoalSummariesForSite(5);
+    }
+
     public function testNormalizeGoalSummaryDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalSummaryData();
         unset($data['name']);
 
@@ -35,7 +55,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryDataThrowsWhenFieldIsNull(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalSummaryData();
         $data['match_attribute'] = null;
 
@@ -47,7 +67,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryDataReturnsExpectedTypedOutput(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
 
         $goal = $service->normalizeGoalSummaryData($this->makeValidGoalSummaryData(), 'Goal list item');
 
@@ -65,7 +85,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryDataCastsNumericRevenueToString(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalSummaryData();
         $data['revenue'] = 12.5;
 
@@ -76,7 +96,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goal list data is invalid.');
@@ -90,7 +110,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goal list data is invalid.');
@@ -104,7 +124,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeGoalSummaryRowsReturnsNormalizedRows(): void
     {
-        $service = new GoalSummaryQueryService();
+        $service = $this->createService();
 
         $actual = $service->normalizeGoalSummaryRows(
             [$this->makeValidGoalSummaryData()],
@@ -140,5 +160,16 @@ class GoalSummaryQueryServiceTest extends TestCase
             'revenue' => '9.99',
             'event_value_as_revenue' => '0',
         ];
+    }
+
+    private function createService(): GoalSummaryQueryService
+    {
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new GoalSummaryQueryService(
+            $this->createMock(CoreGoalsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

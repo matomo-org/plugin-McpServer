@@ -13,6 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
 
 /**
@@ -21,9 +23,27 @@ use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
  */
 class GoalDetailQueryServiceTest extends TestCase
 {
+    public function testGetGoalDetailForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreGoalsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getGoal');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('Goals')
+            ->willReturn(false);
+
+        $service = new GoalDetailQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Goals plugin is not available.');
+        $service->getGoalDetailForSite(5, 3);
+    }
+
     public function testNormalizeGoalDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         unset($data['name']);
 
@@ -35,7 +55,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataThrowsWhenFieldIsInvalid(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['case_sensitive'] = 'invalid';
 
@@ -47,7 +67,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
 
         $goal = $service->normalizeGoalDetailData($this->makeValidGoalDetailData(), 'Goal data');
 
@@ -68,7 +88,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataCastsNumericRevenueToString(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['revenue'] = 12.5;
 
@@ -79,7 +99,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataSetsExpandedFieldsNullForManualGoal(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         $data['match_attribute'] = 'manually';
         unset($data['pattern'], $data['pattern_type'], $data['case_sensitive']);
@@ -93,7 +113,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
     public function testNormalizeGoalDetailDataThrowsWhenPatternMissingForNonManualGoal(): void
     {
-        $service = new GoalDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidGoalDetailData();
         unset($data['pattern']);
 
@@ -121,5 +141,16 @@ class GoalDetailQueryServiceTest extends TestCase
             'pattern_type' => 'exact',
             'case_sensitive' => '1',
         ];
+    }
+
+    private function createService(): GoalDetailQueryService
+    {
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new GoalDetailQueryService(
+            $this->createMock(CoreGoalsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

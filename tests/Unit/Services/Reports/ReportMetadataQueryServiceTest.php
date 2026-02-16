@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 /**
  * @group McpServer
@@ -70,7 +71,7 @@ class ReportMetadataQueryServiceTest extends TestCase
     {
         $service = $this->makeService(
             new class () implements CoreProcessedReportGatewayInterface {
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
                 {
                     throw new \Piwik\NoAccessException('denied');
                 }
@@ -81,7 +82,33 @@ class ReportMetadataQueryServiceTest extends TestCase
                     \Piwik\Date|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
-                ): mixed {
+                ): array {
+                    return [];
+                }
+            }
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report not found.');
+        $service->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
+    }
+
+    public function testGetReportMetadataByUniqueIdMapsInfrastructureDataFailureToNotFound(): void
+    {
+        $service = $this->makeService(
+            new class () implements CoreProcessedReportGatewayInterface {
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+                {
+                    throw new InfrastructureDataException('Report not found.');
+                }
+
+                public function getReportMetadata(
+                    int $idSite,
+                    string $period,
+                    \Piwik\Date|bool $date,
+                    bool $hideMetricsDoc,
+                    bool $showSubtableReports
+                ): array {
                     return [];
                 }
             }
@@ -103,7 +130,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 {
                 }
 
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
                 {
                     return $this->metadata;
                 }
@@ -111,10 +138,10 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    mixed $date,
+                    \Piwik\Date|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
-                ): mixed {
+                ): array {
                     return [$this->metadata];
                 }
             }
@@ -132,10 +159,44 @@ class ReportMetadataQueryServiceTest extends TestCase
         self::assertSame('Actions_getPageUrls', $record->uniqueId);
     }
 
+    public function testGetReportMetadataByModuleActionMapsInfrastructureDataFailureToInvalidMetadata(): void
+    {
+        $service = $this->makeService(
+            new class () implements CoreProcessedReportGatewayInterface {
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+                {
+                    return [];
+                }
+
+                public function getReportMetadata(
+                    int $idSite,
+                    string $period,
+                    \Piwik\Date|bool $date,
+                    bool $hideMetricsDoc,
+                    bool $showSubtableReports
+                ): array {
+                    throw new InfrastructureDataException('Report metadata data is invalid.');
+                }
+            }
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report metadata data is invalid.');
+
+        $service->getReportMetadataByModuleAction(
+            1,
+            'Actions',
+            'getPageUrls',
+            ['idGoal' => '1'],
+            'day',
+            'today'
+        );
+    }
+
     private function makeService(?CoreProcessedReportGatewayInterface $gateway = null): ReportMetadataQueryService
     {
         $gateway = $gateway ?? new class () implements CoreProcessedReportGatewayInterface {
-            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
             {
                 return [];
             }
@@ -146,7 +207,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 \Piwik\Date|bool $date,
                 bool $hideMetricsDoc,
                 bool $showSubtableReports
-            ): mixed {
+            ): array {
                 return [];
             }
         };

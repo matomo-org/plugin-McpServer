@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 
 /**
@@ -23,7 +24,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 {
     public function testNormalizeSiteSummaryDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteSummaryData();
         unset($data['main_url']);
 
@@ -35,7 +36,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSiteSummaryDataThrowsWhenFieldIsNull(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteSummaryData();
         $data['type'] = null;
 
@@ -47,7 +48,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSiteSummaryDataReturnsExpectedTypedOutput(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteSummaryData();
 
         $site = $service->normalizeSiteSummaryData($data, 'Site list item');
@@ -62,7 +63,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSiteSummaryRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
@@ -76,7 +77,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSiteSummaryRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site search data is invalid.');
@@ -90,7 +91,7 @@ class SiteSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSiteSummaryRowsReturnsNormalizedRows(): void
     {
-        $service = new SiteSummaryQueryService();
+        $service = $this->createService();
 
         $actual = $service->normalizeSiteSummaryRows(
             [$this->makeValidSiteSummaryData()],
@@ -118,5 +119,10 @@ class SiteSummaryQueryServiceTest extends TestCase
             'main_url' => 'https://example.test',
             'type' => 'website',
         ];
+    }
+
+    private function createService(): SiteSummaryQueryService
+    {
+        return new SiteSummaryQueryService($this->createMock(CoreSitesManagerGatewayInterface::class));
     }
 }

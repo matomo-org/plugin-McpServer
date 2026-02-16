@@ -13,6 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 
 /**
@@ -21,9 +23,27 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
  */
 class SegmentSummaryQueryServiceTest extends TestCase
 {
+    public function testGetSegmentSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreSegmentEditorGatewayInterface::class);
+        $gateway->expects(self::never())->method('getAll');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('SegmentEditor')
+            ->willReturn(false);
+
+        $service = new SegmentSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('SegmentEditor plugin is not available.');
+        $service->getSegmentSummariesForSite(9);
+    }
+
     public function testNormalizeSegmentSummaryDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentSummaryData();
         unset($data['definition']);
 
@@ -35,7 +55,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentSummaryDataThrowsWhenFieldIsNull(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentSummaryData();
         $data['name'] = null;
 
@@ -47,7 +67,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentSummaryDataMapsAllSitesToNullIdSite(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentSummaryData();
 
         $segment = $service->normalizeSegmentSummaryData($data, 'Segment list item');
@@ -62,7 +82,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentSummaryRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment list data is invalid.');
@@ -76,7 +96,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentSummaryRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment list data is invalid.');
@@ -90,7 +110,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeSegmentSummaryRowsReturnsNormalizedRows(): void
     {
-        $service = new SegmentSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSegmentSummaryData();
         $data['enable_only_idsite'] = '7';
 
@@ -120,5 +140,16 @@ class SegmentSummaryQueryServiceTest extends TestCase
             'definition' => 'countryCode==de',
             'enable_only_idsite' => '0',
         ];
+    }
+
+    private function createService(): SegmentSummaryQueryService
+    {
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new SegmentSummaryQueryService(
+            $this->createMock(CoreSegmentEditorGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

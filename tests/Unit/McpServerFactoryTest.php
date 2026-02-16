@@ -11,9 +11,13 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Piwik\Plugin\Manager;
+use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 
 /**
  * @group McpServer
@@ -23,7 +27,12 @@ class McpServerFactoryTest extends TestCase
 {
     public function testInitializeResponseHasExpectedServerInfoAndCapabilities(): void
     {
-        $server = McpTestHelper::buildServer();
+        $factory = new McpServerFactory(
+            $this->createMock(LoggerInterface::class),
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class)
+        );
+        $server = $factory->createServer();
         $payload = McpTestHelper::makeInitializeRequest('init-1');
 
         $response = McpTestHelper::postJson($server, $payload);

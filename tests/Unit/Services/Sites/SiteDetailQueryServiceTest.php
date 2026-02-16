@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 
 /**
@@ -23,7 +24,7 @@ class SiteDetailQueryServiceTest extends TestCase
 {
     public function testNormalizeSiteDetailDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new SiteDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteData();
         unset($data['currency_name']);
 
@@ -35,7 +36,7 @@ class SiteDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSiteDetailDataThrowsWhenFieldIsNull(): void
     {
-        $service = new SiteDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteData();
         $data['timezone_name'] = null;
 
@@ -47,7 +48,7 @@ class SiteDetailQueryServiceTest extends TestCase
 
     public function testNormalizeSiteDetailDataReturnsExpectedTypedOutput(): void
     {
-        $service = new SiteDetailQueryService();
+        $service = $this->createService();
         $data = $this->makeValidSiteData();
 
         $site = $service->normalizeSiteDetailData($data);
@@ -83,5 +84,10 @@ class SiteDetailQueryServiceTest extends TestCase
             'sitesearch' => 1,
             'type' => 'website',
         ];
+    }
+
+    private function createService(): SiteDetailQueryService
+    {
+        return new SiteDetailQueryService($this->createMock(CoreSitesManagerGatewayInterface::class));
     }
 }

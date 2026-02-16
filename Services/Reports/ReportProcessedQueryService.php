@@ -23,6 +23,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceI
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
@@ -474,7 +475,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                     $idGoal,
                     $idDimension,
                     $idSubtable
-                ): mixed {
+                ) {
                     return $this->translatorContextRunner->runInEnglish(function () use (
                         $idSite,
                         $period,
@@ -485,7 +486,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                         $idGoal,
                         $idDimension,
                         $idSubtable
-                    ): mixed {
+                    ) {
                         return $this->invokeProcessedReport(
                             $idSite,
                             $period,
@@ -503,6 +504,10 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             );
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (InfrastructureDataException $e) {
+            throw new ToolCallException('Report data is invalid.');
+        } catch (ToolCallException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             if (
                 ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
@@ -512,10 +517,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
 
             throw new ToolCallException('Report retrieval failed.');
-        }
-
-        if (!is_array($processed)) {
-            throw new ToolCallException('Report data is invalid.');
         }
 
         return ToolDataNormalizer::requireStringKeyedArray($processed, 'Report data is invalid.');
@@ -650,6 +651,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     /**
      * @param array<string, mixed> $apiParameters
+     * @return array<string, mixed>
      */
     private function invokeProcessedReport(
         int $idSite,
@@ -662,9 +664,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
-    ): mixed {
+    ): array {
         if ($this->processedReportCaller !== null) {
-            return ($this->processedReportCaller)(
+            $processed = ($this->processedReportCaller)(
                 $idSite,
                 $period,
                 $date,
@@ -676,6 +678,8 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $idDimension,
                 $idSubtable
             );
+
+            return ToolDataNormalizer::requireStringKeyedArray($processed, 'Report data is invalid.');
         }
 
         return $this->coreApiModuleGateway->getProcessedReport(

@@ -13,6 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 
 /**
@@ -21,9 +23,27 @@ use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
  */
 class DimensionSummaryQueryServiceTest extends TestCase
 {
+    public function testGetDimensionSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreCustomDimensionsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getConfiguredCustomDimensions');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('CustomDimensions')
+            ->willReturn(false);
+
+        $service = new DimensionSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('CustomDimensions plugin is not available.');
+        $service->getDimensionSummariesForSite(7);
+    }
+
     public function testNormalizeDimensionSummaryDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionSummaryData();
         unset($data['scope']);
 
@@ -35,7 +55,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryDataThrowsWhenFieldIsNull(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
         $data = $this->makeValidDimensionSummaryData();
         $data['name'] = null;
 
@@ -47,7 +67,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryDataReturnsExpectedTypedOutput(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
 
         $dimension = $service->normalizeDimensionSummaryData(
             $this->makeValidDimensionSummaryData(),
@@ -63,7 +83,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryRowsReturnsOnlyActiveRows(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
         $inactive = $this->makeValidDimensionSummaryData();
         $inactive['idcustomdimension'] = '8';
         $inactive['active'] = '0';
@@ -80,7 +100,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Dimension list data is invalid.');
@@ -94,7 +114,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Dimension list data is invalid.');
@@ -108,7 +128,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeDimensionSummaryRowsReturnsOnlyDimensionRows(): void
     {
-        $service = new DimensionSummaryQueryService();
+        $service = $this->createService();
         $dimension = $this->makeValidDimensionSummaryData();
         $dimension['idcustomdimension'] = '11';
         $dimension['active'] = true;
@@ -135,5 +155,16 @@ class DimensionSummaryQueryServiceTest extends TestCase
             'scope' => 'visit',
             'active' => '1',
         ];
+    }
+
+    private function createService(): DimensionSummaryQueryService
+    {
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new DimensionSummaryQueryService(
+            $this->createMock(CoreCustomDimensionsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

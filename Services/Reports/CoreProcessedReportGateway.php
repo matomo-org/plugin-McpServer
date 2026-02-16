@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 use Piwik\Date;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInterface
 {
@@ -21,9 +22,10 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
     {
     }
 
-    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): mixed
+    public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
     {
-        return $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+        $metadata = $this->processedReport->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+        return $this->requireStringKeyedArray($metadata, 'Report not found.');
     }
 
     public function getReportMetadata(
@@ -32,13 +34,51 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
         Date|bool $date,
         bool $hideMetricsDoc,
         bool $showSubtableReports
-    ): mixed {
-        return $this->processedReport->getReportMetadata(
+    ): array {
+        $reports = $this->processedReport->getReportMetadata(
             $idSite,
             $period,
             $date,
             $hideMetricsDoc,
             $showSubtableReports
         );
+
+        return $this->requireListOfStringKeyedArrays($reports, 'Report metadata data is invalid.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireStringKeyedArray(mixed $value, string $message): array
+    {
+        if (!is_array($value)) {
+            throw new InfrastructureDataException($message);
+        }
+
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                throw new InfrastructureDataException($message);
+            }
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function requireListOfStringKeyedArrays(mixed $value, string $message): array
+    {
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new InfrastructureDataException($message);
+        }
+
+        $normalized = [];
+        foreach ($value as $item) {
+            $normalized[] = $this->requireStringKeyedArray($item, $message);
+        }
+
+        return $normalized;
     }
 }

@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
 {
@@ -30,8 +31,8 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
-    ): mixed {
-        return ApiModuleApi::getInstance()->getProcessedReport(
+    ): array {
+        $report = ApiModuleApi::getInstance()->getProcessedReport(
             $idSite,
             $period,
             $date,
@@ -48,5 +49,26 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
             null,
             $idDimension ?? false
         );
+
+        return $this->requireStringKeyedArray($report, 'Report data is invalid.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireStringKeyedArray(mixed $value, string $message): array
+    {
+        if (!is_array($value)) {
+            throw new InfrastructureDataException($message);
+        }
+
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                throw new InfrastructureDataException($message);
+            }
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
     }
 }

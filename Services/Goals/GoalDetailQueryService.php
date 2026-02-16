@@ -13,24 +13,32 @@ namespace Piwik\Plugins\McpServer\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
-use Piwik\Plugin\Manager;
-use Piwik\Plugins\Goals\API as GoalsApi;
+use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
 {
+    public function __construct(
+        private CoreGoalsGatewayInterface $coreGoalsGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+    ) {
+    }
+
     public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
     {
-        if (!Manager::getInstance()->isPluginActivated('Goals')) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('Goals')) {
             throw new ToolCallException('Goals plugin is not available.');
         }
 
         try {
-            $goal = GoalsApi::getInstance()->getGoal($idSite, $idGoal);
+            $goal = $this->coreGoalsGateway->getGoal($idSite, $idGoal);
         } catch (NoAccessException $e) {
+            throw new ToolCallException('Goal not found.');
+        } catch (ToolCallException $e) {
             throw new ToolCallException('Goal not found.');
         } catch (\Throwable $e) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
@@ -40,11 +48,9 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
             throw new ToolCallException('Goal retrieval failed.');
         }
 
-        if (!is_array($goal)) {
-            throw new ToolCallException('Goal not found.');
-        }
+        $goalData = ToolDataNormalizer::requireStringKeyedArray($goal, 'Goal not found.');
 
-        return $this->normalizeGoalDetailData($goal, 'Goal data');
+        return $this->normalizeGoalDetailData($goalData, 'Goal data');
     }
 
     /**

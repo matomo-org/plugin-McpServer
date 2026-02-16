@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
+use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -82,7 +83,7 @@ class ReportList
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
-        $cursorContext = hash('sha256', 'report-list:idSite:' . (string) $idSite);
+        $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(
             $this->queryService->getReportSummariesForSite($idSite),
             static fn(ReportSummaryRecord $report): array => $report->toArray(),
@@ -92,7 +93,12 @@ class ReportList
             $limit,
             $cursor,
             $sort,
-            $cursorContext
+            $cursorContext,
+            static fn(ReportSummaryRecord $report): array => [
+                'category' => $report->category,
+                'name' => $report->name,
+                'uniqueId' => $report->uniqueId,
+            ]
         );
 
         /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
