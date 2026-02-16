@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 
 /**
@@ -22,6 +23,24 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
  */
 class SegmentDetailQueryServiceTest extends TestCase
 {
+    public function testGetSegmentDetailsForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreSegmentEditorGatewayInterface::class);
+        $gateway->expects(self::never())->method('getAll');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('SegmentEditor')
+            ->willReturn(false);
+
+        $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('SegmentEditor plugin is not available.');
+        $service->getSegmentDetailsForSite(9);
+    }
+
     public function testNormalizeSegmentDetailDataThrowsWhenFieldIsMissing(): void
     {
         $service = $this->createService();
@@ -110,6 +129,12 @@ class SegmentDetailQueryServiceTest extends TestCase
 
     private function createService(): SegmentDetailQueryService
     {
-        return new SegmentDetailQueryService($this->createMock(CoreSegmentEditorGatewayInterface::class));
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new SegmentDetailQueryService(
+            $this->createMock(CoreSegmentEditorGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

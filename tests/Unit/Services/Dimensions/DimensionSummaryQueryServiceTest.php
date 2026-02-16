@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
 
 /**
@@ -22,6 +23,24 @@ use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
  */
 class DimensionSummaryQueryServiceTest extends TestCase
 {
+    public function testGetDimensionSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreCustomDimensionsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getConfiguredCustomDimensions');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('CustomDimensions')
+            ->willReturn(false);
+
+        $service = new DimensionSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('CustomDimensions plugin is not available.');
+        $service->getDimensionSummariesForSite(7);
+    }
+
     public function testNormalizeDimensionSummaryDataThrowsWhenFieldIsMissing(): void
     {
         $service = $this->createService();
@@ -140,6 +159,12 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
     private function createService(): DimensionSummaryQueryService
     {
-        return new DimensionSummaryQueryService($this->createMock(CoreCustomDimensionsGatewayInterface::class));
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new DimensionSummaryQueryService(
+            $this->createMock(CoreCustomDimensionsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

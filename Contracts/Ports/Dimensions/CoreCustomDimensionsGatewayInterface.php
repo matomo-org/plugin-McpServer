@@ -13,8 +13,6 @@ namespace Piwik\Plugins\McpServer\Contracts\Ports\Dimensions;
 
 interface CoreCustomDimensionsGatewayInterface
 {
-    public function isCustomDimensionsPluginActivated(): bool;
-
     /**
      * @return list<array<string, mixed>>
      */

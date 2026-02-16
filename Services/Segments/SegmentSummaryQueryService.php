@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
@@ -22,7 +23,8 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInterface
 {
     public function __construct(
-        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway
+        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
     ) {
     }
 
@@ -31,7 +33,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
      */
     public function getSegmentSummariesForSite(int $idSite): array
     {
-        if (!$this->coreSegmentEditorGateway->isSegmentEditorPluginActivated()) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('SegmentEditor')) {
             throw new ToolCallException('SegmentEditor plugin is not available.');
         }
 

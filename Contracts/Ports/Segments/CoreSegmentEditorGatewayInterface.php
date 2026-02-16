@@ -13,8 +13,6 @@ namespace Piwik\Plugins\McpServer\Contracts\Ports\Segments;
 
 interface CoreSegmentEditorGatewayInterface
 {
-    public function isSegmentEditorPluginActivated(): bool;
-
     /**
      * @return list<array<string, mixed>>
      */

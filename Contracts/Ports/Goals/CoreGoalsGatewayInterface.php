@@ -13,8 +13,6 @@ namespace Piwik\Plugins\McpServer\Contracts\Ports\Goals;
 
 interface CoreGoalsGatewayInterface
 {
-    public function isGoalsPluginActivated(): bool;
-
     /**
      * @return list<array<string, mixed>>
      */

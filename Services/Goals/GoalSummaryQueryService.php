@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
@@ -22,7 +23,8 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
 {
     public function __construct(
-        private CoreGoalsGatewayInterface $coreGoalsGateway
+        private CoreGoalsGatewayInterface $coreGoalsGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
     ) {
     }
 
@@ -31,7 +33,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
      */
     public function getGoalSummariesForSite(int $idSite): array
     {
-        if (!$this->coreGoalsGateway->isGoalsPluginActivated()) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('Goals')) {
             throw new ToolCallException('Goals plugin is not available.');
         }
 

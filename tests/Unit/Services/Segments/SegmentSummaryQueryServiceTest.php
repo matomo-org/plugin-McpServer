@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 
 /**
@@ -22,6 +23,24 @@ use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
  */
 class SegmentSummaryQueryServiceTest extends TestCase
 {
+    public function testGetSegmentSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreSegmentEditorGatewayInterface::class);
+        $gateway->expects(self::never())->method('getAll');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('SegmentEditor')
+            ->willReturn(false);
+
+        $service = new SegmentSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('SegmentEditor plugin is not available.');
+        $service->getSegmentSummariesForSite(9);
+    }
+
     public function testNormalizeSegmentSummaryDataThrowsWhenFieldIsMissing(): void
     {
         $service = $this->createService();
@@ -125,6 +144,12 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
     private function createService(): SegmentSummaryQueryService
     {
-        return new SegmentSummaryQueryService($this->createMock(CoreSegmentEditorGatewayInterface::class));
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new SegmentSummaryQueryService(
+            $this->createMock(CoreSegmentEditorGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

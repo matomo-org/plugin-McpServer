@@ -12,18 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugin\Manager;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreCustomDimensionsGateway implements CoreCustomDimensionsGatewayInterface
 {
-    public function isCustomDimensionsPluginActivated(): bool
-    {
-        return Manager::getInstance()->isPluginActivated('CustomDimensions');
-    }
-
     public function getConfiguredCustomDimensions(int $idSite): array
     {
         $dimensions = CustomDimensionsApi::getInstance()->getConfiguredCustomDimensions($idSite);

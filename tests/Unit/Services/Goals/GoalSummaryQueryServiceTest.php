@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
 
 /**
@@ -22,6 +23,24 @@ use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
  */
 class GoalSummaryQueryServiceTest extends TestCase
 {
+    public function testGetGoalSummariesForSiteThrowsWhenPluginIsUnavailable(): void
+    {
+        $gateway = $this->createMock(CoreGoalsGatewayInterface::class);
+        $gateway->expects(self::never())->method('getGoals');
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('Goals')
+            ->willReturn(false);
+
+        $service = new GoalSummaryQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Goals plugin is not available.');
+        $service->getGoalSummariesForSite(5);
+    }
+
     public function testNormalizeGoalSummaryDataThrowsWhenFieldIsMissing(): void
     {
         $service = $this->createService();
@@ -145,6 +164,12 @@ class GoalSummaryQueryServiceTest extends TestCase
 
     private function createService(): GoalSummaryQueryService
     {
-        return new GoalSummaryQueryService($this->createMock(CoreGoalsGatewayInterface::class));
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->method('isPluginActivated')->willReturn(true);
+
+        return new GoalSummaryQueryService(
+            $this->createMock(CoreGoalsGatewayInterface::class),
+            $capabilityGateway
+        );
     }
 }

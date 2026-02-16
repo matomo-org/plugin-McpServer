@@ -15,13 +15,15 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterface
 {
     public function __construct(
-        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway
+        private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
     ) {
     }
 
@@ -30,7 +32,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
      */
     public function getSegmentDetailsForSite(int $idSite): array
     {
-        if (!$this->coreSegmentEditorGateway->isSegmentEditorPluginActivated()) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('SegmentEditor')) {
             throw new ToolCallException('SegmentEditor plugin is not available.');
         }
 

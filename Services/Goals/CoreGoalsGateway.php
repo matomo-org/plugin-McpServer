@@ -12,18 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugin\Manager;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreGoalsGateway implements CoreGoalsGatewayInterface
 {
-    public function isGoalsPluginActivated(): bool
-    {
-        return Manager::getInstance()->isPluginActivated('Goals');
-    }
-
     public function getGoals(int $idSite): array
     {
         $goals = GoalsApi::getInstance()->getGoals((string) $idSite, true);

@@ -12,18 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterface
 {
-    public function isSegmentEditorPluginActivated(): bool
-    {
-        return Manager::getInstance()->isPluginActivated('SegmentEditor');
-    }
-
     public function getAll(int $idSite): array
     {
         $segments = SegmentEditorApi::getInstance()->getAll($idSite);

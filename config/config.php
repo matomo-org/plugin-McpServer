@@ -21,6 +21,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInt
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Controller;
@@ -41,6 +42,7 @@ use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
+use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
@@ -62,6 +64,7 @@ return [
     GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
     GoalDetailQueryServiceInterface::class => DI::autowire(GoalDetailQueryService::class),
     GoalSummaryQueryServiceInterface::class => DI::autowire(GoalSummaryQueryService::class),
+    PluginCapabilityGatewayInterface::class => DI::autowire(PluginCapabilityGateway::class),
     ReportMetadataQueryServiceInterface::class => DI::autowire(ReportMetadataQueryService::class),
     ReportProcessedQueryServiceInterface::class => DI::autowire(ReportProcessedQueryService::class),
     ReportSummaryQueryServiceInterface::class => DI::autowire(ReportSummaryQueryService::class),

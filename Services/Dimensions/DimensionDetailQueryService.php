@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
@@ -22,13 +23,14 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 final class DimensionDetailQueryService implements DimensionDetailQueryServiceInterface
 {
     public function __construct(
-        private CoreCustomDimensionsGatewayInterface $coreCustomDimensionsGateway
+        private CoreCustomDimensionsGatewayInterface $coreCustomDimensionsGateway,
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
     ) {
     }
 
     public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
     {
-        if (!$this->coreCustomDimensionsGateway->isCustomDimensionsPluginActivated()) {
+        if (!$this->pluginCapabilityGateway->isPluginActivated('CustomDimensions')) {
             throw new ToolCallException('CustomDimensions plugin is not available.');
         }
 
