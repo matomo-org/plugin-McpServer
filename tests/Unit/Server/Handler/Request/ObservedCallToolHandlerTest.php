@@ -348,6 +348,93 @@ class ObservedCallToolHandlerTest extends TestCase
         self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
     }
 
+    public function testFailureLogsAtWarningLevelWhenConfigured(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('4f54af4e-e8fa-41a3-a699-860ea13fae8f');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-warn-1');
+
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with(
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
+                self::isType('array')
+            );
+        $logger->expects(self::never())->method('debug');
+
+        $handler = $this->createObservedHandler($registry, $logger, false, 'WARN');
+        $error = $handler->handle($request, $session);
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+    }
+
+    public function testFailureLogsAtInfoLevelWhenConfigured(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('0f1e1ac7-f403-44bd-a7cb-a4b1d17c65d5');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-info-1');
+
+        $logger->expects(self::once())
+            ->method('info')
+            ->with(
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
+                self::isType('array')
+            );
+        $logger->expects(self::never())->method('debug');
+
+        $handler = $this->createObservedHandler($registry, $logger, false, 'INFO');
+        $error = $handler->handle($request, $session);
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+    }
+
+    public function testFailureLogsAtErrorLevelWhenConfigured(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('129f70c8-3136-4f81-a2e2-8d760b6d250c');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-error-1');
+
+        $logger->expects(self::once())
+            ->method('error')
+            ->with(
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
+                self::isType('array')
+            );
+        $logger->expects(self::never())->method('debug');
+
+        $handler = $this->createObservedHandler($registry, $logger, false, 'ERROR');
+        $error = $handler->handle($request, $session);
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+    }
+
+    public function testFailureLogsAtDebugWhenVerboseConfigured(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('80d68e8d-b9de-4a9e-bf4c-33616fe8b0a2');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-verbose-1');
+
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(
+                'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
+                self::isType('array')
+            );
+
+        $handler = $this->createObservedHandler($registry, $logger, false, 'VERBOSE');
+        $error = $handler->handle($request, $session);
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+    }
+
     /**
      * @param array{
      *     type: 'object',
@@ -368,13 +455,15 @@ class ObservedCallToolHandlerTest extends TestCase
     private function createObservedHandler(
         Registry $registry,
         LoggerInterface $logger,
-        bool $fullParameterLoggingEnabled
+        bool $fullParameterLoggingEnabled,
+        string $logLevel = 'DEBUG'
     ): ObservedCallToolHandler {
         return new ObservedCallToolHandler(
             $this->createSdkHandler($registry),
             $logger,
             new ToolCallParameterFormatter(),
-            $fullParameterLoggingEnabled
+            $fullParameterLoggingEnabled,
+            $logLevel
         );
     }
 

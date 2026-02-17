@@ -27,6 +27,8 @@ use Psr\Log\NullLogger;
 
 final class McpServerFactory
 {
+    private const DEFAULT_TOOL_CALL_LOG_LEVEL = 'DEBUG';
+
     public function __construct(
         private LoggerInterface $logger,
         private SessionStoreInterface $sessionStore,
@@ -68,7 +70,8 @@ final class McpServerFactory
                 $callToolHandler,
                 $this->logger,
                 $this->toolCallParameterFormatter,
-                $this->isFullParameterLoggingEnabled()
+                $this->isFullParameterLoggingEnabled(),
+                $this->resolveToolCallLogLevel()
             ));
         }
 
@@ -93,6 +96,24 @@ final class McpServerFactory
         }
 
         return $config['log_tool_call_parameters_full'] == 1;
+    }
+
+    private function resolveToolCallLogLevel(): string
+    {
+        $config = $this->getMcpServerConfig();
+        $configuredLevel = $config['log_tool_call_level'] ?? null;
+
+        if (!is_scalar($configuredLevel)) {
+            return self::DEFAULT_TOOL_CALL_LOG_LEVEL;
+        }
+
+        $normalizedLevel = strtoupper(trim((string) $configuredLevel));
+        $validLevels = ['ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE'];
+        if (!in_array($normalizedLevel, $validLevels, true)) {
+            return self::DEFAULT_TOOL_CALL_LOG_LEVEL;
+        }
+
+        return $normalizedLevel;
     }
 
     /**

@@ -187,4 +187,140 @@ class McpServerFactoryTest extends TestCase
 
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
     }
+
+    public function testConfiguredWarnLevelUsesWarning(): void
+    {
+        Config::getInstance()->McpServer = [
+            'log_tool_calls' => 1,
+            'log_tool_call_level' => 'warn',
+        ];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning');
+        $logger->expects(self::never())->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-warn-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testConfiguredErrorLevelUsesError(): void
+    {
+        Config::getInstance()->McpServer = [
+            'log_tool_calls' => 1,
+            'log_tool_call_level' => 'ERROR',
+        ];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('error');
+        $logger->expects(self::never())->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-error-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testConfiguredInfoLevelUsesInfo(): void
+    {
+        Config::getInstance()->McpServer = [
+            'log_tool_calls' => 1,
+            'log_tool_call_level' => ' INFO ',
+        ];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('info');
+        $logger->expects(self::never())->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-info-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testConfiguredVerboseLevelUsesDebug(): void
+    {
+        Config::getInstance()->McpServer = [
+            'log_tool_calls' => 1,
+            'log_tool_call_level' => 'VERBOSE',
+        ];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-verbose-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testInvalidToolCallLogLevelFallsBackToDebug(): void
+    {
+        Config::getInstance()->McpServer = [
+            'log_tool_calls' => 1,
+            'log_tool_call_level' => 'TRACE',
+        ];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('debug');
+        $logger->expects(self::never())->method('info');
+        $logger->expects(self::never())->method('warning');
+        $logger->expects(self::never())->method('error');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter()
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-invalid-level-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
 }
