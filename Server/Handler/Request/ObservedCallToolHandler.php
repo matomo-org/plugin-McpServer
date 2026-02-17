@@ -32,7 +32,8 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         private readonly CallToolHandler $delegate,
         private readonly LoggerInterface $logger,
         private readonly ToolCallParameterFormatter $parameterFormatter,
-        private readonly bool $fullParameterLoggingEnabled
+        private readonly bool $fullParameterLoggingEnabled,
+        private readonly string $logLevel
     ) {
     }
 
@@ -104,10 +105,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
             $loggingContext['response_bytes'] = $responseBytes;
         }
 
-        $this->logger->debug(
-            $message,
-            $loggingContext
-        );
+        $this->logAtConfiguredLevel($message, $loggingContext);
     }
 
     /**
@@ -123,10 +121,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         $loggingContext['formatted_arguments'] = $formattedArguments;
         $loggingContext['session_id'] = $this->resolveContextSessionId($context);
 
-        $this->logger->debug(
-            $message,
-            $loggingContext
-        );
+        $this->logAtConfiguredLevel($message, $loggingContext);
     }
 
     /**
@@ -185,5 +180,29 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         }
 
         return 'Tool execution failed';
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logAtConfiguredLevel(string $message, array $context): void
+    {
+        switch ($this->logLevel) {
+            case 'ERROR':
+                $this->logger->error($message, $context);
+                return;
+            case 'WARN':
+            case 'WARNING':
+                $this->logger->warning($message, $context);
+                return;
+            case 'INFO':
+                $this->logger->info($message, $context);
+                return;
+            case 'VERBOSE':
+            case 'DEBUG':
+            default:
+                $this->logger->debug($message, $context);
+                return;
+        }
     }
 }
