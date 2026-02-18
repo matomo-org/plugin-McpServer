@@ -81,6 +81,44 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame($resolved['source']['uniqueId'] ?? null, $resolved['content']['uniqueId'] ?? null);
     }
 
+    public function testReturnsReportByModuleActionWithMonthLast3(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $resolved = $this->resolveFirstModuleActionSuccess(
+            $server,
+            $sessionId,
+            $this->idSite,
+            'month',
+            'last3'
+        );
+        self::assertNotNull(
+            $resolved,
+            'Expected fixture metadata to include a module/action candidate resolvable for period=month,date=last3.'
+        );
+
+        self::assertSame($resolved['source']['uniqueId'] ?? null, $resolved['content']['uniqueId'] ?? null);
+    }
+
+    public function testReturnsReportByModuleActionWithExplicitRangeDate(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $resolved = $this->resolveFirstModuleActionSuccess(
+            $server,
+            $sessionId,
+            $this->idSite,
+            'range',
+            '2015-01-01,2015-01-31'
+        );
+        self::assertNotNull(
+            $resolved,
+            'Expected fixture metadata to include a module/action candidate resolvable for period=range.'
+        );
+
+        self::assertSame($resolved['source']['uniqueId'] ?? null, $resolved['content']['uniqueId'] ?? null);
+    }
+
     public function testAllowsUniqueIdWithPeriodAndDate(): void
     {
         $report = $this->findAnyReportMetadata($this->idSite);
@@ -271,7 +309,9 @@ class ReportMetadataTest extends IntegrationTestCase
     private function resolveFirstModuleActionSuccess(
         \Matomo\Dependencies\McpServer\Mcp\Server $server,
         string $sessionId,
-        int $idSite
+        int $idSite,
+        ?string $period = null,
+        ?string $date = null
     ): ?array {
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
@@ -295,14 +335,22 @@ class ReportMetadataTest extends IntegrationTestCase
                 continue;
             }
 
+            $toolArguments = [
+                'idSite' => $idSite,
+                'apiModule' => $module,
+                'apiAction' => $action,
+                'apiParameters' => $parameters,
+            ];
+            if ($period !== null) {
+                $toolArguments['period'] = $period;
+            }
+            if ($date !== null) {
+                $toolArguments['date'] = $date;
+            }
+
             $payload = McpTestHelper::makeCallToolRequest(
                 ReportMetadata::TOOL_NAME,
-                [
-                    'idSite' => $idSite,
-                    'apiModule' => $module,
-                    'apiAction' => $action,
-                    'apiParameters' => $parameters,
-                ],
+                $toolArguments,
                 __METHOD__ . ':' . $module . '.' . $action
             );
             $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);

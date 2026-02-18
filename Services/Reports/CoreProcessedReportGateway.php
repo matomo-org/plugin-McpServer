@@ -31,14 +31,16 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
     public function getReportMetadata(
         int $idSite,
         string $period,
-        Date|bool $date,
+        Date|string|bool $date,
         bool $hideMetricsDoc,
         bool $showSubtableReports
     ): array {
+        // Matomo accepts range strings (e.g. "YYYY-MM-DD,YYYY-MM-DD") for period=range at runtime.
+        // ProcessedReport phpdoc does not include string, so suppress static mismatch at this boundary.
         $reports = $this->processedReport->getReportMetadata(
             $idSite,
             $period,
-            $date,
+            $date, // @phpstan-ignore argument.type
             $hideMetricsDoc,
             $showSubtableReports
         );

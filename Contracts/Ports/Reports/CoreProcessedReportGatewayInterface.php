@@ -26,7 +26,7 @@ interface CoreProcessedReportGatewayInterface
     public function getReportMetadata(
         int $idSite,
         string $period,
-        Date|bool $date,
+        Date|string|bool $date,
         bool $hideMetricsDoc,
         bool $showSubtableReports
     ): array;

@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Period\Factory as PeriodFactory;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
@@ -79,7 +80,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    \Piwik\Date|bool $date,
+                    \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
                 ): array {
@@ -105,7 +106,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    \Piwik\Date|bool $date,
+                    \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
                 ): array {
@@ -138,7 +139,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    \Piwik\Date|bool $date,
+                    \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
                 ): array {
@@ -171,7 +172,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 public function getReportMetadata(
                     int $idSite,
                     string $period,
-                    \Piwik\Date|bool $date,
+                    \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
                     bool $showSubtableReports
                 ): array {
@@ -193,6 +194,123 @@ class ReportMetadataQueryServiceTest extends TestCase
         );
     }
 
+    public function testGetReportMetadataByModuleActionNormalizesMonthLast3ToRange(): void
+    {
+        $metadata = $this->makeValidReportMetadataData();
+        $gateway = new class ($metadata) implements CoreProcessedReportGatewayInterface {
+            public ?string $capturedPeriod = null;
+            public mixed $capturedDate = null;
+
+            /**
+             * @param array<string, mixed> $metadata
+             */
+            public function __construct(private array $metadata)
+            {
+            }
+
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+            {
+                return $this->metadata;
+            }
+
+            public function getReportMetadata(
+                int $idSite,
+                string $period,
+                \Piwik\Date|string|bool $date,
+                bool $hideMetricsDoc,
+                bool $showSubtableReports
+            ): array {
+                $this->capturedPeriod = $period;
+                $this->capturedDate = $date;
+
+                return [$this->metadata];
+            }
+        };
+        $service = $this->makeService($gateway);
+
+        $record = $service->getReportMetadataByModuleAction(
+            1,
+            'Actions',
+            'getPageUrls',
+            ['idGoal' => '1'],
+            'month',
+            'last3'
+        );
+
+        self::assertSame('Actions_getPageUrls', $record->uniqueId);
+        self::assertSame('range', $gateway->capturedPeriod);
+        self::assertIsString($gateway->capturedDate);
+        self::assertSame(
+            PeriodFactory::build('month', 'last3')->getRangeString(),
+            $gateway->capturedDate
+        );
+    }
+
+    public function testGetReportMetadataByModuleActionAcceptsExplicitRangeDate(): void
+    {
+        $metadata = $this->makeValidReportMetadataData();
+        $gateway = new class ($metadata) implements CoreProcessedReportGatewayInterface {
+            public ?string $capturedPeriod = null;
+            public mixed $capturedDate = null;
+
+            /**
+             * @param array<string, mixed> $metadata
+             */
+            public function __construct(private array $metadata)
+            {
+            }
+
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+            {
+                return $this->metadata;
+            }
+
+            public function getReportMetadata(
+                int $idSite,
+                string $period,
+                \Piwik\Date|string|bool $date,
+                bool $hideMetricsDoc,
+                bool $showSubtableReports
+            ): array {
+                $this->capturedPeriod = $period;
+                $this->capturedDate = $date;
+
+                return [$this->metadata];
+            }
+        };
+        $service = $this->makeService($gateway);
+
+        $record = $service->getReportMetadataByModuleAction(
+            1,
+            'Actions',
+            'getPageUrls',
+            ['idGoal' => '1'],
+            'range',
+            '2015-01-01,2015-01-31'
+        );
+
+        self::assertSame('Actions_getPageUrls', $record->uniqueId);
+        self::assertSame('range', $gateway->capturedPeriod);
+        self::assertSame('2015-01-01,2015-01-31', $gateway->capturedDate);
+    }
+
+    public function testGetReportMetadataByModuleActionRejectsInvalidPeriodDate(): void
+    {
+        $service = $this->makeService();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid period/date parameters.');
+
+        $service->getReportMetadataByModuleAction(
+            1,
+            'Actions',
+            'getPageUrls',
+            ['idGoal' => '1'],
+            'invalid_period',
+            'today'
+        );
+    }
+
     private function makeService(?CoreProcessedReportGatewayInterface $gateway = null): ReportMetadataQueryService
     {
         $gateway = $gateway ?? new class () implements CoreProcessedReportGatewayInterface {
@@ -204,7 +322,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             public function getReportMetadata(
                 int $idSite,
                 string $period,
-                \Piwik\Date|bool $date,
+                \Piwik\Date|string|bool $date,
                 bool $hideMetricsDoc,
                 bool $showSubtableReports
             ): array {
