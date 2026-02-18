@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Date;
 use Piwik\NoAccessException;
+use Piwik\Period\Factory as PeriodFactory;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
@@ -72,15 +73,15 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         string $date
     ): ReportMetadataRecord {
         $normalizedApiParameters = $this->normalizeParameterObject($apiParameters, 'apiParameters');
-        $metadataDate = $this->normalizeReportMetadataDate($date);
+        [$normalizedPeriod, $normalizedDate] = $this->normalizeReportMetadataPeriodAndDate($period, $date);
 
         try {
             $reports = $this->translatorContextRunner->runInEnglish(
-                function () use ($idSite, $period, $metadataDate) {
+                function () use ($idSite, $normalizedPeriod, $normalizedDate) {
                     return $this->coreProcessedReportGateway->getReportMetadata(
                         $idSite,
-                        $period,
-                        $metadataDate,
+                        $normalizedPeriod,
+                        $normalizedDate,
                         false,
                         false
                     );
@@ -221,13 +222,22 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         throw new ToolCallException("Report metadata item is invalid (field 'parameters').");
     }
 
-    private function normalizeReportMetadataDate(string $date): Date
+    /**
+     * @return array{0: string, 1: Date|string}
+     */
+    private function normalizeReportMetadataPeriodAndDate(string $period, string $date): array
     {
         try {
-            return Date::factory($date);
+            $normalizedPeriod = PeriodFactory::build($period, $date);
         } catch (\Throwable $e) {
-            throw new ToolCallException("Invalid date parameter '{$date}'.");
+            throw new ToolCallException('Invalid period/date parameters.');
         }
+
+        if ($normalizedPeriod->getLabel() === 'range') {
+            return ['range', $normalizedPeriod->getRangeString()];
+        }
+
+        return [$normalizedPeriod->getLabel(), $normalizedPeriod->getDateStart()];
     }
 
     /**

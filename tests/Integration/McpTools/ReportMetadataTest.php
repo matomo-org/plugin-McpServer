@@ -70,15 +70,72 @@ class ReportMetadataTest extends IntegrationTestCase
 
     public function testReturnsReportByModuleActionAndParameters(): void
     {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $resolved = $this->resolveFirstModuleActionSuccess($server, $sessionId, $this->idSite);
-        self::assertNotNull(
-            $resolved,
-            'Expected fixture metadata to include a module/action candidate resolvable by ReportMetadata tool.'
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+            ],
+            __METHOD__
         );
 
-        self::assertSame($resolved['source']['uniqueId'] ?? null, $resolved['content']['uniqueId'] ?? null);
+        self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testReturnsReportByModuleActionWithMonthLast3(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'period' => 'month',
+                'date' => 'last3',
+            ],
+            __METHOD__
+        );
+
+        self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testReturnsReportByModuleActionWithExplicitRangeDate(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'period' => 'range',
+                'date' => '2015-01-01,2015-01-31',
+            ],
+            __METHOD__
+        );
+
+        self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
     }
 
     public function testAllowsUniqueIdWithPeriodAndDate(): void
@@ -265,64 +322,26 @@ class ReportMetadataTest extends IntegrationTestCase
         return null;
     }
 
-    /**
-     * @return array{source: array<string, mixed>, content: array<string, mixed>}|null
-     */
-    private function resolveFirstModuleActionSuccess(
-        \Matomo\Dependencies\McpServer\Mcp\Server $server,
-        string $sessionId,
-        int $idSite
-    ): ?array {
+    private function findReportUniqueId(int $idSite, string $module, string $action): ?string
+    {
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
-        foreach ($metadata as $report) {
-            if (!is_array($report)) {
+        foreach ($metadata as $row) {
+            if (!is_array($row)) {
                 continue;
             }
-            if ($this->isSubtableMetadataRow($report)) {
-                continue;
-            }
-
-            $module = $report['module'] ?? null;
-            $action = $report['action'] ?? null;
-            $parameters = $report['parameters'] ?? [];
-            if (
-                !is_string($module)
-                || !is_string($action)
-                || !is_array($parameters)
-                || !$this->isAssocArray($parameters)
-            ) {
+            if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
 
-            $payload = McpTestHelper::makeCallToolRequest(
-                ReportMetadata::TOOL_NAME,
-                [
-                    'idSite' => $idSite,
-                    'apiModule' => $module,
-                    'apiAction' => $action,
-                    'apiParameters' => $parameters,
-                ],
-                __METHOD__ . ':' . $module . '.' . $action
-            );
-            $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-            $message = McpTestHelper::decodeMessage($response);
-            if ($message instanceof \Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error) {
-                continue;
-            }
-            if (!$message instanceof \Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response) {
+            if (($row['module'] ?? null) !== $module || ($row['action'] ?? null) !== $action) {
                 continue;
             }
 
-            $result = McpTestHelper::parseCallTool($message);
-
-            if ($result->isError) {
-                continue;
+            $uniqueId = $row['uniqueId'] ?? null;
+            if (is_string($uniqueId) && $uniqueId !== '') {
+                return $uniqueId;
             }
-
-            $content = $result->structuredContent;
-            /** @var array<string, mixed> $content */
-            return ['source' => $report, 'content' => $content];
         }
 
         return null;
@@ -434,19 +453,5 @@ class ReportMetadataTest extends IntegrationTestCase
 
         $alias = $row['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
-    }
-
-    /**
-     * @param array<mixed> $value
-     */
-    private function isAssocArray(array $value): bool
-    {
-        foreach (array_keys($value) as $key) {
-            if (!is_string($key)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

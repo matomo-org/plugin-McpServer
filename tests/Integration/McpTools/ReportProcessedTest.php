@@ -150,6 +150,83 @@ class ReportProcessedTest extends IntegrationTestCase
         );
     }
 
+    public function testRejectsInvalidPeriodDateParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'invalid_period',
+                'date' => 'today',
+                'reportUniqueId' => $reportUniqueId,
+            ],
+            'Invalid period/date parameters.',
+            __METHOD__
+        );
+    }
+
+    public function testReturnsProcessedReportByModuleActionWithMonthLast3(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'month',
+                'date' => 'last3',
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+            ],
+            __METHOD__
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testReturnsProcessedReportByModuleActionWithExplicitRangeDate(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'range',
+                'date' => '2015-01-01,2015-01-31',
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+            ],
+            __METHOD__
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
     public function testMasksNoAccessAsNotFound(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
