@@ -16,6 +16,7 @@ use Piwik\Access;
 use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
+use Piwik\Period\Factory as PeriodFactory;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
@@ -79,6 +80,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         int $filterLimit,
         int $filterOffset
     ): ReportProcessedRecord {
+        $this->validatePeriodAndDate($period, $date);
         $normalizedApiParameters = $this->normalizeApiParameters($apiParameters);
         [$genericSafeParameters, $reportSpecificParameters] = $this->splitSafeAndReportSpecificApiParameters(
             $normalizedApiParameters
@@ -425,6 +427,15 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private function normalizeFilterOffset(int $filterOffset): int
     {
         return max($filterOffset, 0);
+    }
+
+    private function validatePeriodAndDate(string $period, string $date): void
+    {
+        try {
+            PeriodFactory::build($period, $date);
+        } catch (\Throwable $e) {
+            throw new ToolCallException('Invalid period/date parameters.');
+        }
     }
 
     /**

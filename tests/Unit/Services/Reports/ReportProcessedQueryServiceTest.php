@@ -81,6 +81,196 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
     }
 
+    public function testRejectsInvalidPeriodDateBeforeUniqueIdLookupAndFetch(): void
+    {
+        $processedFetchCalls = 0;
+
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
+            public int $calls = 0;
+
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
+            {
+                $this->calls++;
+
+                return new ReportMetadataRecord(
+                    uniqueId: $reportUniqueId,
+                    module: 'Actions',
+                    action: 'getPageUrls',
+                    name: 'Page URLs',
+                    category: 'Actions',
+                    parameters: [],
+                    metadata: []
+                );
+            }
+
+            public function getReportMetadataByModuleAction(
+                int $idSite,
+                string $apiModule,
+                string $apiAction,
+                array $apiParameters,
+                string $period,
+                string $date
+            ): ReportMetadataRecord {
+                $this->calls++;
+
+                return new ReportMetadataRecord(
+                    uniqueId: $apiModule . '_' . $apiAction,
+                    module: $apiModule,
+                    action: $apiAction,
+                    name: 'Report',
+                    category: 'Category',
+                    parameters: $apiParameters,
+                    metadata: []
+                );
+            }
+        };
+
+        $service = $this->makeService(
+            $wrapper,
+            function (
+                int $idSite,
+                string $period,
+                string $date,
+                string $apiModule,
+                string $apiAction,
+                ?string $segment,
+                array $apiParameters,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable
+            ) use (&$processedFetchCalls): array {
+                $processedFetchCalls++;
+
+                return [
+                    'reportData' => [['label' => 'A']],
+                    'reportMetadata' => [['idsubdatatable' => 1]],
+                    'columns' => ['label' => 'Label'],
+                ];
+            }
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid period/date parameters.');
+
+        try {
+            $service->getProcessedReport(
+                idSite: 1,
+                period: 'invalid_period',
+                date: 'today',
+                reportUniqueId: 'Actions_getPageUrls',
+                apiModule: null,
+                apiAction: null,
+                apiParameters: [],
+                goalMetricsMode: null,
+                goalMetricsProcessGoals: null,
+                segment: null,
+                idGoal: null,
+                idDimension: null,
+                idSubtable: null,
+                filterLimit: 50,
+                filterOffset: 0
+            );
+        } finally {
+            self::assertSame(0, $wrapper->calls);
+            self::assertSame(0, $processedFetchCalls);
+        }
+    }
+
+    public function testRejectsInvalidPeriodDateBeforeModuleActionLookupAndFetch(): void
+    {
+        $processedFetchCalls = 0;
+
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
+            public int $calls = 0;
+
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
+            {
+                $this->calls++;
+
+                return new ReportMetadataRecord(
+                    uniqueId: $reportUniqueId,
+                    module: 'Actions',
+                    action: 'getPageUrls',
+                    name: 'Page URLs',
+                    category: 'Actions',
+                    parameters: [],
+                    metadata: []
+                );
+            }
+
+            public function getReportMetadataByModuleAction(
+                int $idSite,
+                string $apiModule,
+                string $apiAction,
+                array $apiParameters,
+                string $period,
+                string $date
+            ): ReportMetadataRecord {
+                $this->calls++;
+
+                return new ReportMetadataRecord(
+                    uniqueId: $apiModule . '_' . $apiAction,
+                    module: $apiModule,
+                    action: $apiAction,
+                    name: 'Report',
+                    category: 'Category',
+                    parameters: $apiParameters,
+                    metadata: []
+                );
+            }
+        };
+
+        $service = $this->makeService(
+            $wrapper,
+            function (
+                int $idSite,
+                string $period,
+                string $date,
+                string $apiModule,
+                string $apiAction,
+                ?string $segment,
+                array $apiParameters,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable
+            ) use (&$processedFetchCalls): array {
+                $processedFetchCalls++;
+
+                return [
+                    'reportData' => [['label' => 'A']],
+                    'reportMetadata' => [['idsubdatatable' => 1]],
+                    'columns' => ['label' => 'Label'],
+                ];
+            }
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid period/date parameters.');
+
+        try {
+            $service->getProcessedReport(
+                idSite: 1,
+                period: 'invalid_period',
+                date: 'today',
+                reportUniqueId: null,
+                apiModule: 'Actions',
+                apiAction: 'getPageUrls',
+                apiParameters: [],
+                goalMetricsMode: null,
+                goalMetricsProcessGoals: null,
+                segment: null,
+                idGoal: null,
+                idDimension: null,
+                idSubtable: null,
+                filterLimit: 50,
+                filterOffset: 0
+            );
+        } finally {
+            self::assertSame(0, $wrapper->calls);
+            self::assertSame(0, $processedFetchCalls);
+        }
+    }
+
     public function testAppliesLimitPlusOneAndTrimsResponseData(): void
     {
         $observedFilterLimit = null;
