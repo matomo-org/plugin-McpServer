@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
@@ -68,6 +69,7 @@ class GoalGetTest extends IntegrationTestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(GoalGet::TOOL_NAME),
             'idgoal' => $this->idGoal,
             'idsite' => $this->idSite,
             'name' => $this->goalName,

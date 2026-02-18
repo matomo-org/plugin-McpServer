@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServ
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -45,6 +46,7 @@ class DimensionListTest extends TestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(DimensionList::TOOL_NAME),
             'dimensions' => [
                 [
                     'iddimension' => 7,

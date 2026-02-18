@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Plugins\SitesManager\API as SitesManagerApi;
@@ -74,6 +75,7 @@ class SiteGetTest extends IntegrationTestCase
             __METHOD__
         );
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(SiteGet::TOOL_NAME),
             'idsite' => $this->idSite,
             'name' => 'MCP Test Site',
             'main_url' => 'https://example.test',

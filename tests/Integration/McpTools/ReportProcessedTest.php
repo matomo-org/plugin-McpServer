@@ -15,6 +15,7 @@ use Piwik\DataTable;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
@@ -103,6 +104,7 @@ class ReportProcessedTest extends IntegrationTestCase
             __METHOD__
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportProcessed::TOOL_NAME), $content['security'] ?? null);
         self::assertArrayHasKey('report', $content);
         self::assertArrayHasKey('pagination', $content);
         self::assertArrayHasKey('resolvedReport', $content);

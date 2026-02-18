@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type DimensionDetailArray from DimensionDetailRecord
@@ -36,7 +37,8 @@ class DimensionGet
         name: self::TOOL_NAME,
         description: "Use when: idSite and idDimension are known.\n"
             . "Purpose: fetch authoritative details for exactly one configured custom dimension.\n"
-            . "Do not use: if dimension id is unknown—discover candidates first.",
+            . "Do not use: if dimension id is unknown—discover candidates first.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: DimensionDetailToolOutputSchema::ITEM
     )]
@@ -59,6 +61,7 @@ class DimensionGet
     )]
     public function get(int $idSite, int $idDimension): array
     {
-        return $this->queryService->getDimensionDetailForSite($idSite, $idDimension)->toArray();
+        $dimension = $this->queryService->getDimensionDetailForSite($idSite, $idDimension)->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $dimension;
     }
 }

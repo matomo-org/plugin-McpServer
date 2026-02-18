@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -45,6 +46,7 @@ class SegmentListTest extends TestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(SegmentList::TOOL_NAME),
             'segments' => [
                 ['idsegment' => 1, 'name' => 'Segment A', 'definition' => 'countryCode==de', 'idsite' => 1],
                 ['idsegment' => 2, 'name' => 'Segment B', 'definition' => 'countryCode==fr', 'idsite' => null],

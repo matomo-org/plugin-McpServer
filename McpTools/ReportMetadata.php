@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type ReportMetadataArray from ReportMetadataRecord
@@ -38,7 +39,8 @@ class ReportMetadata
         name: self::TOOL_NAME,
         description: "Use when: you need full metadata for one report in a site scope.\n"
             . "Purpose: resolve one report by reportUniqueId (preferred) or module/action selector.\n"
-            . "Next: use the returned metadata and parameters for reporting API calls.",
+            . "Next: use the returned metadata and parameters for reporting API calls.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: ReportMetadataToolOutputSchema::ITEM
     )]
@@ -121,10 +123,11 @@ class ReportMetadata
                 );
             }
 
-            return $this->queryService->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
+            $report = $this->queryService->getReportMetadataByUniqueId($idSite, $reportUniqueId)->toArray();
+            return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $report;
         }
 
-        return $this->queryService->getReportMetadataByModuleAction(
+        $report = $this->queryService->getReportMetadataByModuleAction(
             $idSite,
             (string) $apiModule,
             (string) $apiAction,
@@ -132,5 +135,6 @@ class ReportMetadata
             $period ?? 'day',
             $date ?? 'today'
         )->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $report;
     }
 }

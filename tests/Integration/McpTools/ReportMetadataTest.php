@@ -16,6 +16,7 @@ use Piwik\Container\StaticContainer;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
@@ -61,6 +62,7 @@ class ReportMetadataTest extends IntegrationTestCase
             __METHOD__
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportMetadata::TOOL_NAME), $content['security'] ?? null);
         self::assertSame($uniqueId, $content['uniqueId'] ?? null);
         self::assertArrayHasKey('metadata', $content);
         self::assertIsArray($content['metadata']);
@@ -160,6 +162,7 @@ class ReportMetadataTest extends IntegrationTestCase
             __METHOD__
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportMetadata::TOOL_NAME), $content['security'] ?? null);
         self::assertSame($uniqueId, $content['uniqueId'] ?? null);
     }
 

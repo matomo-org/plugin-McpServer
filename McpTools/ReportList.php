@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -36,6 +37,7 @@ class ReportList
 
     /**
      * @return array{
+     *     security: array<string, mixed>,
      *     reports: list<ReportSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
@@ -45,7 +47,8 @@ class ReportList
         name: self::TOOL_NAME,
         description: "Use when: you need a compact discovery list of available reports for a site.\n"
             . "Purpose: return paginated report metadata for idSite.\n"
-            . "Next: choose module/action/parameters and call Matomo reporting APIs.",
+            . "Next: choose module/action/parameters and call Matomo reporting APIs.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST
     )]
@@ -102,6 +105,11 @@ class ReportList
         );
 
         /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
-        return $response;
+        return [
+            'security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME),
+            'reports' => $response['reports'],
+            'next_cursor' => $response['next_cursor'],
+            'has_more' => $response['has_more'],
+        ];
     }
 }

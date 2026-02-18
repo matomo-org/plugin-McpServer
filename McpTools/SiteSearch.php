@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -37,6 +38,7 @@ class SiteSearch
 
     /**
      * @return array{
+     *     security: array<string, mixed>,
      *     sites: list<SiteSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
@@ -47,7 +49,8 @@ class SiteSearch
         description: "Use when: idSite is unknown; you have a URL/domain/name hint.\n"
             . "Purpose: find matching Matomo sites and return candidate idSite values.\n"
             . "Notes: may return multiple matches; results are ordered by sort (default name_asc).\n"
-            . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.",
+            . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
@@ -112,6 +115,11 @@ class SiteSearch
         );
 
         /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
-        return $response;
+        return [
+            'security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME),
+            'sites' => $response['sites'],
+            'next_cursor' => $response['next_cursor'],
+            'has_more' => $response['has_more'],
+        ];
     }
 }

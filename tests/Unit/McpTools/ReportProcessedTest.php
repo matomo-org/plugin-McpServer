@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @group McpServer
@@ -80,13 +81,14 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        $actual = (new ReportProcessed($wrapper))->get(
             idSite: 3,
             period: 'day',
             date: 'today',
             reportUniqueId: 'Actions_getPageUrls'
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportProcessed::TOOL_NAME), $actual['security'] ?? null);
         self::assertSame(3, $wrapper->captured['idSite']);
         self::assertSame('day', $wrapper->captured['period']);
         self::assertSame('today', $wrapper->captured['date']);
@@ -149,7 +151,7 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        $actual = (new ReportProcessed($wrapper))->get(
             idSite: 3,
             period: 'week',
             date: 'today',
@@ -166,6 +168,7 @@ class ReportProcessedTest extends TestCase
             filter_offset: 50
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportProcessed::TOOL_NAME), $actual['security'] ?? null);
         self::assertSame('VisitsSummary', $wrapper->captured['apiModule']);
         self::assertSame('get', $wrapper->captured['apiAction']);
         self::assertSame(['flat' => '1'], $wrapper->captured['apiParameters']);

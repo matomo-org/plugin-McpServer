@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @group McpServer
@@ -44,6 +45,7 @@ class DimensionGetTest extends TestCase
         $actual = (new DimensionGet($wrapper))->get(4, 7);
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(DimensionGet::TOOL_NAME),
             'iddimension' => 7,
             'idsite' => 4,
             'name' => 'Customer Tier',

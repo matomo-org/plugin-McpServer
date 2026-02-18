@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -36,6 +37,7 @@ class SiteList
 
     /**
      * @return array{
+     *     security: array<string, mixed>,
      *     sites: list<SiteSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
@@ -45,7 +47,8 @@ class SiteList
         name: self::TOOL_NAME,
         description: "Use when: you need to list accessible Matomo sites without a search hint.\n"
             . "Purpose: return paginated site summaries for all sites the user can view.\n"
-            . "Next: call " . SiteGet::TOOL_NAME . "(idSite) for full details of one site.",
+            . "Next: call " . SiteGet::TOOL_NAME . "(idSite) for full details of one site.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
@@ -95,6 +98,11 @@ class SiteList
         );
 
         /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
-        return $response;
+        return [
+            'security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME),
+            'sites' => $response['sites'],
+            'next_cursor' => $response['next_cursor'],
+            'has_more' => $response['has_more'],
+        ];
     }
 }

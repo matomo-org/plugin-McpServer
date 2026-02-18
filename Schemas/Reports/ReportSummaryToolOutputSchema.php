@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Reports;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class ReportSummaryToolOutputSchema
 {
     public const ITEM = [
@@ -33,6 +35,7 @@ final class ReportSummaryToolOutputSchema
     public const PAGINATED_LIST = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'reports' => [
                 'type' => 'array',
                 'items' => self::ITEM,
@@ -40,7 +43,7 @@ final class ReportSummaryToolOutputSchema
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
         ],
-        'required' => ['reports', 'next_cursor', 'has_more'],
+        'required' => ['security', 'reports', 'next_cursor', 'has_more'],
         'additionalProperties' => false,
     ];
 }

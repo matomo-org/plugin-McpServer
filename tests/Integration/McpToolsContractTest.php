@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -74,6 +75,14 @@ class McpToolsContractTest extends IntegrationTestCase
             self::assertNotNull($tool->annotations);
             self::assertSame($expectedHints['readOnlyHint'], $tool->annotations->readOnlyHint);
             self::assertSame($expectedHints['openWorldHint'], $tool->annotations->openWorldHint);
+            self::assertIsArray($tool->outputSchema);
+            $properties = $tool->outputSchema['properties'] ?? null;
+            self::assertIsArray($properties);
+            self::assertArrayHasKey('security', $properties);
+            self::assertSame(ToolOutputSecurity::SECURITY_SCHEMA, $properties['security']);
+            $required = $tool->outputSchema['required'] ?? null;
+            self::assertIsArray($required);
+            self::assertContains('security', $required);
         }
     }
 }

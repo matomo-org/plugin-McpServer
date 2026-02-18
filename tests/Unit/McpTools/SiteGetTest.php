@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -46,6 +47,7 @@ class SiteGetTest extends TestCase
         $actual = (new SiteGet($wrapper))->get(4);
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(SiteGet::TOOL_NAME),
             'idsite' => 4,
             'name' => 'Site Name',
             'main_url' => 'https://example.test',

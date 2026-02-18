@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type SiteDetailArray from SiteDetailRecord
@@ -38,7 +39,8 @@ class SiteGet
             . " (from the user, " . SiteList::TOOL_NAME . ", or " . SiteSearch::TOOL_NAME . ").\n"
             . "Purpose: fetch authoritative details for exactly one Matomo site.\n"
             . "Do not use: if you only have URL/domain/name—use"
-            . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.",
+            . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SiteDetailToolOutputSchema::ITEM
     )]
@@ -58,7 +60,7 @@ class SiteGet
     {
         // See SiteDetailQueryService for normalization contract and intentional
         // not-found/access-denied message collapsing behavior.
-        $site = $this->queryService->getSiteDetailFromId($idSite);
-        return $site->toArray();
+        $site = $this->queryService->getSiteDetailFromId($idSite)->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $site;
     }
 }

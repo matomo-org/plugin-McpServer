@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Goals;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class GoalSummaryToolOutputSchema
 {
     public const ITEM = [
@@ -41,6 +43,7 @@ final class GoalSummaryToolOutputSchema
     public const PAGINATED_LIST = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'goals' => [
                 'type' => 'array',
                 'items' => self::ITEM,
@@ -48,7 +51,7 @@ final class GoalSummaryToolOutputSchema
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
         ],
-        'required' => ['goals', 'next_cursor', 'has_more'],
+        'required' => ['security', 'goals', 'next_cursor', 'has_more'],
         'additionalProperties' => false,
     ];
 }

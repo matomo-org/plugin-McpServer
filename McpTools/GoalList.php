@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -36,6 +37,7 @@ class GoalList
 
     /**
      * @return array{
+     *     security: array<string, mixed>,
      *     goals: list<GoalSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
@@ -45,7 +47,8 @@ class GoalList
         name: self::TOOL_NAME,
         description: "Use when: you need reusable configured goals for a specific site.\n"
             . "Purpose: return paginated goal definitions available for idSite.\n"
-            . "Next: use the chosen idgoal in goal-specific analytics/report API calls.",
+            . "Next: use the chosen idgoal in goal-specific analytics/report API calls.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST
     )]
@@ -101,6 +104,11 @@ class GoalList
         );
 
         /** @var array{goals: list<GoalSummaryArray>, next_cursor: string|null, has_more: bool} $response */
-        return $response;
+        return [
+            'security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME),
+            'goals' => $response['goals'],
+            'next_cursor' => $response['next_cursor'],
+            'has_more' => $response['has_more'],
+        ];
     }
 }

@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Segments;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class SegmentSummaryToolOutputSchema
 {
     public const ITEM = [
@@ -28,6 +30,7 @@ final class SegmentSummaryToolOutputSchema
     public const PAGINATED_LIST = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'segments' => [
                 'type' => 'array',
                 'items' => self::ITEM,
@@ -35,7 +38,7 @@ final class SegmentSummaryToolOutputSchema
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
         ],
-        'required' => ['segments', 'next_cursor', 'has_more'],
+        'required' => ['security', 'segments', 'next_cursor', 'has_more'],
         'additionalProperties' => false,
     ];
 }

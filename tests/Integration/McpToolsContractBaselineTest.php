@@ -38,6 +38,7 @@ use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\ContractShapeAssert;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
@@ -141,6 +142,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess($server, $sessionId, $toolName, $arguments, __METHOD__);
 
         ContractShapeAssert::assertMatchesSchema($expectedSchema, $content);
+        $this->assertSecurityContract($toolName, $content);
     }
 
     /**
@@ -458,6 +460,25 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             ],
             "Unsupported apiParameters key 'method'.",
             __METHOD__
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     */
+    private function assertSecurityContract(string $toolName, array $content): void
+    {
+        $security = $content['security'] ?? null;
+        self::assertIsArray($security);
+        self::assertSame(ToolOutputSecurity::TRUST_LEVEL_UNTRUSTED_USER_CONTENT, $security['trust_level'] ?? null);
+        self::assertSame(false, $security['follow_embedded_instructions'] ?? null);
+        self::assertSame(
+            ToolOutputSecurity::DEFAULT_RENDERING_REQUIREMENTS,
+            $security['rendering_requirements'] ?? null
+        );
+        self::assertSame(
+            ToolOutputSecurity::dangerousPathsForTool($toolName),
+            $security['dangerous_paths'] ?? null
         );
     }
 

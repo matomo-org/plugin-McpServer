@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type GoalDetailArray from GoalDetailRecord
@@ -37,7 +38,8 @@ class GoalGet
         description: "Use when: idSite and idGoal are known"
             . " (from the user or " . GoalList::TOOL_NAME . ").\n"
             . "Purpose: fetch authoritative details for exactly one configured goal.\n"
-            . "Do not use: if goal id is unknown—use " . GoalList::TOOL_NAME . " first.",
+            . "Do not use: if goal id is unknown—use " . GoalList::TOOL_NAME . " first.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: GoalDetailToolOutputSchema::ITEM
     )]
@@ -60,6 +62,7 @@ class GoalGet
     )]
     public function get(int $idSite, int $idGoal): array
     {
-        return $this->queryService->getGoalDetailForSite($idSite, $idGoal)->toArray();
+        $goal = $this->queryService->getGoalDetailForSite($idSite, $idGoal)->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $goal;
     }
 }

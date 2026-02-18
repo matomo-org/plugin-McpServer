@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Dimensions;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class DimensionSummaryToolOutputSchema
 {
     public const ITEM = [
@@ -27,6 +29,7 @@ final class DimensionSummaryToolOutputSchema
     public const PAGINATED_LIST = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'dimensions' => [
                 'type' => 'array',
                 'items' => self::ITEM,
@@ -34,7 +37,7 @@ final class DimensionSummaryToolOutputSchema
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
         ],
-        'required' => ['dimensions', 'next_cursor', 'has_more'],
+        'required' => ['security', 'dimensions', 'next_cursor', 'has_more'],
         'additionalProperties' => false,
     ];
 }

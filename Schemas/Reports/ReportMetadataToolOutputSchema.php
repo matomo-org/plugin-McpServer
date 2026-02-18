@@ -11,11 +11,14 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Reports;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class ReportMetadataToolOutputSchema
 {
     public const ITEM = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'uniqueId' => ['type' => 'string'],
             'module' => ['type' => 'string'],
             'action' => ['type' => 'string'],
@@ -30,7 +33,7 @@ final class ReportMetadataToolOutputSchema
                 'additionalProperties' => true,
             ],
         ],
-        'required' => ['uniqueId', 'module', 'action', 'name', 'category', 'parameters', 'metadata'],
+        'required' => ['security', 'uniqueId', 'module', 'action', 'name', 'category', 'parameters', 'metadata'],
         'additionalProperties' => false,
     ];
 }

@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
@@ -64,6 +65,7 @@ class DimensionGetTest extends IntegrationTestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(DimensionGet::TOOL_NAME),
             'iddimension' => $this->idDimension,
             'idsite' => $this->idSite,
             'name' => $this->dimensionName,

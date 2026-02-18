@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @group McpServer
@@ -51,6 +52,7 @@ class SegmentGetTest extends TestCase
         $actual = (new SegmentGet($wrapper))->get(idSite: 2, idSegment: 4);
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(SegmentGet::TOOL_NAME),
             'idsegment' => 4,
             'name' => 'Segment Name',
             'definition' => 'countryCode==de',

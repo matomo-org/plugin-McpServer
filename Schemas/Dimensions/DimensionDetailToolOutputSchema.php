@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Dimensions;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class DimensionDetailToolOutputSchema
 {
     public const EXTRACTION_ITEM = [
@@ -26,6 +28,7 @@ final class DimensionDetailToolOutputSchema
     public const ITEM = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'iddimension' => ['type' => 'integer'],
             'idsite' => ['type' => 'integer'],
             'name' => ['type' => 'string'],
@@ -39,6 +42,7 @@ final class DimensionDetailToolOutputSchema
             ],
         ],
         'required' => [
+            'security',
             'iddimension',
             'idsite',
             'name',

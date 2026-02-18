@@ -11,11 +11,14 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Segments;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class SegmentDetailToolOutputSchema
 {
     public const ITEM = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'idsegment' => ['type' => 'integer'],
             'name' => ['type' => 'string'],
             'definition' => ['type' => 'string'],
@@ -25,6 +28,7 @@ final class SegmentDetailToolOutputSchema
             'login' => ['type' => 'string'],
         ],
         'required' => [
+            'security',
             'idsegment',
             'name',
             'definition',

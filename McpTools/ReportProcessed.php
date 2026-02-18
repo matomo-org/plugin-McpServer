@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceI
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type ReportProcessedArray from ReportProcessedRecord
@@ -25,6 +26,13 @@ use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 class ReportProcessed
 {
     public const TOOL_NAME = 'matomo_report_processed';
+    public const TOOL_DESCRIPTION = "Use when: you need tabular processed report data"
+        . " for a known report and date range.\n"
+        . "Purpose: resolve report selector, fetch processed report payload,"
+        . " and return stable pagination metadata.\n"
+        . "Next: inspect reportData/columns/reportMetadata,"
+        . " then refine filters or query another report.\n"
+        . ToolOutputSecurity::SAFETY_WARNING_TEXT;
     public const FILTER_LIMIT_DEFAULT = 50;
     public const FILTER_LIMIT_MAX = 250;
     public const FILTER_OFFSET_DEFAULT = 0;
@@ -40,10 +48,7 @@ class ReportProcessed
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: you need tabular processed report data for a known report and date range.\n"
-            . "Purpose: resolve report selector, fetch processed report payload, "
-            . "and return stable pagination metadata.\n"
-            . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.",
+        description: self::TOOL_DESCRIPTION,
         // Keep readOnlyHint=false as the safe default:
         // depending on dynamic Matomo archiving configuration, fetching processed reports
         // can trigger report generation/archiving side effects. The true read-only value
@@ -182,7 +187,7 @@ class ReportProcessed
         ?int $filter_limit = null,
         ?int $filter_offset = null
     ): array {
-        return $this->queryService->getProcessedReport(
+        $result = $this->queryService->getProcessedReport(
             idSite: $idSite,
             period: $period,
             date: $date,
@@ -199,5 +204,6 @@ class ReportProcessed
             filterLimit: $filter_limit ?? self::FILTER_LIMIT_DEFAULT,
             filterOffset: $filter_offset ?? self::FILTER_OFFSET_DEFAULT
         )->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $result;
     }
 }

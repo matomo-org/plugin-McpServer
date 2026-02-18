@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @group McpServer
@@ -53,6 +54,7 @@ class ReportMetadataTest extends TestCase
 
         $actual = (new ReportMetadata($wrapper))->get(idSite: 1, reportUniqueId: 'Actions_getPageUrls');
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportMetadata::TOOL_NAME), $actual['security'] ?? null);
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
         self::assertSame('Actions', $actual['module']);
         self::assertSame('getPageUrls', $actual['action']);
@@ -148,6 +150,7 @@ class ReportMetadataTest extends TestCase
             date: 'today'
         );
 
+        self::assertSame(ToolOutputSecurity::buildForTool(ReportMetadata::TOOL_NAME), $actual['security'] ?? null);
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
         self::assertSame(1, $wrapper->captured['idSite']);
         self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);

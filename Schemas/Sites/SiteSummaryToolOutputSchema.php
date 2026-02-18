@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Sites;
 
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
+
 final class SiteSummaryToolOutputSchema
 {
     public const ITEM = [
@@ -28,6 +30,7 @@ final class SiteSummaryToolOutputSchema
     public const PAGINATED_LIST = [
         'type' => 'object',
         'properties' => [
+            'security' => ToolOutputSecurity::SECURITY_SCHEMA,
             'sites' => [
                 'type' => 'array',
                 'items' => self::ITEM,
@@ -35,7 +38,7 @@ final class SiteSummaryToolOutputSchema
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
         ],
-        'required' => ['sites', 'next_cursor', 'has_more'],
+        'required' => ['security', 'sites', 'next_cursor', 'has_more'],
         'additionalProperties' => false,
     ];
 }

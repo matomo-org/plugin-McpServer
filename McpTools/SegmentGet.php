@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @phpstan-import-type SegmentDetailArray from SegmentDetailRecord
@@ -36,7 +37,8 @@ class SegmentGet
         name: self::TOOL_NAME,
         description: "Use when: you need details for one saved segment.\n"
             . "Purpose: resolve a segment by idSegment, exact name, or exact definition within idSite scope.\n"
-            . "Next: use the returned definition in analytics/report API calls.",
+            . "Next: use the returned definition in analytics/report API calls.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SegmentDetailToolOutputSchema::ITEM
     )]
@@ -78,11 +80,12 @@ class SegmentGet
         ?string $name = null,
         ?string $definition = null
     ): array {
-        return $this->queryService->getSegmentBySelector(
+        $segment = $this->queryService->getSegmentBySelector(
             $idSite,
             $idSegment,
             $name,
             $definition
         )->toArray();
+        return ['security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME)] + $segment;
     }
 }

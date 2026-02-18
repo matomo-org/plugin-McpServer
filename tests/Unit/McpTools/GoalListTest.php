@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterfa
 use Piwik\Plugins\McpServer\McpTools\GoalList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -45,6 +46,7 @@ class GoalListTest extends TestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(GoalList::TOOL_NAME),
             'goals' => [
                 [
                     'idgoal' => 1,

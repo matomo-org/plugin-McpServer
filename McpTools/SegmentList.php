@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -36,6 +37,7 @@ class SegmentList
 
     /**
      * @return array{
+     *     security: array<string, mixed>,
      *     segments: list<SegmentSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
@@ -45,7 +47,8 @@ class SegmentList
         name: self::TOOL_NAME,
         description: "Use when: you need reusable saved segments for a specific site.\n"
             . "Purpose: return paginated saved segment definitions available for idSite.\n"
-            . "Next: use the chosen segment definition in analytics/report API calls.",
+            . "Next: use the chosen segment definition in analytics/report API calls.\n"
+            . ToolOutputSecurity::SAFETY_WARNING_TEXT,
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
         outputSchema: SegmentSummaryToolOutputSchema::PAGINATED_LIST
     )]
@@ -101,6 +104,11 @@ class SegmentList
         );
 
         /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */
-        return $response;
+        return [
+            'security' => ToolOutputSecurity::buildForTool(self::TOOL_NAME),
+            'segments' => $response['segments'],
+            'next_cursor' => $response['next_cursor'],
+            'has_more' => $response['has_more'],
+        ];
     }
 }

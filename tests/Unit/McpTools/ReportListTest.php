@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
 /**
@@ -59,6 +60,7 @@ class ReportListTest extends TestCase
         );
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(ReportList::TOOL_NAME),
             'reports' => [
                 [
                     'uniqueId' => 'Actions_getPageUrls',

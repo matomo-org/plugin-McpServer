@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
+use Piwik\Plugins\McpServer\Support\Security\ToolOutputSecurity;
 
 /**
  * @group McpServer
@@ -47,6 +48,7 @@ class GoalGetTest extends TestCase
         $actual = (new GoalGet($wrapper))->get(4, 7);
 
         self::assertSame([
+            'security' => ToolOutputSecurity::buildForTool(GoalGet::TOOL_NAME),
             'idgoal' => 7,
             'idsite' => 4,
             'name' => 'Goal Name',
