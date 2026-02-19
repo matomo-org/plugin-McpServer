@@ -63,6 +63,45 @@ final class McpAuthTestHelper
         return $result;
     }
 
+    public static function asViewUserForSite(int $idSite, callable $callback): mixed
+    {
+        $originalTokenAuth = self::captureCurrentTokenAuth();
+        $previousForcedTokenAuth = self::$forcedTokenAuth;
+        $fixture = self::createViewUserFixture($idSite);
+        self::$forcedTokenAuth = $fixture['tokenAuth'];
+        self::switchToTokenAuth($fixture['tokenAuth']);
+        $callbackError = null;
+        $result = null;
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $e) {
+            $callbackError = $e;
+        } finally {
+            $cleanupError = null;
+
+            self::switchToSuperUser();
+            try {
+                self::cleanupNoAccessUserFixture($fixture);
+            } catch (\Throwable $e) {
+                $cleanupError = $e;
+            }
+
+            self::restoreAuth($originalTokenAuth);
+            self::$forcedTokenAuth = $previousForcedTokenAuth;
+
+            if ($callbackError !== null) {
+                throw $callbackError;
+            }
+
+            if ($cleanupError !== null) {
+                throw new \RuntimeException('Failed cleaning up view-access user fixture.', 0, $cleanupError);
+            }
+        }
+
+        return $result;
+    }
+
     public static function getForcedTokenAuth(): ?string
     {
         return self::$forcedTokenAuth;
@@ -84,6 +123,30 @@ final class McpAuthTestHelper
             'MCP no access test token',
             Date::now()->getDatetime()
         );
+
+        return [
+            'login' => $login,
+            'tokenAuth' => $tokenAuth,
+        ];
+    }
+
+    /**
+     * @return array{login: string, tokenAuth: string}
+     */
+    private static function createViewUserFixture(int $idSite, ?string $suffix = null): array
+    {
+        $unique = $suffix ?? substr(hash('sha256', uniqid('', true)), 0, 12);
+        $login = 'mcp_view_user_' . $unique;
+        $tokenAuth = (new UsersManagerModel())->generateRandomTokenAuth();
+
+        UsersManagerApi::getInstance()->addUser($login, 'mcp-view-password', $login . '@example.test');
+        (new UsersManagerModel())->addTokenAuth(
+            $login,
+            $tokenAuth,
+            'MCP view access test token',
+            Date::now()->getDatetime()
+        );
+        UsersManagerApi::getInstance()->setUserAccess($login, 'view', [$idSite]);
 
         return [
             'login' => $login,

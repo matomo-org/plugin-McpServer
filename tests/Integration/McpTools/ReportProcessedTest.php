@@ -11,12 +11,20 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Piwik\ArchiveProcessor\Rules;
+use Piwik\Cache;
+use Piwik\Config;
+use Piwik\Container\StaticContainer;
 use Piwik\DataTable;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
+use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
+use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -26,6 +34,10 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ReportProcessedTest extends IntegrationTestCase
 {
+    private const STRICT_SEGMENT_ERROR_MESSAGE =
+        'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
+        . 'Use matomo_segment_list to select a saved segment definition.';
+
     private int $idSite = 0;
 
     protected static function configureFixture($fixture): void
@@ -448,6 +460,238 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertStringContainsString('goal_columns_mode', $error->message ?? '');
     }
 
+    public function testReturnsStrictGuidanceForAdHocSegmentInStrictArchivingMode(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $this->runInStrictSegmentArchivingMode(function () use ($reportUniqueId): void {
+            $server = McpTestHelper::buildServer();
+            $sessionId = McpTestHelper::initializeSession($server);
+
+            McpTestHelper::callToolAndAssertError(
+                $server,
+                $sessionId,
+                ReportProcessed::TOOL_NAME,
+                [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'reportUniqueId' => $reportUniqueId,
+                    'segment' => 'countryCode==de',
+                ],
+                self::STRICT_SEGMENT_ERROR_MESSAGE,
+                __METHOD__
+            );
+        });
+    }
+
+    public function testAllowsSavedAutoArchivedSegmentInStrictArchivingMode(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $this->runInStrictSegmentArchivingMode(function () use ($reportUniqueId): void {
+            $segmentDefinition = 'countryCode==de';
+            SegmentEditorApi::getInstance()->add(
+                'MCP Strict Segment ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
+                $segmentDefinition,
+                $this->idSite,
+                true
+            );
+
+            $server = McpTestHelper::buildServer();
+            $sessionId = McpTestHelper::initializeSession($server);
+            $content = McpTestHelper::callToolAndAssertSuccess(
+                $server,
+                $sessionId,
+                ReportProcessed::TOOL_NAME,
+                [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'reportUniqueId' => $reportUniqueId,
+                    'segment' => $segmentDefinition,
+                ],
+                __METHOD__
+            );
+
+            self::assertArrayHasKey('report', $content);
+            self::assertArrayHasKey('pagination', $content);
+            self::assertArrayHasKey('resolvedReport', $content);
+        });
+    }
+
+    public function testReturnsGenericFailureForInvalidSegmentInStrictArchivingMode(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $this->runInStrictSegmentArchivingMode(function () use ($reportUniqueId): void {
+            $server = McpTestHelper::buildServer();
+            $sessionId = McpTestHelper::initializeSession($server);
+
+            McpTestHelper::callToolAndAssertError(
+                $server,
+                $sessionId,
+                ReportProcessed::TOOL_NAME,
+                [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'reportUniqueId' => $reportUniqueId,
+                    'segment' => 'notASupportedSegment==de',
+                ],
+                'Report retrieval failed.',
+                __METHOD__
+            );
+        });
+    }
+
+    public function testReturnsStrictGuidanceWhenGatewayFailsWithStrictSegmentRestriction(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $container = StaticContainer::getContainer();
+        $originalGateway = $container->get(CoreApiModuleGatewayInterface::class);
+        $originalStrictSegmentPolicy = $container->get(StrictSegmentPolicyServiceInterface::class);
+
+        $container->set(
+            CoreApiModuleGatewayInterface::class,
+            new class () implements CoreApiModuleGatewayInterface {
+                public function getProcessedReport(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    string $apiModule,
+                    string $apiAction,
+                    ?string $segment,
+                    array $apiParameters,
+                    int|string|null $idGoal,
+                    ?int $idDimension,
+                    ?int $idSubtable
+                ): array {
+                    throw new CoreApiRequestException(
+                        'Core API processed report request failed.',
+                        0,
+                        new \RuntimeException('report data has not been pre-processed')
+                    );
+                }
+            }
+        );
+        $container->set(
+            StrictSegmentPolicyServiceInterface::class,
+            new class () implements StrictSegmentPolicyServiceInterface {
+                public function shouldMapToStrictSegmentGuidance(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    ?string $segment
+                ): bool {
+                    return true;
+                }
+            }
+        );
+
+        try {
+            McpAuthTestHelper::asViewUserForSite($this->idSite, function () use ($reportUniqueId): void {
+                $server = McpTestHelper::buildServer();
+                $sessionId = McpTestHelper::initializeSession($server);
+
+                McpTestHelper::callToolAndAssertError(
+                    $server,
+                    $sessionId,
+                    ReportProcessed::TOOL_NAME,
+                    [
+                        'idSite' => $this->idSite,
+                        'period' => 'day',
+                        'date' => '2015-01-03',
+                        'reportUniqueId' => $reportUniqueId,
+                        'segment' => 'countryCode==zz',
+                    ],
+                    self::STRICT_SEGMENT_ERROR_MESSAGE,
+                    __METHOD__
+                );
+            });
+        } finally {
+            $container->set(CoreApiModuleGatewayInterface::class, $originalGateway);
+            $container->set(StrictSegmentPolicyServiceInterface::class, $originalStrictSegmentPolicy);
+        }
+    }
+
+    public function testReturnsStrictGuidanceWhenGatewayReturnsEmptySegmentedReportInStrictMode(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $container = StaticContainer::getContainer();
+        $originalGateway = $container->get(CoreApiModuleGatewayInterface::class);
+        $originalStrictSegmentPolicy = $container->get(StrictSegmentPolicyServiceInterface::class);
+
+        $container->set(
+            CoreApiModuleGatewayInterface::class,
+            new class () implements CoreApiModuleGatewayInterface {
+                public function getProcessedReport(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    string $apiModule,
+                    string $apiAction,
+                    ?string $segment,
+                    array $apiParameters,
+                    int|string|null $idGoal,
+                    ?int $idDimension,
+                    ?int $idSubtable
+                ): array {
+                    return [
+                        'reportData' => [],
+                        'reportMetadata' => [],
+                        'columns' => ['label' => 'Label'],
+                    ];
+                }
+            }
+        );
+        $container->set(
+            StrictSegmentPolicyServiceInterface::class,
+            new class () implements StrictSegmentPolicyServiceInterface {
+                public function shouldMapToStrictSegmentGuidance(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    ?string $segment
+                ): bool {
+                    return true;
+                }
+            }
+        );
+
+        try {
+            McpAuthTestHelper::asViewUserForSite($this->idSite, function () use ($reportUniqueId): void {
+                $server = McpTestHelper::buildServer();
+                $sessionId = McpTestHelper::initializeSession($server);
+
+                McpTestHelper::callToolAndAssertError(
+                    $server,
+                    $sessionId,
+                    ReportProcessed::TOOL_NAME,
+                    [
+                        'idSite' => $this->idSite,
+                        'period' => 'day',
+                        'date' => '2015-01-03',
+                        'reportUniqueId' => $reportUniqueId,
+                        'segment' => 'countryCode==zz',
+                    ],
+                    self::STRICT_SEGMENT_ERROR_MESSAGE,
+                    __METHOD__
+                );
+            });
+        } finally {
+            $container->set(CoreApiModuleGatewayInterface::class, $originalGateway);
+            $container->set(StrictSegmentPolicyServiceInterface::class, $originalStrictSegmentPolicy);
+        }
+    }
+
     private function findReportUniqueId(int $idSite, string $module, string $action): ?string
     {
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
@@ -532,5 +776,34 @@ class ReportProcessedTest extends IntegrationTestCase
 
         $alias = $row['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
+    }
+
+    private function runInStrictSegmentArchivingMode(callable $callback): void
+    {
+        $config = Config::getInstance();
+        $general = $config->General;
+        if (!is_array($general)) {
+            throw new \RuntimeException('Invalid Matomo general config state.');
+        }
+
+        $originalEnableBrowserArchivingTriggering = (int) ($general['enable_browser_archiving_triggering'] ?? 1);
+        $originalBrowserArchivingDisabledEnforce = (int) ($general['browser_archiving_disabled_enforce'] ?? 0);
+        $originalBrowserTriggerEnabled = Rules::isBrowserTriggerEnabled();
+
+        try {
+            $general['enable_browser_archiving_triggering'] = 0;
+            $general['browser_archiving_disabled_enforce'] = 1;
+            $config->General = $general;
+            Rules::setBrowserTriggerArchiving(false);
+            Cache::getTransientCache()->flushAll();
+
+            $callback();
+        } finally {
+            $general['enable_browser_archiving_triggering'] = $originalEnableBrowserArchivingTriggering;
+            $general['browser_archiving_disabled_enforce'] = $originalBrowserArchivingDisabledEnforce;
+            $config->General = $general;
+            Rules::setBrowserTriggerArchiving((bool) $originalBrowserTriggerEnabled);
+            Cache::getTransientCache()->flushAll();
+        }
     }
 }

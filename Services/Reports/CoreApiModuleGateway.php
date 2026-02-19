@@ -11,8 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
+use Piwik\NoAccessException;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
 final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
@@ -32,23 +34,29 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
         ?int $idDimension,
         ?int $idSubtable
     ): array {
-        $report = ApiModuleApi::getInstance()->getProcessedReport(
-            $idSite,
-            $period,
-            $date,
-            $apiModule,
-            $apiAction,
-            $segment ?? false,
-            $apiParameters,
-            $idGoal ?? false,
-            false,
-            false,
-            true,
-            $idSubtable ?? false,
-            false,
-            null,
-            $idDimension ?? false
-        );
+        try {
+            $report = ApiModuleApi::getInstance()->getProcessedReport(
+                $idSite,
+                $period,
+                $date,
+                $apiModule,
+                $apiAction,
+                $segment ?? false,
+                $apiParameters,
+                $idGoal ?? false,
+                false,
+                false,
+                true,
+                $idSubtable ?? false,
+                false,
+                null,
+                $idDimension ?? false
+            );
+        } catch (NoAccessException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new CoreApiRequestException('Core API processed report request failed.', 0, $e);
+        }
 
         return $this->requireStringKeyedArray($report, 'Report data is invalid.');
     }

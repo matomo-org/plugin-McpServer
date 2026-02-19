@@ -21,19 +21,33 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterfac
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
+use Piwik\Plugins\SegmentEditor\UnprocessedSegmentException;
 
 final class ReportProcessedQueryService implements ReportProcessedQueryServiceInterface
 {
     private const FILTER_LIMIT_MAX = 250;
     private const GOAL_COLUMNS_MODE_KEY = 'filter_update_columns_when_show_all_goals';
     private const GOAL_COLUMNS_PROCESS_GOALS_KEY = 'filter_show_goal_columns_process_goals';
+    private const STRICT_SEGMENT_ERROR_MESSAGE =
+        'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
+        . 'Use matomo_segment_list to select a saved segment definition.';
+
+    /** @var list<string> */
+    private const STRICT_SEGMENT_RESTRICTION_MESSAGE_FRAGMENTS = [
+        'has not yet been created in the segment editor',
+        'report data has not been pre-processed',
+        'has not yet been processed by the system',
+        'not currently configured to process segmented reports in api requests',
+    ];
 
     /** @var array<string, true> */
     private const DANGEROUS_API_PARAMETER_KEYS = [
@@ -54,7 +68,8 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         private GetRequestScopeMutatorInterface $getRequestScopeMutator,
         private CoreApiModuleGatewayInterface $coreApiModuleGateway,
         private TranslatorContextRunnerInterface $translatorContextRunner,
-        ?callable $processedReportCaller = null,
+        private StrictSegmentPolicyServiceInterface $strictSegmentPolicy,
+        ?callable $processedReportCaller = null
     ) {
         $this->processedReportCaller = $processedReportCaller;
     }
@@ -143,6 +158,14 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         [$normalizedReport, $returnedRows, $hasMore] = $this->trimToRequestedLimit(
             $normalizedReport,
             $requestedFilterLimit
+        );
+        $this->throwStrictSegmentGuidanceForEmptySegmentedReportIfNeeded(
+            $normalizedReport,
+            $returnedRows,
+            $idSite,
+            $period,
+            $date,
+            $segment
         );
 
         return new ReportProcessedRecord(
@@ -517,12 +540,44 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             throw new ToolCallException('Report not found.');
         } catch (InfrastructureDataException $e) {
             throw new ToolCallException('Report data is invalid.');
+        } catch (CoreApiRequestException $e) {
+            $rootCause = $e->getPrevious() ?? $e;
+            $shouldMapToStrictSegmentGuidance = false;
+            if (
+                $segment !== null
+                && trim($segment) !== ''
+                && $this->isStrictSegmentRestrictionLikeFailure($rootCause)
+            ) {
+                try {
+                    $shouldMapToStrictSegmentGuidance = $this->strictSegmentPolicy->shouldMapToStrictSegmentGuidance(
+                        $idSite,
+                        $period,
+                        $date,
+                        $segment
+                    );
+                } catch (\Throwable $policyError) {
+                    $shouldMapToStrictSegmentGuidance = false;
+                }
+            }
+
+            if ($shouldMapToStrictSegmentGuidance) {
+                throw new ToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
+            }
+
+            if (
+                $this->isNoAccessLikeFailure($rootCause)
+                && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            ) {
+                throw new ToolCallException('Report not found.');
+            }
+
+            throw new ToolCallException('Report retrieval failed.');
         } catch (ToolCallException $e) {
             throw $e;
         } catch (\Throwable $e) {
             if (
-                ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
-                && $this->isNoAccessLikeFailure($e)
+                $this->isNoAccessLikeFailure($e)
+                && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
             ) {
                 throw new ToolCallException('Report not found.');
             }
@@ -661,6 +716,58 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     }
 
     /**
+     * @param array<string, mixed> $report
+     */
+    private function throwStrictSegmentGuidanceForEmptySegmentedReportIfNeeded(
+        array $report,
+        int $returnedRows,
+        int $idSite,
+        string $period,
+        string $date,
+        ?string $segment
+    ): void {
+        if (trim((string) $segment) === '') {
+            return;
+        }
+
+        if (!$this->isEmptyTabularReportResult($report, $returnedRows)) {
+            return;
+        }
+
+        try {
+            $shouldMapToStrictSegmentGuidance = $this->strictSegmentPolicy->shouldMapToStrictSegmentGuidance(
+                $idSite,
+                $period,
+                $date,
+                $segment
+            );
+        } catch (\Throwable $policyError) {
+            $shouldMapToStrictSegmentGuidance = false;
+        }
+
+        if ($shouldMapToStrictSegmentGuidance) {
+            throw new ToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $report
+     */
+    private function isEmptyTabularReportResult(array $report, int $returnedRows): bool
+    {
+        if ($returnedRows > 0) {
+            return false;
+        }
+
+        $reportData = $report['reportData'] ?? null;
+        if (!is_array($reportData)) {
+            return false;
+        }
+
+        return array_is_list($reportData);
+    }
+
+    /**
      * @param array<string, mixed> $apiParameters
      * @return array<string, mixed>
      */
@@ -721,5 +828,29 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         return str_contains($message, 'no access')
             || str_contains($message, 'checkuserhasviewaccess')
             || str_contains($message, 'view access');
+    }
+
+    private function isStrictSegmentRestrictionLikeFailure(\Throwable $e): bool
+    {
+        $current = $e;
+
+        do {
+            if ($current instanceof UnprocessedSegmentException) {
+                return true;
+            }
+
+            $message = strtolower(trim((string) $current->getMessage()));
+            if ($message !== '') {
+                foreach (self::STRICT_SEGMENT_RESTRICTION_MESSAGE_FRAGMENTS as $fragment) {
+                    if (str_contains($message, $fragment)) {
+                        return true;
+                    }
+                }
+            }
+
+            $current = $current->getPrevious();
+        } while ($current !== null);
+
+        return false;
     }
 }
