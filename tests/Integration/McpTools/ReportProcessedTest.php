@@ -16,6 +16,8 @@ use Piwik\Cache;
 use Piwik\Config;
 use Piwik\Container\StaticContainer;
 use Piwik\DataTable;
+use Piwik\DataTable\Map;
+use Piwik\DataTable\Row;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
@@ -693,9 +695,12 @@ class ReportProcessedTest extends IntegrationTestCase
                     ?int $idDimension,
                     ?int $idSubtable
                 ): array {
+                    $reportData = new DataTable();
+                    $reportData->setMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME, 0);
+
                     return [
-                        'reportData' => [],
-                        'reportMetadata' => [],
+                        'reportData' => $reportData,
+                        'reportMetadata' => new DataTable(),
                         'columns' => ['label' => 'Label'],
                     ];
                 }
@@ -738,6 +743,156 @@ class ReportProcessedTest extends IntegrationTestCase
         } finally {
             $container->set(CoreApiModuleGatewayInterface::class, $originalGateway);
             $container->set(StrictSegmentPolicyServiceInterface::class, $originalStrictSegmentPolicy);
+        }
+    }
+
+    public function testDerivesMapPaginationAcrossAllTables(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $container = StaticContainer::getContainer();
+        $originalGateway = $container->get(CoreApiModuleGatewayInterface::class);
+
+        $container->set(
+            CoreApiModuleGatewayInterface::class,
+            new class () implements CoreApiModuleGatewayInterface {
+                public function getProcessedReport(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    string $apiModule,
+                    string $apiAction,
+                    ?string $segment,
+                    array $apiParameters,
+                    array $requestParameters,
+                    int|string|null $idGoal,
+                    ?int $idDimension,
+                    ?int $idSubtable
+                ): array {
+                    $tableA = new DataTable();
+                    $tableA->addRow(new Row([Row::COLUMNS => ['label' => 'A1']]));
+                    $tableA->addRow(new Row([Row::COLUMNS => ['label' => 'A2']]));
+                    $tableA->setMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME, 2);
+
+                    $tableB = new DataTable();
+                    $tableB->addRow(new Row([Row::COLUMNS => ['label' => 'B1']]));
+                    $tableB->addRow(new Row([Row::COLUMNS => ['label' => 'B2']]));
+                    $tableB->addRow(new Row([Row::COLUMNS => ['label' => 'B3']]));
+                    $tableB->setMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME, 10);
+
+                    $reportData = new Map();
+                    $reportData->addTable($tableA, '2015-01-01');
+                    $reportData->addTable($tableB, '2015-01-02');
+
+                    return [
+                        'reportData' => $reportData,
+                        'reportMetadata' => new Map(),
+                        'columns' => ['label' => 'Label'],
+                    ];
+                }
+            }
+        );
+
+        try {
+            McpAuthTestHelper::asViewUserForSite($this->idSite, function () use ($reportUniqueId): void {
+                $server = McpTestHelper::buildServer();
+                $sessionId = McpTestHelper::initializeSession($server);
+                $content = McpTestHelper::callToolAndAssertSuccess(
+                    $server,
+                    $sessionId,
+                    ReportProcessed::TOOL_NAME,
+                    [
+                        'idSite' => $this->idSite,
+                        'period' => 'range',
+                        'date' => '2015-01-01,2015-01-02',
+                        'reportUniqueId' => $reportUniqueId,
+                        'filter_limit' => 10,
+                        'filter_offset' => 1,
+                    ],
+                    __METHOD__
+                );
+
+                $pagination = $content['pagination'] ?? null;
+                self::assertIsArray($pagination);
+                self::assertSame(3, $pagination['returned_rows'] ?? null);
+                self::assertTrue($pagination['has_more'] ?? false);
+            });
+        } finally {
+            $container->set(CoreApiModuleGatewayInterface::class, $originalGateway);
+        }
+    }
+
+    public function testFallsBackForMissingMapPaginationMetadata(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $container = StaticContainer::getContainer();
+        $originalGateway = $container->get(CoreApiModuleGatewayInterface::class);
+
+        $container->set(
+            CoreApiModuleGatewayInterface::class,
+            new class () implements CoreApiModuleGatewayInterface {
+                public function getProcessedReport(
+                    int $idSite,
+                    string $period,
+                    string $date,
+                    string $apiModule,
+                    string $apiAction,
+                    ?string $segment,
+                    array $apiParameters,
+                    array $requestParameters,
+                    int|string|null $idGoal,
+                    ?int $idDimension,
+                    ?int $idSubtable
+                ): array {
+                    $tableA = new DataTable();
+                    $tableA->addRow(new Row([Row::COLUMNS => ['label' => 'A1']]));
+
+                    $tableB = new DataTable();
+                    $tableB->addRow(new Row([Row::COLUMNS => ['label' => 'B1']]));
+                    $tableB->addRow(new Row([Row::COLUMNS => ['label' => 'B2']]));
+
+                    $reportData = new Map();
+                    $reportData->addTable($tableA, '2015-01-01');
+                    $reportData->addTable($tableB, '2015-01-02');
+
+                    return [
+                        'reportData' => $reportData,
+                        'reportMetadata' => new Map(),
+                        'columns' => ['label' => 'Label'],
+                    ];
+                }
+            }
+        );
+
+        try {
+            McpAuthTestHelper::asViewUserForSite($this->idSite, function () use ($reportUniqueId): void {
+                $server = McpTestHelper::buildServer();
+                $sessionId = McpTestHelper::initializeSession($server);
+                $content = McpTestHelper::callToolAndAssertSuccess(
+                    $server,
+                    $sessionId,
+                    ReportProcessed::TOOL_NAME,
+                    [
+                        'idSite' => $this->idSite,
+                        'period' => 'range',
+                        'date' => '2015-01-01,2015-01-02',
+                        'reportUniqueId' => $reportUniqueId,
+                        'filter_limit' => 10,
+                        'filter_offset' => 1,
+                    ],
+                    __METHOD__
+                );
+
+                $pagination = $content['pagination'] ?? null;
+                self::assertIsArray($pagination);
+                self::assertSame(2, $pagination['returned_rows'] ?? null);
+                self::assertFalse($pagination['has_more'] ?? true);
+            });
+        } finally {
+            $container->set(CoreApiModuleGatewayInterface::class, $originalGateway);
         }
     }
 
