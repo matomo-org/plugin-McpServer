@@ -14,6 +14,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
  * @group McpServer
@@ -23,7 +25,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 {
     public function testNormalizeReportSummaryDataThrowsWhenFieldIsMissing(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
         $data = $this->makeValidReportSummaryData();
         unset($data['name']);
 
@@ -35,7 +37,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryDataThrowsWhenFieldIsNull(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
         $data = $this->makeValidReportSummaryData();
         $data['category'] = null;
 
@@ -47,7 +49,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryDataReturnsExpectedTypedOutput(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
 
         $report = $service->normalizeReportSummaryData(
             $this->makeValidReportSummaryData(),
@@ -66,7 +68,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryDataDefaultsMissingParametersToEmptyObjectArray(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
         $data = $this->makeValidReportSummaryData();
         unset($data['parameters']);
 
@@ -77,7 +79,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryDataRejectsNonArrayParameters(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
         $data = $this->makeValidReportSummaryData();
         $data['parameters'] = 'not-an-object';
 
@@ -89,7 +91,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryDataRejectsIndexedArrayParameters(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
         $data = $this->makeValidReportSummaryData();
         $data['parameters'] = ['idGoal'];
 
@@ -101,7 +103,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryRowsThrowsWhenPayloadIsNotArray(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Report list data is invalid.');
@@ -115,7 +117,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryRowsThrowsWhenRowIsNotArray(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Report list data is invalid.');
@@ -129,7 +131,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryRowsExcludesSubtableRows(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
 
         $subtable = $this->makeValidReportSummaryData();
         $subtable['uniqueId'] = 'Actions_getPageUrlsSubtable';
@@ -147,7 +149,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
     public function testNormalizeReportSummaryRowsExcludesSubtableRowsUsingLegacyPluralField(): void
     {
-        $service = new ReportSummaryQueryService();
+        $service = $this->makeService();
 
         $subtable = $this->makeValidReportSummaryData();
         $subtable['uniqueId'] = 'Actions_getPageUrlsSubtable';
@@ -161,6 +163,40 @@ class ReportSummaryQueryServiceTest extends TestCase
 
         self::assertCount(1, $actual);
         self::assertSame('Actions_getPageUrls', $actual[0]->uniqueId);
+    }
+
+    public function testGetReportSummariesForSiteScopesIdSiteFromToolInput(): void
+    {
+        $mutator = new class () implements GetRequestScopeMutatorInterface {
+            /** @var array<string, mixed>|null */
+            public ?array $capturedParameters = null;
+
+            public function runWithParameters(array $parameters, callable $callback): mixed
+            {
+                $this->capturedParameters = $parameters;
+
+                return [[
+                    'uniqueId' => 'Actions_getPageUrls',
+                    'module' => 'Actions',
+                    'action' => 'getPageUrls',
+                    'name' => 'Page URLs',
+                    'category' => 'Actions',
+                    'parameters' => [],
+                ]];
+            }
+        };
+        $service = $this->makeService($mutator);
+
+        $result = $service->getReportSummariesForSite(42);
+
+        self::assertSame(['idSite' => '42'], $mutator->capturedParameters);
+        self::assertCount(1, $result);
+        self::assertSame('Actions_getPageUrls', $result[0]->uniqueId);
+    }
+
+    private function makeService(?GetRequestScopeMutatorInterface $mutator = null): ReportSummaryQueryService
+    {
+        return new ReportSummaryQueryService($mutator ?? new GetRequestScopeMutator());
     }
 
     /**

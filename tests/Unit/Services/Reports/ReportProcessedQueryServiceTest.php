@@ -281,6 +281,9 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $observedFilterLimit = null;
         $observedFilterOffset = null;
+        $observedScopedIdSite = null;
+        $observedScopedPeriod = null;
+        $observedScopedDate = null;
         $observedApiParameters = null;
         $observedFlat = null;
 
@@ -300,11 +303,17 @@ class ReportProcessedQueryServiceTest extends TestCase
             ) use (
                 &$observedFilterLimit,
                 &$observedFilterOffset,
+                &$observedScopedIdSite,
+                &$observedScopedPeriod,
+                &$observedScopedDate,
                 &$observedApiParameters,
                 &$observedFlat
             ): array {
                 $observedFilterLimit = $_GET['filter_limit'] ?? null;
                 $observedFilterOffset = $_GET['filter_offset'] ?? null;
+                $observedScopedIdSite = $_GET['idSite'] ?? null;
+                $observedScopedPeriod = $_GET['period'] ?? null;
+                $observedScopedDate = $_GET['date'] ?? null;
                 $observedApiParameters = $apiParameters;
                 $observedFlat = $_GET['flat'] ?? null;
 
@@ -344,11 +353,17 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         self::assertSame('2', $observedFilterLimit);
         self::assertSame('5', $observedFilterOffset);
+        self::assertSame('1', $observedScopedIdSite);
+        self::assertSame('day', $observedScopedPeriod);
+        self::assertSame('today', $observedScopedDate);
         self::assertSame([], $observedApiParameters);
         self::assertSame('1', $observedFlat);
         self::assertSame('keep', $_GET['existing'] ?? null);
         self::assertArrayNotHasKey('filter_limit', $_GET);
         self::assertArrayNotHasKey('filter_offset', $_GET);
+        self::assertArrayNotHasKey('idSite', $_GET);
+        self::assertArrayNotHasKey('period', $_GET);
+        self::assertArrayNotHasKey('date', $_GET);
         self::assertArrayNotHasKey('flat', $_GET);
 
         $actual = $record->toArray();
@@ -473,6 +488,9 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         self::assertSame([
+            'idSite' => '1',
+            'period' => 'day',
+            'date' => 'today',
             'filter_limit' => '2',
             'filter_offset' => '5',
             'flat' => '1',
