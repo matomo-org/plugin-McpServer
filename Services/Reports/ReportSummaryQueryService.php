@@ -18,21 +18,31 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInt
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterface
 {
+    public function __construct(private GetRequestScopeMutatorInterface $getRequestScopeMutator)
+    {
+    }
+
     /**
      * @return array<int, ReportSummaryRecord>
      */
     public function getReportSummariesForSite(int $idSite): array
     {
         try {
-            $reports = ApiModuleApi::getInstance()->getReportMetadata(
-                (string) $idSite,
-                false,
-                false,
-                true,
-                true
+            $reports = $this->getRequestScopeMutator->runWithParameters(
+                ['idSite' => (string) $idSite],
+                static function () use ($idSite): array {
+                    return ApiModuleApi::getInstance()->getReportMetadata(
+                        (string) $idSite,
+                        false,
+                        false,
+                        true,
+                        true
+                    );
+                }
             );
         } catch (NoAccessException $e) {
             // Keep list behavior aligned with other list tools: no view access yields no rows.

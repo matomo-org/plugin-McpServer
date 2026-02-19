@@ -22,21 +22,31 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
+use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 final class ReportMetadataQueryService implements ReportMetadataQueryServiceInterface
 {
     public function __construct(
         private CoreProcessedReportGatewayInterface $coreProcessedReportGateway,
-        private TranslatorContextRunnerInterface $translatorContextRunner
+        private TranslatorContextRunnerInterface $translatorContextRunner,
+        private GetRequestScopeMutatorInterface $getRequestScopeMutator
     ) {
     }
 
     public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
     {
         try {
-            $metadata = $this->translatorContextRunner->runInEnglish(
+            $metadata = $this->getRequestScopeMutator->runWithParameters(
+                ['idSite' => (string) $idSite],
                 function () use ($idSite, $reportUniqueId) {
-                    return $this->coreProcessedReportGateway->getReportMetadataByUniqueId($idSite, $reportUniqueId);
+                    return $this->translatorContextRunner->runInEnglish(
+                        function () use ($idSite, $reportUniqueId) {
+                            return $this->coreProcessedReportGateway->getReportMetadataByUniqueId(
+                                $idSite,
+                                $reportUniqueId
+                            );
+                        }
+                    );
                 }
             );
         } catch (NoAccessException $e) {
@@ -76,14 +86,23 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         [$normalizedPeriod, $normalizedDate] = $this->normalizeReportMetadataPeriodAndDate($period, $date);
 
         try {
-            $reports = $this->translatorContextRunner->runInEnglish(
+            $reports = $this->getRequestScopeMutator->runWithParameters(
+                [
+                    'idSite' => (string) $idSite,
+                    'period' => $normalizedPeriod,
+                    'date' => (string) $normalizedDate,
+                ],
                 function () use ($idSite, $normalizedPeriod, $normalizedDate) {
-                    return $this->coreProcessedReportGateway->getReportMetadata(
-                        $idSite,
-                        $normalizedPeriod,
-                        $normalizedDate,
-                        false,
-                        false
+                    return $this->translatorContextRunner->runInEnglish(
+                        function () use ($idSite, $normalizedPeriod, $normalizedDate) {
+                            return $this->coreProcessedReportGateway->getReportMetadata(
+                                $idSite,
+                                $normalizedPeriod,
+                                $normalizedDate,
+                                false,
+                                false
+                            );
+                        }
                     );
                 }
             );

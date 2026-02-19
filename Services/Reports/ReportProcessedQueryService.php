@@ -488,13 +488,22 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
         }
 
+        // Keep global request context aligned with tool-level inputs for Matomo hooks that read $_GET/$_REQUEST.
         // Keep pagination deterministic by forcing filter_limit/filter_offset in request scope.
         // TODO: remove this workaround once core exposes stable total-rows metadata for processed reports.
         $scopedRequestParameters = [
+            'idSite' => (string) $idSite,
+            'period' => $period,
+            'date' => $date,
             'filter_limit' => (string) $filterLimit,
             'filter_offset' => (string) $filterOffset,
         ];
         $scopedRequestParameters = array_merge($scopedRequestParameters, $requestScopeParameters);
+        $scopedRequestParameters['idSite'] = (string) $idSite;
+        $scopedRequestParameters['period'] = $period;
+        $scopedRequestParameters['date'] = $date;
+        $scopedRequestParameters['filter_limit'] = (string) $filterLimit;
+        $scopedRequestParameters['filter_offset'] = (string) $filterOffset;
 
         try {
             $processed = $this->getRequestScopeMutator->runWithParameters(
