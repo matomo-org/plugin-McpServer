@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
+use Piwik\API\Request;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
@@ -20,7 +20,9 @@ final class CoreCustomDimensionsGateway implements CoreCustomDimensionsGatewayIn
 {
     public function getConfiguredCustomDimensions(int $idSite): array
     {
-        $dimensions = CustomDimensionsApi::getInstance()->getConfiguredCustomDimensions($idSite);
+        $dimensions = Request::processRequest('CustomDimensions.getConfiguredCustomDimensions', [
+            'idSite' => $idSite,
+        ], []);
 
         return $this->normalizeRows($dimensions, 'Custom dimensions data is invalid.');
     }
