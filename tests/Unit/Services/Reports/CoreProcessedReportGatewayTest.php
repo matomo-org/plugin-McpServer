@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\API\ProcessedReport;
 use Piwik\Plugins\McpServer\Services\Reports\CoreProcessedReportGateway;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
@@ -24,13 +23,13 @@ class CoreProcessedReportGatewayTest extends TestCase
 {
     public function testGetReportMetadataByUniqueIdReturnsStringKeyedArray(): void
     {
-        $processedReport = $this->createMock(ProcessedReport::class);
-        $processedReport->expects(self::once())
-            ->method('getReportMetadataByUniqueId')
-            ->with(1, 'Actions_getPageUrls')
-            ->willReturn(['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions']);
-
-        $gateway = new CoreProcessedReportGateway($processedReport);
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions'],
+                ];
+            }
+        );
         $actual = $gateway->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
 
         self::assertSame('Actions_getPageUrls', $actual['uniqueId'] ?? null);
@@ -39,12 +38,11 @@ class CoreProcessedReportGatewayTest extends TestCase
 
     public function testGetReportMetadataByUniqueIdRejectsInvalidPayloadShape(): void
     {
-        $processedReport = $this->createMock(ProcessedReport::class);
-        $processedReport->expects(self::once())
-            ->method('getReportMetadataByUniqueId')
-            ->willReturn(['invalid-indexed-row']);
-
-        $gateway = new CoreProcessedReportGateway($processedReport);
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [['invalid-indexed-row']];
+            }
+        );
 
         $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report not found.');
@@ -53,16 +51,14 @@ class CoreProcessedReportGatewayTest extends TestCase
 
     public function testGetReportMetadataReturnsListOfStringKeyedRows(): void
     {
-        $processedReport = $this->createMock(ProcessedReport::class);
-        $processedReport->expects(self::once())
-            ->method('getReportMetadata')
-            ->with(1, 'day', false, false, false)
-            ->willReturn([
-                ['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions'],
-                ['uniqueId' => 'VisitsSummary_get', 'module' => 'VisitsSummary'],
-            ]);
-
-        $gateway = new CoreProcessedReportGateway($processedReport);
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions'],
+                    ['uniqueId' => 'VisitsSummary_get', 'module' => 'VisitsSummary'],
+                ];
+            }
+        );
         $actual = $gateway->getReportMetadata(1, 'day', false, false, false);
 
         self::assertCount(2, $actual);
@@ -72,12 +68,11 @@ class CoreProcessedReportGatewayTest extends TestCase
 
     public function testGetReportMetadataRejectsInvalidTopLevelShape(): void
     {
-        $processedReport = $this->createMock(ProcessedReport::class);
-        $processedReport->expects(self::once())
-            ->method('getReportMetadata')
-            ->willReturn('invalid');
-
-        $gateway = new CoreProcessedReportGateway($processedReport);
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): string {
+                return 'invalid';
+            }
+        );
 
         $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report metadata data is invalid.');
@@ -86,15 +81,14 @@ class CoreProcessedReportGatewayTest extends TestCase
 
     public function testGetReportMetadataRejectsInvalidRowShape(): void
     {
-        $processedReport = $this->createMock(ProcessedReport::class);
-        $processedReport->expects(self::once())
-            ->method('getReportMetadata')
-            ->willReturn([
-                ['uniqueId' => 'Actions_getPageUrls'],
-                ['invalid-indexed-row'],
-            ]);
-
-        $gateway = new CoreProcessedReportGateway($processedReport);
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'Actions_getPageUrls'],
+                    ['invalid-indexed-row'],
+                ];
+            }
+        );
 
         $this->expectException(InfrastructureDataException::class);
         $this->expectExceptionMessage('Report metadata data is invalid.');

@@ -22,8 +22,6 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Services\Reports\ReportProcessedQueryService;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
  * @group McpServer
@@ -141,6 +139,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -236,6 +235,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -281,11 +281,8 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $observedFilterLimit = null;
         $observedFilterOffset = null;
-        $observedScopedIdSite = null;
-        $observedScopedPeriod = null;
-        $observedScopedDate = null;
+        $observedRequestParameters = null;
         $observedApiParameters = null;
-        $observedFlat = null;
 
         $service = $this->makeService(
             $this->makeMetadataWrapper(),
@@ -297,25 +294,20 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
             ) use (
                 &$observedFilterLimit,
                 &$observedFilterOffset,
-                &$observedScopedIdSite,
-                &$observedScopedPeriod,
-                &$observedScopedDate,
-                &$observedApiParameters,
-                &$observedFlat
+                &$observedRequestParameters,
+                &$observedApiParameters
             ): array {
-                $observedFilterLimit = $_GET['filter_limit'] ?? null;
-                $observedFilterOffset = $_GET['filter_offset'] ?? null;
-                $observedScopedIdSite = $_GET['idSite'] ?? null;
-                $observedScopedPeriod = $_GET['period'] ?? null;
-                $observedScopedDate = $_GET['date'] ?? null;
+                $observedFilterLimit = $requestParameters['filter_limit'] ?? null;
+                $observedFilterOffset = $requestParameters['filter_offset'] ?? null;
+                $observedRequestParameters = $requestParameters;
                 $observedApiParameters = $apiParameters;
-                $observedFlat = $_GET['flat'] ?? null;
 
                 return [
                     'reportData' => [
@@ -330,8 +322,6 @@ class ReportProcessedQueryServiceTest extends TestCase
                 ];
             }
         );
-
-        $_GET['existing'] = 'keep';
 
         $record = $service->getProcessedReport(
             idSite: 1,
@@ -353,18 +343,11 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         self::assertSame('2', $observedFilterLimit);
         self::assertSame('5', $observedFilterOffset);
-        self::assertSame('1', $observedScopedIdSite);
-        self::assertSame('day', $observedScopedPeriod);
-        self::assertSame('today', $observedScopedDate);
+        self::assertSame('1', $observedRequestParameters['idSite'] ?? null);
+        self::assertSame('day', $observedRequestParameters['period'] ?? null);
+        self::assertSame('today', $observedRequestParameters['date'] ?? null);
         self::assertSame([], $observedApiParameters);
-        self::assertSame('1', $observedFlat);
-        self::assertSame('keep', $_GET['existing'] ?? null);
-        self::assertArrayNotHasKey('filter_limit', $_GET);
-        self::assertArrayNotHasKey('filter_offset', $_GET);
-        self::assertArrayNotHasKey('idSite', $_GET);
-        self::assertArrayNotHasKey('period', $_GET);
-        self::assertArrayNotHasKey('date', $_GET);
-        self::assertArrayNotHasKey('flat', $_GET);
+        self::assertSame('1', $observedRequestParameters['flat'] ?? null);
 
         $actual = $record->toArray();
         self::assertSame(1, $actual['pagination']['filter_limit']);
@@ -383,6 +366,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     public function testTopLevelGoalParametersAreMappedAndOverride(): void
     {
         $observedApiParameters = null;
+        $observedRequestParameters = null;
         $observedGoalColumnsMode = null;
         $observedGoalColumnsProcessGoals = null;
 
@@ -396,17 +380,22 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
             ) use (
                 &$observedApiParameters,
+                &$observedRequestParameters,
                 &$observedGoalColumnsMode,
                 &$observedGoalColumnsProcessGoals
             ): array {
                 $observedApiParameters = $apiParameters;
-                $observedGoalColumnsMode = $_GET['filter_update_columns_when_show_all_goals'] ?? null;
-                $observedGoalColumnsProcessGoals = $_GET['filter_show_goal_columns_process_goals'] ?? null;
+                $observedRequestParameters = $requestParameters;
+                $observedGoalColumnsMode =
+                    $requestParameters['filter_update_columns_when_show_all_goals'] ?? null;
+                $observedGoalColumnsProcessGoals =
+                    $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return [
                     'reportData' => [['label' => 'A']],
@@ -435,38 +424,38 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         self::assertSame([], $observedApiParameters);
+        self::assertSame('1', $observedRequestParameters['idSite'] ?? null);
         self::assertSame('-1', $observedGoalColumnsMode);
         self::assertSame('1,2', $observedGoalColumnsProcessGoals);
     }
 
-    public function testInjectsScopedRequestParametersThroughMutator(): void
+    public function testPassesResolvedRequestParametersToProcessedReportCall(): void
     {
-        $mutator = new class () implements GetRequestScopeMutatorInterface {
-            /**
-             * @var array<string, mixed>|null
-             */
-            public ?array $capturedScopedParameters = null;
-
-            /**
-             * @param array<string, mixed> $parameters
-             */
-            public function runWithParameters(array $parameters, callable $callback): mixed
-            {
-                $this->capturedScopedParameters = $parameters;
-                return $callback();
-            }
-        };
+        $capturedRequestParameters = null;
 
         $service = $this->makeService(
             $this->makeMetadataWrapper(),
-            function (): array {
+            function (
+                int $idSite,
+                string $period,
+                string $date,
+                string $apiModule,
+                string $apiAction,
+                ?string $segment,
+                array $apiParameters,
+                array $requestParameters,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable
+            ) use (&$capturedRequestParameters): array {
+                $capturedRequestParameters = $requestParameters;
+
                 return [
                     'reportData' => [['label' => 'A']],
                     'reportMetadata' => [['idsubdatatable' => 1]],
                     'columns' => ['label' => 'Label'],
                 ];
-            },
-            $mutator
+            }
         );
 
         $service->getProcessedReport(
@@ -496,7 +485,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             'flat' => '1',
             'filter_update_columns_when_show_all_goals' => '-1',
             'filter_show_goal_columns_process_goals' => '1,2',
-        ], $mutator->capturedScopedParameters);
+        ], $capturedRequestParameters);
     }
 
     public function testRejectsGoalModeCoreFilterInApiParameters(): void
@@ -622,6 +611,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -629,8 +619,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 &$observedGoalColumnsMode,
                 &$observedGoalColumnsProcessGoals
             ): array {
-                $observedGoalColumnsMode = $_GET['filter_update_columns_when_show_all_goals'] ?? null;
-                $observedGoalColumnsProcessGoals = $_GET['filter_show_goal_columns_process_goals'] ?? null;
+                $observedGoalColumnsMode =
+                    $requestParameters['filter_update_columns_when_show_all_goals'] ?? null;
+                $observedGoalColumnsProcessGoals =
+                    $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return [
                     'reportData' => [['label' => 'A']],
@@ -678,6 +670,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -687,8 +680,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 &$observedGoalColumnsProcessGoals
             ): array {
                 $observedIdGoal = $idGoal;
-                $observedGoalColumnsMode = $_GET['filter_update_columns_when_show_all_goals'] ?? null;
-                $observedGoalColumnsProcessGoals = $_GET['filter_show_goal_columns_process_goals'] ?? null;
+                $observedGoalColumnsMode =
+                    $requestParameters['filter_update_columns_when_show_all_goals'] ?? null;
+                $observedGoalColumnsProcessGoals =
+                    $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return [
                     'reportData' => [['label' => 'A']],
@@ -737,6 +732,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -746,8 +742,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 &$observedGoalColumnsProcessGoals
             ): array {
                 $observedIdGoal = $idGoal;
-                $observedGoalColumnsMode = $_GET['filter_update_columns_when_show_all_goals'] ?? null;
-                $observedGoalColumnsProcessGoals = $_GET['filter_show_goal_columns_process_goals'] ?? null;
+                $observedGoalColumnsMode =
+                    $requestParameters['filter_update_columns_when_show_all_goals'] ?? null;
+                $observedGoalColumnsProcessGoals =
+                    $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return [
                     'reportData' => [['label' => 'A']],
@@ -796,6 +794,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -803,8 +802,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 &$observedGoalColumnsMode,
                 &$observedGoalColumnsProcessGoals
             ): array {
-                $observedGoalColumnsMode = $_GET['filter_update_columns_when_show_all_goals'] ?? null;
-                $observedGoalColumnsProcessGoals = $_GET['filter_show_goal_columns_process_goals'] ?? null;
+                $observedGoalColumnsMode =
+                    $requestParameters['filter_update_columns_when_show_all_goals'] ?? null;
+                $observedGoalColumnsProcessGoals =
+                    $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return [
                     'reportData' => [['label' => 'A']],
@@ -1461,12 +1462,10 @@ class ReportProcessedQueryServiceTest extends TestCase
     private function makeService(
         ?ReportMetadataQueryServiceInterface $metadataWrapper = null,
         ?callable $processedReportCaller = null,
-        ?GetRequestScopeMutatorInterface $mutator = null,
         ?CoreApiModuleGatewayInterface $apiGateway = null,
         ?StrictSegmentPolicyServiceInterface $strictSegmentPolicy = null
     ): ReportProcessedQueryService {
         $metadataWrapper = $metadataWrapper ?? $this->makeMetadataWrapper();
-        $mutator = $mutator ?? new GetRequestScopeMutator();
         $apiGateway = $apiGateway ?? new class () implements CoreApiModuleGatewayInterface {
             public function getProcessedReport(
                 int $idSite,
@@ -1476,6 +1475,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 ?string $segment,
                 array $apiParameters,
+                array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
                 ?int $idSubtable
@@ -1497,7 +1497,6 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         return new ReportProcessedQueryService(
             $metadataWrapper,
-            $mutator,
             $apiGateway,
             $translatorRunner,
             $strictSegmentPolicy,

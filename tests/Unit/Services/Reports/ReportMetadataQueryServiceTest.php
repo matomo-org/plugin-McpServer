@@ -18,8 +18,6 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
  * @group McpServer
@@ -313,152 +311,8 @@ class ReportMetadataQueryServiceTest extends TestCase
         );
     }
 
-    public function testGetReportMetadataByUniqueIdScopesIdSiteOnly(): void
-    {
-        $mutator = new class () implements GetRequestScopeMutatorInterface {
-            /** @var list<array<string, mixed>> */
-            public array $calls = [];
-
-            public function runWithParameters(array $parameters, callable $callback): mixed
-            {
-                $this->calls[] = $parameters;
-                return $callback();
-            }
-        };
-
-        $metadata = $this->makeValidReportMetadataData();
-        $service = $this->makeService(
-            new class ($metadata) implements CoreProcessedReportGatewayInterface {
-                /** @param array<string, mixed> $metadata */
-                public function __construct(private array $metadata)
-                {
-                }
-
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
-                {
-                    return $this->metadata;
-                }
-
-                public function getReportMetadata(
-                    int $idSite,
-                    string $period,
-                    \Piwik\Date|string|bool $date,
-                    bool $hideMetricsDoc,
-                    bool $showSubtableReports
-                ): array {
-                    return [];
-                }
-            },
-            $mutator
-        );
-
-        $service->getReportMetadataByUniqueId(7, 'Actions_getPageUrls');
-
-        self::assertSame([['idSite' => '7']], $mutator->calls);
-    }
-
-    public function testGetReportMetadataByModuleActionScopesIdSitePeriodAndDate(): void
-    {
-        $mutator = new class () implements GetRequestScopeMutatorInterface {
-            /** @var list<array<string, mixed>> */
-            public array $calls = [];
-
-            public function runWithParameters(array $parameters, callable $callback): mixed
-            {
-                $this->calls[] = $parameters;
-                return $callback();
-            }
-        };
-
-        $metadata = $this->makeValidReportMetadataData();
-        $service = $this->makeService(
-            new class ($metadata) implements CoreProcessedReportGatewayInterface {
-                /** @param array<string, mixed> $metadata */
-                public function __construct(private array $metadata)
-                {
-                }
-
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
-                {
-                    return $this->metadata;
-                }
-
-                public function getReportMetadata(
-                    int $idSite,
-                    string $period,
-                    \Piwik\Date|string|bool $date,
-                    bool $hideMetricsDoc,
-                    bool $showSubtableReports
-                ): array {
-                    return [$this->metadata];
-                }
-            },
-            $mutator
-        );
-
-        $service->getReportMetadataByModuleAction(
-            5,
-            'Actions',
-            'getPageUrls',
-            ['idGoal' => '1'],
-            'day',
-            'today'
-        );
-
-        self::assertCount(1, $mutator->calls);
-        self::assertSame('5', $mutator->calls[0]['idSite'] ?? null);
-        self::assertSame('day', $mutator->calls[0]['period'] ?? null);
-        self::assertNotSame('', $mutator->calls[0]['date'] ?? null);
-    }
-
-    public function testGetReportMetadataByUniqueIdRestoresRequestGlobalsAfterScopedCall(): void
-    {
-        $previousGet = $_GET;
-        $previousRequest = $_REQUEST;
-
-        $_GET['idSite'] = '123';
-        $_REQUEST['idSite'] = '123';
-
-        $metadata = $this->makeValidReportMetadataData();
-        $service = $this->makeService(
-            new class ($metadata) implements CoreProcessedReportGatewayInterface {
-                /** @param array<string, mixed> $metadata */
-                public function __construct(private array $metadata)
-                {
-                }
-
-                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
-                {
-                    return $this->metadata;
-                }
-
-                public function getReportMetadata(
-                    int $idSite,
-                    string $period,
-                    \Piwik\Date|string|bool $date,
-                    bool $hideMetricsDoc,
-                    bool $showSubtableReports
-                ): array {
-                    return [];
-                }
-            },
-            new GetRequestScopeMutator()
-        );
-
-        try {
-            $service->getReportMetadataByUniqueId(7, 'Actions_getPageUrls');
-
-            self::assertSame('123', $_GET['idSite'] ?? null);
-            self::assertSame('123', $_REQUEST['idSite'] ?? null);
-        } finally {
-            $_GET = $previousGet;
-            $_REQUEST = $previousRequest;
-        }
-    }
-
     private function makeService(
-        ?CoreProcessedReportGatewayInterface $gateway = null,
-        ?GetRequestScopeMutatorInterface $mutator = null
+        ?CoreProcessedReportGatewayInterface $gateway = null
     ): ReportMetadataQueryService {
         $gateway = $gateway ?? new class () implements CoreProcessedReportGatewayInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
@@ -486,8 +340,7 @@ class ReportMetadataQueryServiceTest extends TestCase
 
         return new ReportMetadataQueryService(
             $gateway,
-            $translatorRunner,
-            $mutator ?? new GetRequestScopeMutator()
+            $translatorRunner
         );
     }
 

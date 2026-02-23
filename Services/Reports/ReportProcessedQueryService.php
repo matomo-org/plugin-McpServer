@@ -28,7 +28,6 @@ use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 use Piwik\Plugins\SegmentEditor\UnprocessedSegmentException;
 
@@ -65,7 +64,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     public function __construct(
         private ReportMetadataQueryServiceInterface $metadataQueryService,
-        private GetRequestScopeMutatorInterface $getRequestScopeMutator,
         private CoreApiModuleGatewayInterface $coreApiModuleGateway,
         private TranslatorContextRunnerInterface $translatorContextRunner,
         private StrictSegmentPolicyServiceInterface $strictSegmentPolicy,
@@ -124,15 +122,15 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         $reportUsesIdGoalSelector = $this->reportUsesIdGoalSelector($reportMetadata);
         $apiParametersForCall = $reportMetadata->parameters;
-        [$genericRequestParameters, $goalRequestParameters] = $this->extractRequestScopeParameters(
+        [$genericRequestParameters, $goalRequestParameters] = $this->extractRequestParameters(
             $genericSafeParameters,
             $goalMetricsMode,
             $goalMetricsProcessGoals,
             $idGoal,
             $reportUsesIdGoalSelector
         );
-        $requestScopeParameters = array_merge($genericRequestParameters, $goalRequestParameters);
-        $resolvedApiParametersForResponse = array_merge($apiParametersForCall, $requestScopeParameters);
+        $requestParameters = array_merge($genericRequestParameters, $goalRequestParameters);
+        $resolvedApiParametersForResponse = array_merge($apiParametersForCall, $requestParameters);
         $idGoalForCoreCall = $reportUsesIdGoalSelector ? $idGoal : null;
 
         $requestedFilterLimit = $this->normalizeFilterLimit($filterLimit);
@@ -146,7 +144,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             reportMetadata: $reportMetadata,
             segment: $segment,
             apiParameters: $apiParametersForCall,
-            requestScopeParameters: $requestScopeParameters,
+            requestParameters: $requestParameters,
             idGoal: $idGoalForCoreCall,
             idDimension: $idDimension,
             idSubtable: $idSubtable,
@@ -300,20 +298,20 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
      * @param list<mixed>|null $goalMetricsProcessGoals
      * @return array{0: array<string, mixed>, 1: array<string, string>}
      */
-    private function extractRequestScopeParameters(
+    private function extractRequestParameters(
         array $genericSafeParameters,
         ?string $goalMetricsMode,
         ?array $goalMetricsProcessGoals,
         int|string|null $idGoal,
         bool $reportUsesIdGoalSelector
     ): array {
-        $requestScopeParameters = $genericSafeParameters;
+        $requestParameters = $genericSafeParameters;
         /** @var array<string, string> $goalRequestParameters */
         $goalRequestParameters = [];
 
         $isSpecificGoalMode = $goalMetricsMode === GoalMetricsMode::SPECIFIC_GOAL->value;
         if ($isSpecificGoalMode && $reportUsesIdGoalSelector) {
-            return [$requestScopeParameters, $goalRequestParameters];
+            return [$requestParameters, $goalRequestParameters];
         }
 
         $normalizedSpecificGoal = null;
@@ -338,7 +336,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             );
         }
 
-        return [$requestScopeParameters, $goalRequestParameters];
+        return [$requestParameters, $goalRequestParameters];
     }
 
     private function normalizeGoalColumnsMode(string $goalMetricsMode, int|string|null $idGoal): string
@@ -463,7 +461,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     /**
      * @param array<string, mixed> $apiParameters
-     * @param array<string, mixed> $requestScopeParameters
+     * @param array<string, mixed> $requestParameters
      * @return array<string, mixed>
      */
     private function callProcessedReport(
@@ -473,7 +471,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         ReportMetadataRecord $reportMetadata,
         ?string $segment,
         array $apiParameters,
-        array $requestScopeParameters,
+        array $requestParameters,
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable,
@@ -488,63 +486,49 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
         }
 
-        // Keep global request context aligned with tool-level inputs for Matomo hooks that read $_GET/$_REQUEST.
-        // Keep pagination deterministic by forcing filter_limit/filter_offset in request scope.
+        // Keep pagination deterministic by forcing filter_limit/filter_offset in request parameters.
         // TODO: remove this workaround once core exposes stable total-rows metadata for processed reports.
-        $scopedRequestParameters = [
+        $resolvedRequestParameters = [
             'idSite' => (string) $idSite,
             'period' => $period,
             'date' => $date,
             'filter_limit' => (string) $filterLimit,
             'filter_offset' => (string) $filterOffset,
         ];
-        $scopedRequestParameters = array_merge($scopedRequestParameters, $requestScopeParameters);
-        $scopedRequestParameters['idSite'] = (string) $idSite;
-        $scopedRequestParameters['period'] = $period;
-        $scopedRequestParameters['date'] = $date;
-        $scopedRequestParameters['filter_limit'] = (string) $filterLimit;
-        $scopedRequestParameters['filter_offset'] = (string) $filterOffset;
+        $resolvedRequestParameters = array_merge($resolvedRequestParameters, $requestParameters);
+        $resolvedRequestParameters['idSite'] = (string) $idSite;
+        $resolvedRequestParameters['period'] = $period;
+        $resolvedRequestParameters['date'] = $date;
+        $resolvedRequestParameters['filter_limit'] = (string) $filterLimit;
+        $resolvedRequestParameters['filter_offset'] = (string) $filterOffset;
 
         try {
-            $processed = $this->getRequestScopeMutator->runWithParameters(
-                $scopedRequestParameters,
-                function () use (
+            $processed = $this->translatorContextRunner->runInEnglish(function () use (
+                $idSite,
+                $period,
+                $date,
+                $reportMetadata,
+                $segment,
+                $apiParameters,
+                $resolvedRequestParameters,
+                $idGoal,
+                $idDimension,
+                $idSubtable
+            ) {
+                return $this->invokeProcessedReport(
                     $idSite,
                     $period,
                     $date,
-                    $reportMetadata,
+                    $reportMetadata->module,
+                    $reportMetadata->action,
                     $segment,
                     $apiParameters,
+                    $resolvedRequestParameters,
                     $idGoal,
                     $idDimension,
                     $idSubtable
-                ) {
-                    return $this->translatorContextRunner->runInEnglish(function () use (
-                        $idSite,
-                        $period,
-                        $date,
-                        $reportMetadata,
-                        $segment,
-                        $apiParameters,
-                        $idGoal,
-                        $idDimension,
-                        $idSubtable
-                    ) {
-                        return $this->invokeProcessedReport(
-                            $idSite,
-                            $period,
-                            $date,
-                            $reportMetadata->module,
-                            $reportMetadata->action,
-                            $segment,
-                            $apiParameters,
-                            $idGoal,
-                            $idDimension,
-                            $idSubtable
-                        );
-                    });
-                }
-            );
+                );
+            });
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
         } catch (InfrastructureDataException $e) {
@@ -778,6 +762,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     /**
      * @param array<string, mixed> $apiParameters
+     * @param array<string, mixed> $requestParameters
      * @return array<string, mixed>
      */
     private function invokeProcessedReport(
@@ -788,6 +773,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         string $apiAction,
         ?string $segment,
         array $apiParameters,
+        array $requestParameters,
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
@@ -801,6 +787,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $apiAction,
                 $segment,
                 $apiParameters,
+                $requestParameters,
                 $idGoal,
                 $idDimension,
                 $idSubtable
@@ -817,6 +804,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $apiAction,
             $segment,
             $apiParameters,
+            $requestParameters,
             $idGoal,
             $idDimension,
             $idSubtable
