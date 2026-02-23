@@ -13,7 +13,6 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\Services\Goals\CoreGoalsGateway;
 
 /**
@@ -22,25 +21,20 @@ use Piwik\Plugins\McpServer\Services\Goals\CoreGoalsGateway;
  */
 class CoreGoalsGatewayTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        GoalsApi::unsetInstance();
-        parent::tearDown();
-    }
-
     public function testGetGoalsReturnsTypedList(): void
     {
-        $api = $this->createMock(GoalsApi::class);
-        $api->expects(self::once())
-            ->method('getGoals')
-            ->with('5', true)
-            ->willReturn([
-                ['idgoal' => '2', 'name' => 'Goal Alpha'],
-                ['idgoal' => '3', 'name' => 'Goal Beta'],
-            ]);
-        GoalsApi::setSingletonInstance($api);
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                self::assertSame('Goals.getGoals', $method);
+                self::assertSame(['idSite' => '5', 'orderByName' => true], $paramOverride);
+                self::assertSame([], $defaultRequest);
 
-        $gateway = new CoreGoalsGateway();
+                return [
+                    ['idgoal' => '2', 'name' => 'Goal Alpha'],
+                    ['idgoal' => '3', 'name' => 'Goal Beta'],
+                ];
+            }
+        );
         $result = $gateway->getGoals(5);
 
         self::assertCount(2, $result);
@@ -50,13 +44,11 @@ class CoreGoalsGatewayTest extends TestCase
 
     public function testGetGoalsRejectsInvalidTopLevelPayload(): void
     {
-        $api = $this->createMock(GoalsApi::class);
-        $api->expects(self::once())
-            ->method('getGoals')
-            ->willReturn(['unexpected' => 'shape']);
-        GoalsApi::setSingletonInstance($api);
-
-        $gateway = new CoreGoalsGateway();
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return ['unexpected' => 'shape'];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goals data is invalid.');
@@ -65,16 +57,14 @@ class CoreGoalsGatewayTest extends TestCase
 
     public function testGetGoalsRejectsInvalidRowPayload(): void
     {
-        $api = $this->createMock(GoalsApi::class);
-        $api->expects(self::once())
-            ->method('getGoals')
-            ->willReturn([
-                ['idgoal' => '2', 'name' => 'Goal Alpha'],
-                ['invalid-row'],
-            ]);
-        GoalsApi::setSingletonInstance($api);
-
-        $gateway = new CoreGoalsGateway();
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['idgoal' => '2', 'name' => 'Goal Alpha'],
+                    ['invalid-row'],
+                ];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goals data is invalid.');
@@ -83,14 +73,15 @@ class CoreGoalsGatewayTest extends TestCase
 
     public function testGetGoalReturnsTypedRow(): void
     {
-        $api = $this->createMock(GoalsApi::class);
-        $api->expects(self::once())
-            ->method('getGoal')
-            ->with(5, 3)
-            ->willReturn(['idgoal' => '3', 'name' => 'Goal Detail']);
-        GoalsApi::setSingletonInstance($api);
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                self::assertSame('Goals.getGoal', $method);
+                self::assertSame(['idSite' => 5, 'idGoal' => 3], $paramOverride);
+                self::assertSame([], $defaultRequest);
 
-        $gateway = new CoreGoalsGateway();
+                return ['idgoal' => '3', 'name' => 'Goal Detail'];
+            }
+        );
         $result = $gateway->getGoal(5, 3);
 
         self::assertSame('Goal Detail', $result['name'] ?? null);
@@ -98,13 +89,11 @@ class CoreGoalsGatewayTest extends TestCase
 
     public function testGetGoalRejectsInvalidRowPayload(): void
     {
-        $api = $this->createMock(GoalsApi::class);
-        $api->expects(self::once())
-            ->method('getGoal')
-            ->willReturn(['invalid-row']);
-        GoalsApi::setSingletonInstance($api);
-
-        $gateway = new CoreGoalsGateway();
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return ['invalid-row'];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goal data is invalid.');
