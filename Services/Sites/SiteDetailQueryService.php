@@ -34,6 +34,10 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
             // Intentional: collapse not-found and no-access to avoid information disclosure.
             throw new ToolCallException('Site not found or access denied.');
         } catch (\Throwable $e) {
+            if ($this->isNotFoundOrNoAccessLikeFailure($e)) {
+                throw new ToolCallException('Site not found or access denied.');
+            }
+
             throw new ToolCallException('Site retrieval failed.');
         }
 
@@ -63,5 +67,24 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
             siteSearch: ToolDataNormalizer::requireBoolLikeField($site, 'sitesearch', $context),
             type: ToolDataNormalizer::requireStringField($site, 'type', $context),
         );
+    }
+
+    private function isNotFoundOrNoAccessLikeFailure(\Throwable $e): bool
+    {
+        if ($e instanceof NoAccessException || $e instanceof UnexpectedWebsiteFoundException) {
+            return true;
+        }
+
+        $message = strtolower(trim((string) $e->getMessage()));
+        if ($message === '') {
+            return false;
+        }
+
+        return str_contains($message, 'no access')
+            || str_contains($message, 'checkuserhasviewaccess')
+            || str_contains($message, 'view access')
+            || str_contains($message, 'does not exist')
+            || str_contains($message, 'website')
+            || str_contains($message, 'not found');
     }
 }

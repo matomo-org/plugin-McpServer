@@ -17,6 +17,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInt
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
+use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterface
@@ -41,6 +42,13 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         } catch (NoAccessException $e) {
             throw new ToolCallException('Segment not found.');
         } catch (\Throwable $e) {
+            if (
+                $this->isNoAccessLikeFailure($e)
+                || ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            ) {
+                throw new ToolCallException('Segment not found.');
+            }
+
             throw new ToolCallException('Segment retrieval failed.');
         }
 
@@ -126,5 +134,21 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         }
 
         return $result;
+    }
+
+    private function isNoAccessLikeFailure(\Throwable $e): bool
+    {
+        if ($e instanceof NoAccessException) {
+            return true;
+        }
+
+        $message = strtolower(trim((string) $e->getMessage()));
+        if ($message === '') {
+            return false;
+        }
+
+        return str_contains($message, 'no access')
+            || str_contains($message, 'checkuserhasviewaccess')
+            || str_contains($message, 'view access');
     }
 }

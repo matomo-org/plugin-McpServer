@@ -14,8 +14,6 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 /**
  * @group McpServer
@@ -165,38 +163,9 @@ class ReportSummaryQueryServiceTest extends TestCase
         self::assertSame('Actions_getPageUrls', $actual[0]->uniqueId);
     }
 
-    public function testGetReportSummariesForSiteScopesIdSiteFromToolInput(): void
+    private function makeService(): ReportSummaryQueryService
     {
-        $mutator = new class () implements GetRequestScopeMutatorInterface {
-            /** @var array<string, mixed>|null */
-            public ?array $capturedParameters = null;
-
-            public function runWithParameters(array $parameters, callable $callback): mixed
-            {
-                $this->capturedParameters = $parameters;
-
-                return [[
-                    'uniqueId' => 'Actions_getPageUrls',
-                    'module' => 'Actions',
-                    'action' => 'getPageUrls',
-                    'name' => 'Page URLs',
-                    'category' => 'Actions',
-                    'parameters' => [],
-                ]];
-            }
-        };
-        $service = $this->makeService($mutator);
-
-        $result = $service->getReportSummariesForSite(42);
-
-        self::assertSame(['idSite' => '42'], $mutator->capturedParameters);
-        self::assertCount(1, $result);
-        self::assertSame('Actions_getPageUrls', $result[0]->uniqueId);
-    }
-
-    private function makeService(?GetRequestScopeMutatorInterface $mutator = null): ReportSummaryQueryService
-    {
-        return new ReportSummaryQueryService($mutator ?? new GetRequestScopeMutator());
+        return new ReportSummaryQueryService();
     }
 
     /**

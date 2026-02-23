@@ -14,7 +14,6 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
-use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 
 /**
  * @group McpServer
@@ -22,25 +21,20 @@ use Piwik\Plugins\SitesManager\API as SitesManagerApi;
  */
 class CoreSitesManagerGatewayTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        SitesManagerApi::unsetInstance();
-        parent::tearDown();
-    }
-
     public function testGetSitesWithMinimumAccessReturnsTypedList(): void
     {
-        $api = $this->createMock(SitesManagerApi::class);
-        $api->expects(self::once())
-            ->method('getSitesWithMinimumAccess')
-            ->with('view', 'site', 2)
-            ->willReturn([
-                ['idsite' => '1', 'name' => 'Site Alpha'],
-                ['idsite' => '2', 'name' => 'Site Beta'],
-            ]);
-        SitesManagerApi::setSingletonInstance($api);
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                self::assertSame('SitesManager.getSitesWithMinimumAccess', $method);
+                self::assertSame(['permission' => 'view', 'pattern' => 'site', 'limit' => 2], $paramOverride);
+                self::assertSame([], $defaultRequest);
 
-        $gateway = new CoreSitesManagerGateway();
+                return [
+                    ['idsite' => '1', 'name' => 'Site Alpha'],
+                    ['idsite' => '2', 'name' => 'Site Beta'],
+                ];
+            }
+        );
         $result = $gateway->getSitesWithMinimumAccess('view', 'site', 2);
 
         self::assertCount(2, $result);
@@ -50,13 +44,11 @@ class CoreSitesManagerGatewayTest extends TestCase
 
     public function testGetSitesWithMinimumAccessRejectsInvalidTopLevelPayload(): void
     {
-        $api = $this->createMock(SitesManagerApi::class);
-        $api->expects(self::once())
-            ->method('getSitesWithMinimumAccess')
-            ->willReturn(['unexpected' => 'shape']);
-        SitesManagerApi::setSingletonInstance($api);
-
-        $gateway = new CoreSitesManagerGateway();
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return ['unexpected' => 'shape'];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
@@ -65,16 +57,14 @@ class CoreSitesManagerGatewayTest extends TestCase
 
     public function testGetSitesWithMinimumAccessRejectsInvalidRowPayload(): void
     {
-        $api = $this->createMock(SitesManagerApi::class);
-        $api->expects(self::once())
-            ->method('getSitesWithMinimumAccess')
-            ->willReturn([
-                ['idsite' => '1', 'name' => 'Site Alpha'],
-                ['invalid-row'],
-            ]);
-        SitesManagerApi::setSingletonInstance($api);
-
-        $gateway = new CoreSitesManagerGateway();
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['idsite' => '1', 'name' => 'Site Alpha'],
+                    ['invalid-row'],
+                ];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
@@ -83,14 +73,15 @@ class CoreSitesManagerGatewayTest extends TestCase
 
     public function testGetSiteFromIdReturnsTypedRow(): void
     {
-        $api = $this->createMock(SitesManagerApi::class);
-        $api->expects(self::once())
-            ->method('getSiteFromId')
-            ->with(4)
-            ->willReturn(['idsite' => '4', 'name' => 'Site Detail']);
-        SitesManagerApi::setSingletonInstance($api);
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                self::assertSame('SitesManager.getSiteFromId', $method);
+                self::assertSame(['idSite' => 4], $paramOverride);
+                self::assertSame([], $defaultRequest);
 
-        $gateway = new CoreSitesManagerGateway();
+                return ['idsite' => '4', 'name' => 'Site Detail'];
+            }
+        );
         $result = $gateway->getSiteFromId(4);
 
         self::assertSame('Site Detail', $result['name'] ?? null);
@@ -98,13 +89,11 @@ class CoreSitesManagerGatewayTest extends TestCase
 
     public function testGetSiteFromIdRejectsInvalidRowPayload(): void
     {
-        $api = $this->createMock(SitesManagerApi::class);
-        $api->expects(self::once())
-            ->method('getSiteFromId')
-            ->willReturn(['invalid-row']);
-        SitesManagerApi::setSingletonInstance($api);
-
-        $gateway = new CoreSitesManagerGateway();
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return ['invalid-row'];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site data is invalid.');

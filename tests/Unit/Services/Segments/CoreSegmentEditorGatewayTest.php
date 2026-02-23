@@ -14,7 +14,6 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
-use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 /**
  * @group McpServer
@@ -22,25 +21,20 @@ use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
  */
 class CoreSegmentEditorGatewayTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        SegmentEditorApi::unsetInstance();
-        parent::tearDown();
-    }
-
     public function testGetAllReturnsTypedList(): void
     {
-        $api = $this->createMock(SegmentEditorApi::class);
-        $api->expects(self::once())
-            ->method('getAll')
-            ->with(9)
-            ->willReturn([
-                ['idsegment' => '1', 'name' => 'Segment Alpha'],
-                ['idsegment' => '2', 'name' => 'Segment Beta'],
-            ]);
-        SegmentEditorApi::setSingletonInstance($api);
+        $gateway = new CoreSegmentEditorGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                self::assertSame('SegmentEditor.getAll', $method);
+                self::assertSame(['idSite' => 9], $paramOverride);
+                self::assertSame([], $defaultRequest);
 
-        $gateway = new CoreSegmentEditorGateway();
+                return [
+                    ['idsegment' => '1', 'name' => 'Segment Alpha'],
+                    ['idsegment' => '2', 'name' => 'Segment Beta'],
+                ];
+            }
+        );
         $result = $gateway->getAll(9);
 
         self::assertCount(2, $result);
@@ -50,13 +44,11 @@ class CoreSegmentEditorGatewayTest extends TestCase
 
     public function testGetAllRejectsInvalidTopLevelPayload(): void
     {
-        $api = $this->createMock(SegmentEditorApi::class);
-        $api->expects(self::once())
-            ->method('getAll')
-            ->willReturn(['unexpected' => 'shape']);
-        SegmentEditorApi::setSingletonInstance($api);
-
-        $gateway = new CoreSegmentEditorGateway();
+        $gateway = new CoreSegmentEditorGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return ['unexpected' => 'shape'];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment data is invalid.');
@@ -65,16 +57,14 @@ class CoreSegmentEditorGatewayTest extends TestCase
 
     public function testGetAllRejectsInvalidRowPayload(): void
     {
-        $api = $this->createMock(SegmentEditorApi::class);
-        $api->expects(self::once())
-            ->method('getAll')
-            ->willReturn([
-                ['idsegment' => '1', 'name' => 'Segment Alpha'],
-                ['invalid-row'],
-            ]);
-        SegmentEditorApi::setSingletonInstance($api);
-
-        $gateway = new CoreSegmentEditorGateway();
+        $gateway = new CoreSegmentEditorGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['idsegment' => '1', 'name' => 'Segment Alpha'],
+                    ['invalid-row'],
+                ];
+            }
+        );
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment data is invalid.');

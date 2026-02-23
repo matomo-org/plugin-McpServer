@@ -12,17 +12,64 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\API\Request;
+use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 
 final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterface
 {
+    /** @var callable|null */
+    private $requestProcessor;
+
+    public function __construct(?callable $requestProcessor = null)
+    {
+        $this->requestProcessor = $requestProcessor;
+    }
+
     public function getAll(int $idSite): array
     {
-        $segments = SegmentEditorApi::getInstance()->getAll($idSite);
+        $segments = $this->processRequest('SegmentEditor.getAll', [
+            'idSite' => $idSite,
+        ]);
 
         return $this->normalizeRows($segments, 'Segment data is invalid.');
+    }
+
+    /**
+     * @param array<string, mixed> $paramOverride
+     */
+    private function processRequest(string $method, array $paramOverride): mixed
+    {
+        try {
+            if ($this->requestProcessor !== null) {
+                return ($this->requestProcessor)($method, $paramOverride, []);
+            }
+
+            return Request::processRequest($method, $paramOverride, []);
+        } catch (\Throwable $e) {
+            if ($this->isNoAccessLikeFailure($e)) {
+                throw new NoAccessException('No access to this resource.', 0);
+            }
+
+            throw $e;
+        }
+    }
+
+    private function isNoAccessLikeFailure(\Throwable $e): bool
+    {
+        if ($e instanceof NoAccessException) {
+            return true;
+        }
+
+        $message = strtolower(trim((string) $e->getMessage()));
+        if ($message === '') {
+            return false;
+        }
+
+        return str_contains($message, 'no access')
+            || str_contains($message, 'checkuserhasviewaccess')
+            || str_contains($message, 'view access');
     }
 
     /**

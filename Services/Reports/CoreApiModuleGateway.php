@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
+use Piwik\API\Request;
 use Piwik\NoAccessException;
-use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
@@ -21,6 +21,7 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
 {
     /**
      * @param array<string, mixed> $apiParameters
+     * @param array<string, mixed> $requestParameters
      */
     public function getProcessedReport(
         int $idSite,
@@ -30,28 +31,32 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
         string $apiAction,
         ?string $segment,
         array $apiParameters,
+        array $requestParameters,
         int|string|null $idGoal,
         ?int $idDimension,
         ?int $idSubtable
     ): array {
         try {
-            $report = ApiModuleApi::getInstance()->getProcessedReport(
-                $idSite,
-                $period,
-                $date,
-                $apiModule,
-                $apiAction,
-                $segment ?? false,
-                $apiParameters,
-                $idGoal ?? false,
-                false,
-                false,
-                true,
-                $idSubtable ?? false,
-                false,
-                null,
-                $idDimension ?? false
-            );
+            $paramOverride = [
+                'idSite' => $idSite,
+                'period' => $period,
+                'date' => $date,
+                'apiModule' => $apiModule,
+                'apiAction' => $apiAction,
+                'segment' => $segment ?? false,
+                'apiParameters' => $apiParameters,
+                'idGoal' => $idGoal ?? false,
+                'language' => false,
+                'showTimer' => false,
+                'hideMetricsDoc' => true,
+                'idSubtable' => $idSubtable ?? false,
+                'showRawMetrics' => false,
+                'format_metrics' => null,
+                'idDimension' => $idDimension ?? false,
+            ];
+            $paramOverride = array_merge($paramOverride, $requestParameters);
+
+            $report = Request::processRequest('API.getProcessedReport', $paramOverride, []);
         } catch (NoAccessException $e) {
             throw $e;
         } catch (\Throwable $e) {

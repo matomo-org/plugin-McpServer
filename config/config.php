@@ -48,8 +48,6 @@ use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutator;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 use Piwik\Plugins\McpServer\Tasks;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
@@ -63,7 +61,6 @@ return [
     CoreSitesManagerGatewayInterface::class => DI::autowire(CoreSitesManagerGateway::class),
     DimensionDetailQueryServiceInterface::class => DI::autowire(DimensionDetailQueryService::class),
     DimensionSummaryQueryServiceInterface::class => DI::autowire(DimensionSummaryQueryService::class),
-    GetRequestScopeMutatorInterface::class => DI::autowire(GetRequestScopeMutator::class),
     GoalDetailQueryServiceInterface::class => DI::autowire(GoalDetailQueryService::class),
     GoalSummaryQueryServiceInterface::class => DI::autowire(GoalSummaryQueryService::class),
     PluginCapabilityGatewayInterface::class => DI::autowire(PluginCapabilityGateway::class),

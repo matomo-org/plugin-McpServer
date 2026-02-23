@@ -12,37 +12,31 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\API\Request;
 use Piwik\NoAccessException;
-use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\McpServer\Support\RequestScope\GetRequestScopeMutatorInterface;
 
 final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterface
 {
-    public function __construct(private GetRequestScopeMutatorInterface $getRequestScopeMutator)
-    {
-    }
-
     /**
      * @return array<int, ReportSummaryRecord>
      */
     public function getReportSummariesForSite(int $idSite): array
     {
         try {
-            $reports = $this->getRequestScopeMutator->runWithParameters(
-                ['idSite' => (string) $idSite],
-                static function () use ($idSite): array {
-                    return ApiModuleApi::getInstance()->getReportMetadata(
-                        (string) $idSite,
-                        false,
-                        false,
-                        true,
-                        true
-                    );
-                }
+            $reports = Request::processRequest(
+                'API.getReportMetadata',
+                [
+                    'idSite' => (string) $idSite,
+                    'period' => false,
+                    'date' => false,
+                    'hideMetricsDoc' => true,
+                    'showSubtableReports' => true,
+                ],
+                []
             );
         } catch (NoAccessException $e) {
             // Keep list behavior aligned with other list tools: no view access yields no rows.

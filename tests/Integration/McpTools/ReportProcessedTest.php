@@ -568,6 +568,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     string $apiAction,
                     ?string $segment,
                     array $apiParameters,
+                    array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
                     ?int $idSubtable
@@ -640,6 +641,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     string $apiAction,
                     ?string $segment,
                     array $apiParameters,
+                    array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
                     ?int $idSubtable
