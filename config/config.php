@@ -53,6 +53,8 @@ use Piwik\Plugins\McpServer\Tasks;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
+    'token_auth.write_admin_allowed_module_actions' => DI::add(['McpServer.mcp']),
+
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
     CoreCustomDimensionsGatewayInterface::class => DI::autowire(CoreCustomDimensionsGateway::class),
     CoreGoalsGatewayInterface::class => DI::autowire(CoreGoalsGateway::class),
