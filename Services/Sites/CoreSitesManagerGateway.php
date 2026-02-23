@@ -12,24 +12,50 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\API\Request;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
-use Piwik\Plugins\SitesManager\API as SitesManagerApi;
 
 final class CoreSitesManagerGateway implements CoreSitesManagerGatewayInterface
 {
+    /** @var callable|null */
+    private $requestProcessor;
+
+    public function __construct(?callable $requestProcessor = null)
+    {
+        $this->requestProcessor = $requestProcessor;
+    }
+
     public function getSitesWithMinimumAccess(string $minimumAccess, string $search, ?int $limit): array
     {
-        $sites = SitesManagerApi::getInstance()->getSitesWithMinimumAccess($minimumAccess, $search, $limit);
+        $sites = $this->processRequest('SitesManager.getSitesWithMinimumAccess', [
+            'permission' => $minimumAccess,
+            'pattern' => $search,
+            'limit' => $limit,
+        ]);
 
         return $this->normalizeRows($sites, 'Site list data is invalid.');
     }
 
     public function getSiteFromId(int $idSite): array
     {
-        $site = SitesManagerApi::getInstance()->getSiteFromId($idSite);
+        $site = $this->processRequest('SitesManager.getSiteFromId', [
+            'idSite' => $idSite,
+        ]);
 
         return ToolDataNormalizer::requireStringKeyedArray($site, 'Site data is invalid.');
+    }
+
+    /**
+     * @param array<string, mixed> $paramOverride
+     */
+    private function processRequest(string $method, array $paramOverride): mixed
+    {
+        if ($this->requestProcessor !== null) {
+            return ($this->requestProcessor)($method, $paramOverride, []);
+        }
+
+        return Request::processRequest($method, $paramOverride, []);
     }
 
     /**
