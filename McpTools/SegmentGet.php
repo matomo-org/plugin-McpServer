@@ -65,6 +65,8 @@ class SegmentGet
             ],
         ],
         'required' => ['idSite'],
+        // Enforce exactly one selector today (idSegment|name|definition).
+        // If future optional top-level inputs are added, these bounds must be revisited.
         'minProperties' => 2,
         'maxProperties' => 2,
         'additionalProperties' => false,

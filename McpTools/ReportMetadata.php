@@ -82,6 +82,11 @@ class ReportMetadata
             ],
         ],
         'required' => ['idSite'],
+        // Selector truth table:
+        // valid:   reportUniqueId
+        // valid:   apiModule + apiAction
+        // invalid: no selector, partial module/action selector, or reportUniqueId combined
+        //          with apiModule/apiAction/apiParameters
         'not' => [
             'anyOf' => [
                 [

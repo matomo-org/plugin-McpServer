@@ -148,6 +148,11 @@ class ReportProcessed
             ],
         ],
         'required' => ['idSite', 'period', 'date'],
+        // Selector truth table:
+        // valid:   reportUniqueId
+        // valid:   apiModule + apiAction
+        // invalid: no selector, partial module/action selector, or reportUniqueId combined
+        //          with apiModule/apiAction
         'not' => [
             'anyOf' => [
                 [
