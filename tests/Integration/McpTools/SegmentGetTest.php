@@ -231,7 +231,7 @@ class SegmentGetTest extends IntegrationTestCase
         );
     }
 
-    public function testSchemaDeclaresExactlyOneSelector(): void
+    public function testSchemaDeclaresExactlyOneSelectorWithoutTopLevelCombinators(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -252,14 +252,17 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertNotNull($segmentGetTool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $segmentGetTool->inputSchema;
-        self::assertArrayHasKey('oneOf', $inputSchema);
-        self::assertIsArray($inputSchema['oneOf']);
-        /** @var array<int, array<string, mixed>> $selectorSchemaAlternatives */
-        $selectorSchemaAlternatives = $inputSchema['oneOf'];
-        self::assertCount(3, $selectorSchemaAlternatives);
-        self::assertSame(['idSegment'], $selectorSchemaAlternatives[0]['required'] ?? null);
-        self::assertSame(['name'], $selectorSchemaAlternatives[1]['required'] ?? null);
-        self::assertSame(['definition'], $selectorSchemaAlternatives[2]['required'] ?? null);
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertSame(2, $inputSchema['minProperties'] ?? null);
+        self::assertSame(2, $inputSchema['maxProperties'] ?? null);
+
+        $properties = $inputSchema['properties'] ?? null;
+        self::assertIsArray($properties);
+        self::assertArrayHasKey('idSegment', $properties);
+        self::assertArrayHasKey('name', $properties);
+        self::assertArrayHasKey('definition', $properties);
     }
 
     /**

@@ -65,11 +65,8 @@ class SegmentGet
             ],
         ],
         'required' => ['idSite'],
-        'oneOf' => [
-            ['required' => ['idSegment']],
-            ['required' => ['name']],
-            ['required' => ['definition']],
-        ],
+        'minProperties' => 2,
+        'maxProperties' => 2,
         'additionalProperties' => false,
     ])]
     public function get(

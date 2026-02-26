@@ -413,6 +413,12 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertNotNull($tool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $tool->inputSchema;
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertArrayHasKey('not', $inputSchema);
+        self::assertIsArray($inputSchema['not']);
+
         $properties = $inputSchema['properties'] ?? null;
         self::assertIsArray($properties);
         self::assertArrayHasKey('goalMetricsMode', $properties);

@@ -266,7 +266,7 @@ class ReportMetadataTest extends IntegrationTestCase
         }
     }
 
-    public function testSchemaDeclaresSelectorAlternatives(): void
+    public function testSchemaDeclaresSelectorRulesWithoutTopLevelCombinators(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -287,14 +287,11 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertNotNull($tool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $tool->inputSchema;
-        self::assertArrayHasKey('oneOf', $inputSchema);
-        self::assertIsArray($inputSchema['oneOf']);
-
-        /** @var array<int, array<string, mixed>> $alternatives */
-        $alternatives = $inputSchema['oneOf'];
-        self::assertCount(2, $alternatives);
-        self::assertSame(['reportUniqueId'], $alternatives[0]['required'] ?? null);
-        self::assertSame(['apiModule', 'apiAction'], $alternatives[1]['required'] ?? null);
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertArrayHasKey('not', $inputSchema);
+        self::assertIsArray($inputSchema['not']);
     }
 
     /**
