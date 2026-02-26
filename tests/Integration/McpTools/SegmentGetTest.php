@@ -163,6 +163,34 @@ class SegmentGetTest extends IntegrationTestCase
         );
     }
 
+    public function testRejectsIdSegmentAndDefinitionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'idSegment' => $this->idSegmentAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
+    public function testRejectsNameAndDefinitionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'name' => $this->segmentNameAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
+    public function testRejectsAllSelectorsAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'idSegment' => $this->idSegmentAlpha,
+            'name' => $this->segmentNameAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
     public function testReturnsErrorWhenNoSegmentMatches(): void
     {
         $result = $this->callTool([
@@ -281,6 +309,28 @@ class SegmentGetTest extends IntegrationTestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeResponse($response);
         return McpTestHelper::parseCallTool($message);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    private function assertInvalidSchemaArguments(array $arguments): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            SegmentGet::TOOL_NAME,
+            $arguments,
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
+            $message->message ?? ''
+        );
     }
 
     private function extractFirstTextContent(CallToolResult $result): string
