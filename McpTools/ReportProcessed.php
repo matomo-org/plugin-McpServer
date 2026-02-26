@@ -148,19 +148,32 @@ class ReportProcessed
             ],
         ],
         'required' => ['idSite', 'period', 'date'],
-        'oneOf' => [
-            [
-                'required' => ['reportUniqueId'],
-                'not' => [
-                    'anyOf' => [
-                        ['required' => ['apiModule']],
-                        ['required' => ['apiAction']],
+        // Selector truth table:
+        // valid:   reportUniqueId
+        // valid:   apiModule + apiAction
+        // invalid: no selector, partial module/action selector, or reportUniqueId combined
+        //          with apiModule/apiAction
+        'not' => [
+            'anyOf' => [
+                [
+                    'not' => [
+                        'anyOf' => [
+                            ['required' => ['reportUniqueId']],
+                            ['required' => ['apiModule']],
+                            ['required' => ['apiAction']],
+                        ],
                     ],
                 ],
-            ],
-            [
-                'required' => ['apiModule', 'apiAction'],
-                'not' => ['required' => ['reportUniqueId']],
+                ['required' => ['reportUniqueId', 'apiModule']],
+                ['required' => ['reportUniqueId', 'apiAction']],
+                [
+                    'required' => ['apiModule'],
+                    'not' => ['required' => ['apiAction']],
+                ],
+                [
+                    'required' => ['apiAction'],
+                    'not' => ['required' => ['apiModule']],
+                ],
             ],
         ],
         'additionalProperties' => false,

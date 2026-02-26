@@ -65,11 +65,10 @@ class SegmentGet
             ],
         ],
         'required' => ['idSite'],
-        'oneOf' => [
-            ['required' => ['idSegment']],
-            ['required' => ['name']],
-            ['required' => ['definition']],
-        ],
+        // Enforce exactly one selector today (idSegment|name|definition).
+        // If future optional top-level inputs are added, these bounds must be revisited.
+        'minProperties' => 2,
+        'maxProperties' => 2,
         'additionalProperties' => false,
     ])]
     public function get(

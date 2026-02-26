@@ -163,6 +163,34 @@ class SegmentGetTest extends IntegrationTestCase
         );
     }
 
+    public function testRejectsIdSegmentAndDefinitionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'idSegment' => $this->idSegmentAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
+    public function testRejectsNameAndDefinitionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'name' => $this->segmentNameAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
+    public function testRejectsAllSelectorsAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'idSegment' => $this->idSegmentAlpha,
+            'name' => $this->segmentNameAlpha,
+            'definition' => 'countryCode==de',
+        ]);
+    }
+
     public function testReturnsErrorWhenNoSegmentMatches(): void
     {
         $result = $this->callTool([
@@ -231,7 +259,7 @@ class SegmentGetTest extends IntegrationTestCase
         );
     }
 
-    public function testSchemaDeclaresExactlyOneSelector(): void
+    public function testSchemaDeclaresExactlyOneSelectorWithoutTopLevelCombinators(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -252,14 +280,17 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertNotNull($segmentGetTool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $segmentGetTool->inputSchema;
-        self::assertArrayHasKey('oneOf', $inputSchema);
-        self::assertIsArray($inputSchema['oneOf']);
-        /** @var array<int, array<string, mixed>> $selectorSchemaAlternatives */
-        $selectorSchemaAlternatives = $inputSchema['oneOf'];
-        self::assertCount(3, $selectorSchemaAlternatives);
-        self::assertSame(['idSegment'], $selectorSchemaAlternatives[0]['required'] ?? null);
-        self::assertSame(['name'], $selectorSchemaAlternatives[1]['required'] ?? null);
-        self::assertSame(['definition'], $selectorSchemaAlternatives[2]['required'] ?? null);
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertSame(2, $inputSchema['minProperties'] ?? null);
+        self::assertSame(2, $inputSchema['maxProperties'] ?? null);
+
+        $properties = $inputSchema['properties'] ?? null;
+        self::assertIsArray($properties);
+        self::assertArrayHasKey('idSegment', $properties);
+        self::assertArrayHasKey('name', $properties);
+        self::assertArrayHasKey('definition', $properties);
     }
 
     /**
@@ -278,6 +309,28 @@ class SegmentGetTest extends IntegrationTestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeResponse($response);
         return McpTestHelper::parseCallTool($message);
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    private function assertInvalidSchemaArguments(array $arguments): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            SegmentGet::TOOL_NAME,
+            $arguments,
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
+            $message->message ?? ''
+        );
     }
 
     private function extractFirstTextContent(CallToolResult $result): string

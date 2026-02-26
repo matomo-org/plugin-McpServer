@@ -185,6 +185,47 @@ class ReportProcessedTest extends IntegrationTestCase
         );
     }
 
+    public function testRejectsMissingSelectorAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([]);
+    }
+
+    public function testRejectsCombinedUniqueIdAndApiModuleAtSchemaLevel(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'reportUniqueId' => $reportUniqueId,
+            'apiModule' => 'Actions',
+        ]);
+    }
+
+    public function testRejectsCombinedUniqueIdAndApiActionAtSchemaLevel(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'reportUniqueId' => $reportUniqueId,
+            'apiAction' => 'getPageUrls',
+        ]);
+    }
+
+    public function testRejectsApiModuleWithoutApiActionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'apiModule' => 'Actions',
+        ]);
+    }
+
+    public function testRejectsApiActionWithoutApiModuleAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'apiAction' => 'getPageUrls',
+        ]);
+    }
+
     public function testReturnsProcessedReportByModuleActionWithMonthLast3(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
@@ -413,6 +454,12 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertNotNull($tool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $tool->inputSchema;
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertArrayHasKey('not', $inputSchema);
+        self::assertIsArray($inputSchema['not']);
+
         $properties = $inputSchema['properties'] ?? null;
         self::assertIsArray($properties);
         self::assertArrayHasKey('goalMetricsMode', $properties);
@@ -717,6 +764,36 @@ class ReportProcessedTest extends IntegrationTestCase
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $selectorArguments
+     */
+    private function assertInvalidSelectorArgumentsAtSchemaLevel(array $selectorArguments): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $arguments = array_merge(
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+            ],
+            $selectorArguments
+        );
+
+        $error = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            $arguments,
+            __METHOD__
+        );
+
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
+            $error->message ?? ''
+        );
     }
 
     /**

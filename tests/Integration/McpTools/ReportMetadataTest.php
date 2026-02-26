@@ -207,6 +207,36 @@ class ReportMetadataTest extends IntegrationTestCase
         );
     }
 
+    public function testRejectsApiModuleWithoutApiActionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'apiModule' => 'Actions',
+        ]);
+    }
+
+    public function testRejectsApiActionWithoutApiModuleAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'apiAction' => 'getPageUrls',
+        ]);
+    }
+
+    public function testRejectsCombinedUniqueIdAndApiParametersAtSchemaLevel(): void
+    {
+        $report = $this->findAnyReportMetadata($this->idSite);
+        self::assertNotNull($report);
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'reportUniqueId' => $uniqueId,
+            'apiParameters' => ['idGoal' => 1],
+        ]);
+    }
+
     public function testMasksNoAccessAsNotFound(): void
     {
         $report = $this->findAnyReportMetadata($this->idSite);
@@ -266,7 +296,7 @@ class ReportMetadataTest extends IntegrationTestCase
         }
     }
 
-    public function testSchemaDeclaresSelectorAlternatives(): void
+    public function testSchemaDeclaresSelectorRulesWithoutTopLevelCombinators(): void
     {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -287,14 +317,11 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertNotNull($tool);
         /** @var array<string, mixed> $inputSchema */
         $inputSchema = $tool->inputSchema;
-        self::assertArrayHasKey('oneOf', $inputSchema);
-        self::assertIsArray($inputSchema['oneOf']);
-
-        /** @var array<int, array<string, mixed>> $alternatives */
-        $alternatives = $inputSchema['oneOf'];
-        self::assertCount(2, $alternatives);
-        self::assertSame(['reportUniqueId'], $alternatives[0]['required'] ?? null);
-        self::assertSame(['apiModule', 'apiAction'], $alternatives[1]['required'] ?? null);
+        self::assertArrayNotHasKey('oneOf', $inputSchema);
+        self::assertArrayNotHasKey('allOf', $inputSchema);
+        self::assertArrayNotHasKey('anyOf', $inputSchema);
+        self::assertArrayHasKey('not', $inputSchema);
+        self::assertIsArray($inputSchema['not']);
     }
 
     /**
@@ -345,6 +372,28 @@ class ReportMetadataTest extends IntegrationTestCase
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     */
+    private function assertInvalidSchemaArguments(array $arguments): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportMetadata::TOOL_NAME,
+            $arguments,
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
+            $message->message ?? ''
+        );
     }
 
     /**

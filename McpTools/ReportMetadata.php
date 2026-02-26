@@ -82,20 +82,33 @@ class ReportMetadata
             ],
         ],
         'required' => ['idSite'],
-        'oneOf' => [
-            [
-                'required' => ['reportUniqueId'],
-                'not' => [
-                    'anyOf' => [
-                        ['required' => ['apiModule']],
-                        ['required' => ['apiAction']],
-                        ['required' => ['apiParameters']],
+        // Selector truth table:
+        // valid:   reportUniqueId
+        // valid:   apiModule + apiAction
+        // invalid: no selector, partial module/action selector, or reportUniqueId combined
+        //          with apiModule/apiAction/apiParameters
+        'not' => [
+            'anyOf' => [
+                [
+                    'not' => [
+                        'anyOf' => [
+                            ['required' => ['reportUniqueId']],
+                            ['required' => ['apiModule']],
+                            ['required' => ['apiAction']],
+                        ],
                     ],
                 ],
-            ],
-            [
-                'required' => ['apiModule', 'apiAction'],
-                'not' => ['required' => ['reportUniqueId']],
+                ['required' => ['reportUniqueId', 'apiModule']],
+                ['required' => ['reportUniqueId', 'apiAction']],
+                ['required' => ['reportUniqueId', 'apiParameters']],
+                [
+                    'required' => ['apiModule'],
+                    'not' => ['required' => ['apiAction']],
+                ],
+                [
+                    'required' => ['apiAction'],
+                    'not' => ['required' => ['apiModule']],
+                ],
             ],
         ],
         'additionalProperties' => false,
