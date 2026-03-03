@@ -12,47 +12,45 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
-use Matomo\Dependencies\McpServer\Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
-use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\NoAccessException;
 use Piwik\Piwik;
+use Piwik\Http\BadRequestException;
+use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
+use Piwik\Request;
 
-class Controller extends \Piwik\Plugin\Controller
+class API extends \Piwik\Plugin\API
 {
     public function __construct(private McpServerFactory $factory)
     {
     }
 
-    public function mcp(): void
+    /**
+     * @internal
+     */
+    public function mcp(): McpTransportResponse
     {
+        $format = Request::fromRequest()->getStringParameter('format', '');
+        if (strtolower($format) !== 'mcp') {
+            throw new BadRequestException(
+                'MCP endpoint requires format=mcp. Use module=API&method=McpServer.mcp&format=mcp.'
+            );
+        }
+
         $request = $this->createRequestFromGlobals();
 
-        // Accept any authentication method that Matomo accepts.
-        // We intentionally do not enforce header-only auth here yet.
-        // When auth fails, we still provide a Bearer challenge as client guidance.
         try {
             Piwik::checkUserHasSomeViewAccess();
         } catch (NoAccessException $e) {
-            $response = (new Psr17Factory())
-                ->createResponse(401)
-                ->withHeader('WWW-Authenticate', 'Bearer realm="mcp"');
-            $this->emit($response);
-            return;
+            return new McpTransportResponse($this->createUnauthorizedResponse());
         }
 
-        $server = $this->buildServer();
+        $server = $this->factory->createServer();
         $transport = new StreamableHttpTransport($request);
 
-        $result = $server->run($transport);
-        $this->emit($result);
-    }
-
-    protected function buildServer(): Server
-    {
-        return $this->factory->createServer();
+        return new McpTransportResponse($server->run($transport));
     }
 
     protected function createRequestFromGlobals(): ServerRequestInterface
@@ -60,8 +58,10 @@ class Controller extends \Piwik\Plugin\Controller
         return (new Psr17Factory())->createServerRequestFromGlobals();
     }
 
-    protected function emit(ResponseInterface $response): void
+    protected function createUnauthorizedResponse(): ResponseInterface
     {
-        (new SapiEmitter())->emit($response);
+        return (new Psr17Factory())
+            ->createResponse(401)
+            ->withHeader('WWW-Authenticate', 'Bearer realm="mcp"');
     }
 }

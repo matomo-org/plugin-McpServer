@@ -25,7 +25,6 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterfa
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
-use Piwik\Plugins\McpServer\Controller;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
@@ -53,8 +52,6 @@ use Piwik\Plugins\McpServer\Tasks;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
-    'token_auth.write_admin_allowed_module_actions' => DI::add(['McpServer.mcp']),
-
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
     CoreCustomDimensionsGatewayInterface::class => DI::autowire(CoreCustomDimensionsGateway::class),
     CoreGoalsGatewayInterface::class => DI::autowire(CoreGoalsGateway::class),
@@ -77,7 +74,6 @@ return [
     SiteSummaryQueryServiceInterface::class => DI::autowire(SiteSummaryQueryService::class),
     TranslatorContextRunnerInterface::class => DI::autowire(TranslatorContextRunner::class),
 
-    Controller::class => DI::autowire(),
     DbSessionStore::class => DI::autowire(),
     McpServerFactory::class => DI::autowire(),
     PaginatedCollectionResponder::class => DI::autowire(),

@@ -13,13 +13,13 @@ namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
-use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
-use Piwik\Plugins\McpServer\Controller;
+use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
@@ -29,10 +29,16 @@ use Psr\Container\ContainerInterface;
  * @group McpServer
  * @group Plugins
  */
-class ControllerTest extends TestCase
+class APITest extends TestCase
 {
     /** @var array<string, mixed>|null */
     private ?array $originalMcpServerConfig = null;
+
+    /** @var array<string, mixed> */
+    private array $originalGet = [];
+
+    /** @var array<string, mixed> */
+    private array $originalPost = [];
 
     public function setUp(): void
     {
@@ -40,54 +46,58 @@ class ControllerTest extends TestCase
 
         $originalConfig = Config::getInstance()->McpServer ?? null;
         $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
+
+        $this->originalGet = $_GET;
+        $this->originalPost = $_POST;
     }
 
     public function tearDown(): void
     {
         Config::getInstance()->McpServer = $this->originalMcpServerConfig;
+        $_GET = $this->originalGet;
+        $_POST = $this->originalPost;
+
+        Access::getInstance()->setSuperUserAccess(false);
 
         parent::tearDown();
     }
 
-    public function testMcpEmitsResponseForInitialize(): void
+    public function testMcpReturnsTransportResponseForInitialize(): void
     {
-        try {
-            Access::getInstance()->setSuperUserAccess(true);
-            Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+        Access::getInstance()->setSuperUserAccess(true);
+        Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+        $_GET['format'] = 'mcp';
 
-            $request = $this->createRequest();
-            $factory = $this->createFactory();
-            $capturedResponse = null;
+        $api = $this->createApiWithRequest($this->createRequest());
+        $result = $api->mcp();
 
-            $controller = $this->createController($factory, $request, $capturedResponse);
-            $controller->mcp();
+        self::assertInstanceOf(McpTransportResponse::class, $result);
+        $response = $result->response();
+        self::assertSame(200, $response->getStatusCode());
 
-            $response = $capturedResponse;
-            self::assertInstanceOf(ResponseInterface::class, $response);
-            self::assertSame(200, $response->getStatusCode());
-
-            McpTestHelper::decodeResponse($response);
-        } finally {
-            Access::getInstance()->setSuperUserAccess(false);
-        }
+        McpTestHelper::decodeResponse($response);
     }
 
-    public function testMcpRejectsUnauthenticatedRequestAndSendsBearerChallengeHint(): void
+    public function testMcpRejectsRequestWithoutMcpFormat(): void
+    {
+        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectExceptionMessage('MCP endpoint requires format=mcp.');
+
+        $api = $this->createApiWithRequest($this->createRequest());
+        $api->mcp();
+    }
+
+    public function testMcpReturnsUnauthorizedChallengeWhenNoViewAccess(): void
     {
         Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+        $_GET['format'] = 'mcp';
 
-        $request = $this->createRequest();
-        $factory = $this->createFactory();
-        $capturedResponse = null;
+        $api = $this->createApiWithRequest($this->createRequest());
+        $result = $api->mcp();
 
-        $controller = $this->createController($factory, $request, $capturedResponse);
-        $controller->mcp();
-
-        $response = $capturedResponse;
-        self::assertInstanceOf(ResponseInterface::class, $response);
+        self::assertInstanceOf(McpTransportResponse::class, $result);
+        $response = $result->response();
         self::assertSame(401, $response->getStatusCode());
-
-        // This challenge advertises preferred header auth, but auth is not header-only yet.
         self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
         self::assertSame('', (string) $response->getBody());
     }
@@ -98,7 +108,7 @@ class ControllerTest extends TestCase
         $body = $factory->createStream(McpTestHelper::makeInitializeRequest('init-1'));
 
         return $factory
-            ->createServerRequest('POST', 'https://example.test/mcp')
+            ->createServerRequest('POST', 'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp')
             ->withHeader('Content-Type', 'application/json')
             ->withBody($body);
     }
@@ -113,25 +123,19 @@ class ControllerTest extends TestCase
         );
     }
 
-    private function createController(
-        McpServerFactory $factory,
-        ServerRequestInterface $request,
-        ?ResponseInterface &$capturedResponse
-    ): Controller {
-        $controller = $this
-            ->getMockBuilder(Controller::class)
+    private function createApiWithRequest(ServerRequestInterface $request): API
+    {
+        $factory = $this->createFactory();
+
+        $api = $this
+            ->getMockBuilder(API::class)
             ->setConstructorArgs([$factory])
-            ->onlyMethods(['createRequestFromGlobals', 'emit'])
+            ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();
 
-        $controller->method('createRequestFromGlobals')
+        $api->method('createRequestFromGlobals')
             ->willReturn($request);
-        $controller->expects(self::once())
-            ->method('emit')
-            ->willReturnCallback(static function (ResponseInterface $response) use (&$capturedResponse): void {
-                $capturedResponse = $response;
-            });
 
-        return $controller;
+        return $api;
     }
 }
