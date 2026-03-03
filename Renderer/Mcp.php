@@ -11,7 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Renderer;
 
-use Matomo\Dependencies\McpServer\Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
+use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
+use Piwik\Common;
 use Piwik\Http\BadRequestException;
 use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
 
@@ -47,8 +48,11 @@ class Mcp extends \Piwik\API\ApiRenderer
             throw new BadRequestException('MCP formatter expects a McpTransportResponse payload.');
         }
 
-        $this->emit($object->response());
-        $this->terminate();
+        $response = $object->response();
+        $this->applyStatusCode($response->getStatusCode());
+        $this->sendResponseHeaders($response);
+
+        return $this->extractBody($response);
     }
 
     /**
@@ -105,13 +109,32 @@ class Mcp extends \Piwik\API\ApiRenderer
         return 'MCP formatter error.';
     }
 
-    protected function emit(\Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface $response): void
+    protected function applyStatusCode(int $statusCode): void
     {
-        (new SapiEmitter())->emit($response);
+        http_response_code($statusCode);
     }
 
-    protected function terminate(): void
+    protected function sendResponseHeaders(ResponseInterface $response): void
     {
-        exit;
+        foreach ($response->getHeaders() as $name => $values) {
+            foreach ($values as $value) {
+                $this->sendHeaderLine($name . ': ' . $value, false);
+            }
+        }
+    }
+
+    protected function sendHeaderLine(string $header, bool $replace): void
+    {
+        Common::sendHeader($header, $replace);
+    }
+
+    protected function extractBody(ResponseInterface $response): string
+    {
+        $body = $response->getBody();
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
+
+        return $body->getContents();
     }
 }

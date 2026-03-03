@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\Renderer;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
-use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Piwik\Http\BadRequestException;
 use Piwik\Plugins\McpServer\Renderer\Mcp;
 use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
+use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -32,17 +32,23 @@ class McpTest extends TestCase
         new TestableMcpRenderer(['method' => 'API.getMatomoVersion']);
     }
 
-    public function testRenderObjectEmitsTransportResponse(): void
+    public function testRenderObjectReturnsBodyAndForwardsStatusAndHeaders(): void
     {
         $renderer = new TestableMcpRenderer(['method' => 'McpServer.mcp']);
         $factory = new Psr17Factory();
-        $response = $factory->createResponse(200)->withBody($factory->createStream('ok'));
+        $response = $factory->createResponse(200)
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Mcp-Session-Id', 'session-1')
+            ->withBody($factory->createStream('ok'));
 
         $result = $renderer->renderObject(new McpTransportResponse($response));
 
-        self::assertNull($result);
-        self::assertSame($response, $renderer->emittedResponse);
-        self::assertTrue($renderer->terminated);
+        self::assertSame('ok', $result);
+        self::assertSame(200, $renderer->statusCode);
+        self::assertSame(
+            ['Content-Type: application/json', 'Mcp-Session-Id: session-1'],
+            $renderer->headers
+        );
     }
 
     public function testRenderObjectRejectsUnexpectedPayload(): void
@@ -66,17 +72,19 @@ class McpTest extends TestCase
 
 final class TestableMcpRenderer extends Mcp
 {
-    public ?ResponseInterface $emittedResponse = null;
+    public ?int $statusCode = null;
 
-    public bool $terminated = false;
+    /** @var array<int, string> */
+    public array $headers = [];
 
-    protected function emit(ResponseInterface $response): void
+    protected function applyStatusCode(int $statusCode): void
     {
-        $this->emittedResponse = $response;
+        $this->statusCode = $statusCode;
     }
 
-    protected function terminate(): void
+    protected function sendHeaderLine(string $header, bool $replace): void
     {
-        $this->terminated = true;
+        Assert::assertFalse($replace);
+        $this->headers[] = $header;
     }
 }
