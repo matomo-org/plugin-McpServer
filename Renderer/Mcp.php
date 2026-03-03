@@ -11,10 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Renderer;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Piwik\Common;
 use Piwik\Http\BadRequestException;
-use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 
 class Mcp extends \Piwik\API\ApiRenderer
 {
@@ -44,11 +45,11 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderObject($object)
     {
-        if (!$object instanceof McpTransportResponse) {
-            throw new BadRequestException('MCP formatter expects a McpTransportResponse payload.');
+        if (!$object instanceof ResponseInterface) {
+            throw new BadRequestException('MCP formatter expects a PSR-7 response payload.');
         }
 
-        $response = $object->response();
+        $response = $object;
         $this->applyStatusCode($response->getStatusCode());
         $this->sendResponseHeaders($response);
 
@@ -61,7 +62,7 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderSuccess($message)
     {
-        throw new BadRequestException('MCP formatter cannot render scalar success responses.');
+        $this->rejectUnsupported('scalar success');
     }
 
     /**
@@ -70,7 +71,7 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderArray($array)
     {
-        throw new BadRequestException('MCP formatter cannot render array responses.');
+        $this->rejectUnsupported('array');
     }
 
     /**
@@ -79,7 +80,7 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderScalar($scalar)
     {
-        throw new BadRequestException('MCP formatter cannot render scalar responses.');
+        $this->rejectUnsupported('scalar');
     }
 
     /**
@@ -88,7 +89,7 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderDataTable($dataTable)
     {
-        throw new BadRequestException('MCP formatter cannot render DataTable responses.');
+        $this->rejectUnsupported('DataTable');
     }
 
     /**
@@ -98,15 +99,23 @@ class Mcp extends \Piwik\API\ApiRenderer
      */
     public function renderException($message, $exception)
     {
-        if (is_string($message)) {
-            return $message;
+        $this->sendHeaderLine('Content-Type: application/json', true);
+
+        $errorCode = $exception instanceof BadRequestException
+            ? JsonRpcError::INVALID_REQUEST
+            : JsonRpcError::INTERNAL_ERROR;
+        $errorMessage = $this->normalizeErrorMessage($message, $errorCode);
+
+        $payload = json_encode(
+            new JsonRpcError('', $errorCode, $errorMessage),
+            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES
+        );
+
+        if (!is_string($payload)) {
+            return '{"jsonrpc":"2.0","id":"","error":{"code":-32603,"message":"Internal endpoint error."}}';
         }
 
-        if (is_scalar($message)) {
-            return (string) $message;
-        }
-
-        return 'MCP formatter error.';
+        return $payload;
     }
 
     protected function applyStatusCode(int $statusCode): void
@@ -136,5 +145,33 @@ class Mcp extends \Piwik\API\ApiRenderer
         }
 
         return $body->getContents();
+    }
+
+    /**
+     * @return never
+     */
+    private function rejectUnsupported(string $payloadKind): void
+    {
+        throw new BadRequestException(sprintf('MCP formatter cannot render %s responses.', $payloadKind));
+    }
+
+    /**
+     * @param mixed $message
+     */
+    private function normalizeErrorMessage($message, int $errorCode): string
+    {
+        if (is_string($message) && $message !== '') {
+            return $message;
+        }
+
+        if (is_scalar($message)) {
+            return (string) $message;
+        }
+
+        if ($errorCode === JsonRpcError::INVALID_REQUEST) {
+            return 'Invalid request.';
+        }
+
+        return McpEndpointSpec::INTERNAL_ERROR;
     }
 }

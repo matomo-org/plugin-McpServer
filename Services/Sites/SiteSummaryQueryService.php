@@ -13,11 +13,10 @@ namespace Piwik\Plugins\McpServer\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access\Role\View;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
@@ -97,12 +96,9 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
     {
         try {
             $sites = $this->coreSitesManagerGateway->getSitesWithMinimumAccess(View::ID, $search, null);
-        } catch (NoAccessException $e) {
-            // Keep list/search behavior aligned: no view access yields no rows.
-            return [];
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+            // Keep list/search behavior aligned: no view access yields no rows.
+            if (ToolErrorMapper::shouldReturnEmptyListFor($e)) {
                 return [];
             }
 

@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\Services\Goals;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreGoalsGateway implements CoreGoalsGatewayInterface
@@ -51,11 +52,19 @@ final class CoreGoalsGateway implements CoreGoalsGatewayInterface
      */
     private function processRequest(string $method, array $paramOverride): mixed
     {
-        if ($this->requestProcessor !== null) {
-            return ($this->requestProcessor)($method, $paramOverride, []);
-        }
+        try {
+            if ($this->requestProcessor !== null) {
+                return ($this->requestProcessor)($method, $paramOverride, []);
+            }
 
-        return Request::processRequest($method, $paramOverride, []);
+            return Request::processRequest($method, $paramOverride, []);
+        } catch (\Throwable $e) {
+            if ($this->isNoAccessLikeFailure($e)) {
+                throw new AccessDeniedLikeException('No access to this resource.', 0, $e);
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -77,5 +86,21 @@ final class CoreGoalsGateway implements CoreGoalsGatewayInterface
         }
 
         return $normalized;
+    }
+
+    private function isNoAccessLikeFailure(\Throwable $e): bool
+    {
+        if ($e instanceof AccessDeniedLikeException || $e instanceof \Piwik\NoAccessException) {
+            return true;
+        }
+
+        $message = strtolower(trim((string) $e->getMessage()));
+        if ($message === '') {
+            return false;
+        }
+
+        return str_contains($message, 'no access')
+            || str_contains($message, 'checkuserhasviewaccess')
+            || str_contains($message, 'view access');
     }
 }

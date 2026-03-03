@@ -11,6 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Errors;
 
-final class InfrastructureDataException extends InfrastructureDataInvalidException
+final class AccessDeniedLikeException extends \RuntimeException
 {
 }

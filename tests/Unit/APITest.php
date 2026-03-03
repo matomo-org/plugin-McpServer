@@ -12,14 +12,18 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
+use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
+use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
+use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
@@ -62,7 +66,7 @@ class APITest extends TestCase
         parent::tearDown();
     }
 
-    public function testMcpReturnsTransportResponseForInitialize(): void
+    public function testMcpReturnsResponseForInitialize(): void
     {
         Access::getInstance()->setSuperUserAccess(true);
         Config::getInstance()->McpServer = ['log_tool_calls' => 1];
@@ -73,8 +77,8 @@ class APITest extends TestCase
         $api = $this->createApiWithRequest($this->createRequest());
         $result = $api->mcp();
 
-        self::assertInstanceOf(McpTransportResponse::class, $result);
-        $response = $result->response();
+        self::assertInstanceOf(ResponseInterface::class, $result);
+        $response = $result;
         self::assertSame(200, $response->getStatusCode());
 
         McpTestHelper::decodeResponse($response);
@@ -83,7 +87,7 @@ class APITest extends TestCase
     public function testMcpRejectsRequestWithoutMcpFormat(): void
     {
         $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+        $this->expectExceptionMessage('MCP endpoint requires format=mcp.');
 
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
@@ -93,53 +97,49 @@ class APITest extends TestCase
 
     public function testMcpRejectsRequestWithoutApiModule(): void
     {
-        $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
-
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest());
-        $api->mcp();
+        $result = $api->mcp();
+
+        $this->assertGuardErrorResponse($result);
     }
 
     public function testMcpRejectsRequestWithoutMcpMethod(): void
     {
-        $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
-
         $_GET['module'] = 'API';
         $_GET['method'] = 'API.getMatomoVersion';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest());
-        $api->mcp();
+        $result = $api->mcp();
+
+        $this->assertGuardErrorResponse($result);
     }
 
     public function testMcpRejectsNestedApiRequest(): void
     {
-        $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
-
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest(), false, 'McpServer.mcp');
-        $api->mcp();
+        $result = $api->mcp();
+
+        $this->assertGuardErrorResponse($result);
     }
 
     public function testMcpRejectsApiBulkRequestContext(): void
     {
-        $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
-
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest(), true, 'API.getBulkRequest');
-        $api->mcp();
+        $result = $api->mcp();
+
+        $this->assertGuardErrorResponse($result);
     }
 
     public function testMcpReturnsUnauthorizedChallengeWhenNoViewAccess(): void
@@ -152,11 +152,94 @@ class APITest extends TestCase
         $api = $this->createApiWithRequest($this->createRequest());
         $result = $api->mcp();
 
-        self::assertInstanceOf(McpTransportResponse::class, $result);
-        $response = $result->response();
+        self::assertInstanceOf(ResponseInterface::class, $result);
+        $response = $result;
         self::assertSame(401, $response->getStatusCode());
         self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
-        self::assertSame('', (string) $response->getBody());
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame('Authentication required.', $message->message);
+        self::assertSame('init-1', $message->id);
+    }
+
+    public function testMcpReturnsUnauthorizedChallengeWhenNoAccessExceptionIsWrapped(): void
+    {
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $factory = $this->createFactory();
+
+        $api = $this
+            ->getMockBuilder(API::class)
+            ->setConstructorArgs([
+                $factory,
+                new McpEndpointGuard(),
+                new JsonRpcErrorResponseFactory(),
+                new JsonRpcRequestIdExtractor(),
+            ])
+            ->onlyMethods([
+                'createRequestFromGlobals',
+                'isCurrentApiRequestRoot',
+                'getRootApiRequestMethod',
+                'checkUserHasSomeViewAccess',
+            ])
+            ->getMock();
+
+        $api->method('createRequestFromGlobals')
+            ->willReturn($this->createRequest());
+        $api->method('isCurrentApiRequestRoot')
+            ->willReturn(true);
+        $api->method('getRootApiRequestMethod')
+            ->willReturn('McpServer.mcp');
+        $api->method('checkUserHasSomeViewAccess')
+            ->willThrowException(
+                new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access'))
+            );
+
+        $result = $api->mcp();
+
+        self::assertSame(401, $result->getStatusCode());
+        self::assertSame('Bearer realm="mcp"', $result->getHeaderLine('WWW-Authenticate'));
+        $message = McpTestHelper::decodeError($result);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame('Authentication required.', $message->message);
+        self::assertSame('init-1', $message->id);
+    }
+
+    public function testMcpReturnsInternalErrorResponseWhenRequestCreationFails(): void
+    {
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $factory = $this->createFactory();
+
+        $api = $this
+            ->getMockBuilder(API::class)
+            ->setConstructorArgs([
+                $factory,
+                new McpEndpointGuard(),
+                new JsonRpcErrorResponseFactory(),
+                new JsonRpcRequestIdExtractor(),
+            ])
+            ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
+            ->getMock();
+
+        $api->method('isCurrentApiRequestRoot')
+            ->willReturn(true);
+        $api->method('getRootApiRequestMethod')
+            ->willReturn('McpServer.mcp');
+        $api->method('createRequestFromGlobals')
+            ->willThrowException(new \RuntimeException('boom'));
+
+        $result = $api->mcp();
+
+        self::assertSame(500, $result->getStatusCode());
+        $message = McpTestHelper::decodeError($result);
+        self::assertSame(JsonRpcError::INTERNAL_ERROR, $message->code);
+        self::assertSame('Internal endpoint error.', $message->message);
+        self::assertSame('', $message->id);
     }
 
     private function createRequest(): ServerRequestInterface
@@ -189,7 +272,12 @@ class APITest extends TestCase
 
         $api = $this
             ->getMockBuilder(API::class)
-            ->setConstructorArgs([$factory])
+            ->setConstructorArgs([
+                $factory,
+                new McpEndpointGuard(),
+                new JsonRpcErrorResponseFactory(),
+                new JsonRpcRequestIdExtractor(),
+            ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
 
@@ -201,5 +289,14 @@ class APITest extends TestCase
             ->willReturn($rootApiMethod);
 
         return $api;
+    }
+
+    private function assertGuardErrorResponse(ResponseInterface $response): void
+    {
+        self::assertSame(400, $response->getStatusCode());
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertStringStartsWith('MCP endpoint requires a root API request:', $message->message);
+        self::assertSame('init-1', $message->id);
     }
 }

@@ -12,12 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
@@ -36,16 +36,14 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
 
         try {
             $goal = $this->coreGoalsGateway->getGoal($idSite, $idGoal);
-        } catch (NoAccessException $e) {
-            throw new ToolCallException('Goal not found.');
-        } catch (ToolCallException $e) {
-            throw new ToolCallException('Goal not found.');
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                throw new ToolCallException('Goal not found.');
-            }
-
-            throw new ToolCallException('Goal retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $e,
+                'Goal not found.',
+                'Goal retrieval failed.',
+                static fn(\Throwable $error): bool => $error instanceof ToolCallException
+                    || ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            );
         }
 
         $goalData = ToolDataNormalizer::requireStringKeyedArray($goal, 'Goal not found.');

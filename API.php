@@ -13,58 +13,96 @@ namespace Piwik\Plugins\McpServer;
 
 use Piwik\API\Request as ApiRequest;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\NoAccessException;
 use Piwik\Piwik;
 use Piwik\Http\BadRequestException;
-use Piwik\Plugins\McpServer\Support\Api\McpTransportResponse;
+use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
+use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Request;
 
 class API extends \Piwik\Plugin\API
 {
-    public function __construct(private McpServerFactory $factory)
-    {
+    public function __construct(
+        private McpServerFactory $factory,
+        private McpEndpointGuard $endpointGuard,
+        private JsonRpcErrorResponseFactory $jsonRpcErrorResponseFactory,
+        private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor
+    ) {
     }
 
     /**
      * @internal
      */
-    public function mcp(): McpTransportResponse
+    public function mcp(): ResponseInterface
     {
         $requestParams = Request::fromRequest();
         $format = strtolower($requestParams->getStringParameter('format', ''));
-        $module = $requestParams->getStringParameter('module', '');
-        $method = $requestParams->getStringParameter('method', '');
-        $isRootApiRequest = $this->isCurrentApiRequestRoot();
-        $rootApiMethod = $this->getRootApiRequestMethod();
+        $errorFactory = $this->jsonRpcErrorResponseFactory;
 
-        if (
-            $format !== 'mcp'
-            || $module !== 'API'
-            || $method !== 'McpServer.mcp'
-            || !$isRootApiRequest
-            || $rootApiMethod !== 'McpServer.mcp'
-        ) {
+        // If format!=mcp, Matomo will use a non-MCP renderer that cannot serialize PSR-7 responses.
+        if ($format !== McpEndpointSpec::FORMAT) {
             throw new BadRequestException(
-                'MCP endpoint requires a root API request: module=API&method=McpServer.mcp&format=mcp. '
-                . 'Nested API calls (including API.getBulkRequest) are not supported.'
+                'MCP endpoint requires format=mcp. Use module=API&method=McpServer.mcp&format=mcp.'
             );
         }
 
-        $request = $this->createRequestFromGlobals();
-
         try {
-            Piwik::checkUserHasSomeViewAccess();
-        } catch (NoAccessException $e) {
-            return new McpTransportResponse($this->createUnauthorizedResponse());
+            $request = $this->createRequestFromGlobals();
+        } catch (\Throwable $e) {
+            return $errorFactory->create(
+                500,
+                JsonRpcError::INTERNAL_ERROR,
+                McpEndpointSpec::INTERNAL_ERROR
+            );
         }
 
-        $server = $this->factory->createServer();
-        $transport = new StreamableHttpTransport($request);
+        $requestId = $this->jsonRpcRequestIdExtractor->extractId($request);
+        $guardError = $this->endpointGuard->validate(
+            $format,
+            $requestParams->getStringParameter('module', ''),
+            $requestParams->getStringParameter('method', ''),
+            $this->isCurrentApiRequestRoot(),
+            $this->getRootApiRequestMethod()
+        );
 
-        return new McpTransportResponse($server->run($transport));
+        if ($guardError !== null) {
+            return $errorFactory->create(400, JsonRpcError::INVALID_REQUEST, $guardError, $requestId);
+        }
+
+        try {
+            $this->checkUserHasSomeViewAccess();
+        } catch (\Throwable $e) {
+            if ($this->isUnauthorizedLike($e)) {
+                return $this->createUnauthorizedResponse($requestId);
+            }
+
+            return $errorFactory->create(
+                500,
+                JsonRpcError::INTERNAL_ERROR,
+                McpEndpointSpec::INTERNAL_ERROR,
+                $requestId
+            );
+        }
+
+        try {
+            $server = $this->factory->createServer();
+            $transport = new StreamableHttpTransport($request);
+
+            return $server->run($transport);
+        } catch (\Throwable $e) {
+            return $errorFactory->create(
+                500,
+                JsonRpcError::INTERNAL_ERROR,
+                McpEndpointSpec::INTERNAL_ERROR,
+                $requestId
+            );
+        }
     }
 
     protected function createRequestFromGlobals(): ServerRequestInterface
@@ -72,11 +110,23 @@ class API extends \Piwik\Plugin\API
         return (new Psr17Factory())->createServerRequestFromGlobals();
     }
 
-    protected function createUnauthorizedResponse(): ResponseInterface
+    protected function checkUserHasSomeViewAccess(): void
     {
-        return (new Psr17Factory())
-            ->createResponse(401)
-            ->withHeader('WWW-Authenticate', 'Bearer realm="mcp"');
+        Piwik::checkUserHasSomeViewAccess();
+    }
+
+    /**
+     * @param string|int $requestId
+     */
+    protected function createUnauthorizedResponse(string|int $requestId = ''): ResponseInterface
+    {
+        return $this->jsonRpcErrorResponseFactory->create(
+            401,
+            JsonRpcError::INVALID_REQUEST,
+            McpEndpointSpec::UNAUTHORIZED_ERROR,
+            $requestId,
+            ['WWW-Authenticate' => 'Bearer realm="mcp"']
+        );
     }
 
     protected function isCurrentApiRequestRoot(): bool
@@ -87,5 +137,20 @@ class API extends \Piwik\Plugin\API
     protected function getRootApiRequestMethod(): string
     {
         return (string) ApiRequest::getRootApiRequestMethod();
+    }
+
+    private function isUnauthorizedLike(\Throwable $e): bool
+    {
+        $current = $e;
+
+        do {
+            if ($current instanceof NoAccessException) {
+                return true;
+            }
+
+            $current = $current->getPrevious();
+        } while ($current !== null);
+
+        return false;
     }
 }

@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInterface
@@ -39,12 +38,9 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
 
         try {
             $segments = $this->coreSegmentEditorGateway->getAll($idSite);
-        } catch (NoAccessException $e) {
-            // Keep segment list behavior aligned with site list: no view access yields no rows.
-            return [];
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+            // Keep segment list behavior aligned with site list: no view access yields no rows.
+            if (ToolErrorMapper::shouldReturnEmptyListFor($e)) {
                 return [];
             }
 

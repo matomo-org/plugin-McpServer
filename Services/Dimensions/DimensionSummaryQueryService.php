@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class DimensionSummaryQueryService implements DimensionSummaryQueryServiceInterface
@@ -39,12 +38,9 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
 
         try {
             $dimensions = $this->coreCustomDimensionsGateway->getConfiguredCustomDimensions($idSite);
-        } catch (NoAccessException $e) {
-            // Keep list behavior aligned with site/segment/goal list: no view access yields no rows.
-            return [];
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+            // Keep list behavior aligned with site/segment/goal list: no view access yields no rows.
+            if (ToolErrorMapper::shouldReturnEmptyListFor($e)) {
                 return [];
             }
 
