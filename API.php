@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer;
 
+use Piwik\API\Request as ApiRequest;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
@@ -32,10 +33,23 @@ class API extends \Piwik\Plugin\API
      */
     public function mcp(): McpTransportResponse
     {
-        $format = Request::fromRequest()->getStringParameter('format', '');
-        if (strtolower($format) !== 'mcp') {
+        $requestParams = Request::fromRequest();
+        $format = strtolower($requestParams->getStringParameter('format', ''));
+        $module = $requestParams->getStringParameter('module', '');
+        $method = $requestParams->getStringParameter('method', '');
+        $isRootApiRequest = $this->isCurrentApiRequestRoot();
+        $rootApiMethod = $this->getRootApiRequestMethod();
+
+        if (
+            $format !== 'mcp'
+            || $module !== 'API'
+            || $method !== 'McpServer.mcp'
+            || !$isRootApiRequest
+            || $rootApiMethod !== 'McpServer.mcp'
+        ) {
             throw new BadRequestException(
-                'MCP endpoint requires format=mcp. Use module=API&method=McpServer.mcp&format=mcp.'
+                'MCP endpoint requires a root API request: module=API&method=McpServer.mcp&format=mcp. '
+                . 'Nested API calls (including API.getBulkRequest) are not supported.'
             );
         }
 
@@ -63,5 +77,15 @@ class API extends \Piwik\Plugin\API
         return (new Psr17Factory())
             ->createResponse(401)
             ->withHeader('WWW-Authenticate', 'Bearer realm="mcp"');
+    }
+
+    protected function isCurrentApiRequestRoot(): bool
+    {
+        return ApiRequest::isCurrentApiRequestTheRootApiRequest();
+    }
+
+    protected function getRootApiRequestMethod(): string
+    {
+        return (string) ApiRequest::getRootApiRequestMethod();
     }
 }

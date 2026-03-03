@@ -66,6 +66,8 @@ class APITest extends TestCase
     {
         Access::getInstance()->setSuperUserAccess(true);
         Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest());
@@ -81,15 +83,70 @@ class APITest extends TestCase
     public function testMcpRejectsRequestWithoutMcpFormat(): void
     {
         $this->expectException(\Piwik\Http\BadRequestException::class);
-        $this->expectExceptionMessage('MCP endpoint requires format=mcp.');
+        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $api = $this->createApiWithRequest($this->createRequest());
+        $api->mcp();
+    }
+
+    public function testMcpRejectsRequestWithoutApiModule(): void
+    {
+        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest());
+        $api->mcp();
+    }
+
+    public function testMcpRejectsRequestWithoutMcpMethod(): void
+    {
+        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'API.getMatomoVersion';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest($this->createRequest());
+        $api->mcp();
+    }
+
+    public function testMcpRejectsNestedApiRequest(): void
+    {
+        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest($this->createRequest(), false, 'McpServer.mcp');
+        $api->mcp();
+    }
+
+    public function testMcpRejectsApiBulkRequestContext(): void
+    {
+        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectExceptionMessage('MCP endpoint requires a root API request:');
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest($this->createRequest(), true, 'API.getBulkRequest');
         $api->mcp();
     }
 
     public function testMcpReturnsUnauthorizedChallengeWhenNoViewAccess(): void
     {
         Config::getInstance()->McpServer = ['log_tool_calls' => 1];
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest($this->createRequest());
@@ -123,18 +180,25 @@ class APITest extends TestCase
         );
     }
 
-    private function createApiWithRequest(ServerRequestInterface $request): API
-    {
+    private function createApiWithRequest(
+        ServerRequestInterface $request,
+        bool $isRootApiRequest = true,
+        ?string $rootApiMethod = 'McpServer.mcp'
+    ): API {
         $factory = $this->createFactory();
 
         $api = $this
             ->getMockBuilder(API::class)
             ->setConstructorArgs([$factory])
-            ->onlyMethods(['createRequestFromGlobals'])
+            ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
 
         $api->method('createRequestFromGlobals')
             ->willReturn($request);
+        $api->method('isCurrentApiRequestRoot')
+            ->willReturn($isRootApiRequest);
+        $api->method('getRootApiRequestMethod')
+            ->willReturn($rootApiMethod);
 
         return $api;
     }
