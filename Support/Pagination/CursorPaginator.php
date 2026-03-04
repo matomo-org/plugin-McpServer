@@ -40,6 +40,7 @@ final class CursorPaginator
 
         $rows = $items;
         usort($rows, fn(array $left, array $right): int => $this->compareRows($left, $right, $sortSpec));
+        $fullTotalRows = count($rows);
 
         if ($request->cursor !== null) {
             $boundary = $this->decodeCursor($request->cursor, $sortSpec, $request->cursorContext);
@@ -55,7 +56,7 @@ final class CursorPaginator
             $nextCursor = $this->encodeCursor($sortSpec, $rows[count($rows) - 1], $request->cursorContext);
         }
 
-        return new PageResult($rows, $nextCursor, $hasMore);
+        return new PageResult($rows, $nextCursor, $hasMore, $fullTotalRows);
     }
 
     /**

@@ -74,6 +74,7 @@ class SegmentListTest extends IntegrationTestCase
         self::assertCount(2, $firstPage['segments']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
+        self::assertSame(3, $firstPage['total_rows'] ?? null);
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -84,6 +85,7 @@ class SegmentListTest extends IntegrationTestCase
         );
         self::assertIsArray($secondPage['segments'] ?? null);
         self::assertNotEmpty($secondPage['segments']);
+        self::assertSame(3, $secondPage['total_rows'] ?? null);
     }
 
     public function testSupportsSortByIdDesc(): void
@@ -300,6 +302,7 @@ class SegmentListTest extends IntegrationTestCase
             self::assertSame([], $content['segments'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);
             self::assertSame(null, $content['next_cursor'] ?? null);
+            self::assertSame(0, $content['total_rows'] ?? null);
         });
     }
 }

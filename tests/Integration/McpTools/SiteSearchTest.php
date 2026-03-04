@@ -87,6 +87,7 @@ class SiteSearchTest extends IntegrationTestCase
         self::assertCount(2, $firstPage['sites']);
         self::assertTrue($firstPage['has_more']);
         self::assertNotEmpty($firstPage['next_cursor']);
+        self::assertSame(3, $firstPage['total_rows'] ?? null);
         self::assertSame('MCP Test Site Alpha', $firstPage['sites'][0]['name'] ?? null);
         self::assertSame('MCP Test Site Beta', $firstPage['sites'][1]['name'] ?? null);
 
@@ -101,6 +102,7 @@ class SiteSearchTest extends IntegrationTestCase
         self::assertCount(1, $secondPage['sites']);
         self::assertFalse($secondPage['has_more']);
         self::assertNull($secondPage['next_cursor']);
+        self::assertSame(3, $secondPage['total_rows'] ?? null);
         self::assertSame('MCP Test Site Gamma', $secondPage['sites'][0]['name'] ?? null);
     }
 
@@ -382,6 +384,7 @@ class SiteSearchTest extends IntegrationTestCase
             self::assertFalse($content['has_more'] ?? true);
             self::assertArrayHasKey('next_cursor', $content);
             self::assertNull($content['next_cursor']);
+            self::assertSame(0, $content['total_rows'] ?? null);
         });
     }
 }

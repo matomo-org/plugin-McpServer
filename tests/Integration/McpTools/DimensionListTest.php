@@ -91,6 +91,7 @@ class DimensionListTest extends IntegrationTestCase
         self::assertCount(2, $firstPage['dimensions']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
+        self::assertSame(3, $firstPage['total_rows'] ?? null);
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -104,6 +105,7 @@ class DimensionListTest extends IntegrationTestCase
         self::assertCount(1, $secondPage['dimensions']);
         self::assertFalse($secondPage['has_more']);
         self::assertNull($secondPage['next_cursor']);
+        self::assertSame(3, $secondPage['total_rows'] ?? null);
     }
 
     public function testReturnsOnlyActiveDimensions(): void
@@ -351,6 +353,7 @@ class DimensionListTest extends IntegrationTestCase
             self::assertSame([], $content['dimensions'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);
             self::assertSame(null, $content['next_cursor'] ?? null);
+            self::assertSame(0, $content['total_rows'] ?? null);
         });
     }
 }

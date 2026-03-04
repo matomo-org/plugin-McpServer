@@ -26,9 +26,10 @@ final class ReportProcessedToolOutputSchema
                     'filter_limit' => ['type' => 'integer'],
                     'filter_offset' => ['type' => 'integer'],
                     'returned_rows' => ['type' => 'integer'],
+                    'total_rows' => ['type' => 'integer'],
                     'has_more' => ['type' => 'boolean'],
                 ],
-                'required' => ['filter_limit', 'filter_offset', 'returned_rows', 'has_more'],
+                'required' => ['filter_limit', 'filter_offset', 'returned_rows', 'total_rows', 'has_more'],
                 'additionalProperties' => false,
             ],
             'resolvedReport' => [

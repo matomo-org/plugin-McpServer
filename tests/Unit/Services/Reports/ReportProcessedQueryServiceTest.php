@@ -343,6 +343,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         self::assertSame(1, $actual['pagination']['filter_limit']);
         self::assertSame(5, $actual['pagination']['filter_offset']);
         self::assertSame(1, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
         self::assertTrue($actual['pagination']['has_more']);
         $report = $actual['report'];
         $reportData = $report['reportData'] ?? null;
@@ -1081,6 +1082,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $actual = $record->toArray();
         self::assertSame(1, $actual['pagination']['returned_rows']);
+        self::assertSame(1, $actual['pagination']['total_rows']);
         self::assertFalse($actual['pagination']['has_more']);
     }
 
@@ -1119,6 +1121,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $actual = $record->toArray();
         self::assertSame(3, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
         self::assertTrue($actual['pagination']['has_more']);
     }
 
@@ -1157,6 +1160,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $actual = $record->toArray();
         self::assertSame(2, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
         self::assertTrue($actual['pagination']['has_more']);
     }
 
@@ -1297,6 +1301,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         self::assertSame(0, $record->toArray()['pagination']['returned_rows']);
+        self::assertSame(0, $record->toArray()['pagination']['total_rows']);
     }
 
     public function testReturnsStrictGuidanceWhenCoreFailureMentionsSegmentNotYetProcessedBySystem(): void

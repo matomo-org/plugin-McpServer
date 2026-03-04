@@ -39,6 +39,7 @@ class ReportList
      *     reports: list<ReportSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
+     *     total_rows: int,
      * }
      */
     #[McpTool(
@@ -101,7 +102,7 @@ class ReportList
             ]
         );
 
-        /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        /** @var array{reports: list<ReportSummaryArray>, next_cursor: string|null, has_more: bool, total_rows: int} $response */
         return $response;
     }
 }

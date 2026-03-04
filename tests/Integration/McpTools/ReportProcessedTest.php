@@ -127,6 +127,7 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertSame(1, $pagination['filter_limit'] ?? null);
         self::assertSame(0, $pagination['filter_offset'] ?? null);
         self::assertSame(1, $pagination['returned_rows'] ?? null);
+        self::assertGreaterThanOrEqual(2, $pagination['total_rows'] ?? 0);
         self::assertTrue($pagination['has_more'] ?? false);
         self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
 
@@ -568,6 +569,9 @@ class ReportProcessedTest extends IntegrationTestCase
             self::assertArrayHasKey('report', $content);
             self::assertArrayHasKey('pagination', $content);
             self::assertArrayHasKey('resolvedReport', $content);
+            $pagination = $content['pagination'] ?? null;
+            self::assertIsArray($pagination);
+            self::assertArrayHasKey('total_rows', $pagination);
         });
     }
 
@@ -816,6 +820,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 $pagination = $content['pagination'] ?? null;
                 self::assertIsArray($pagination);
                 self::assertSame(3, $pagination['returned_rows'] ?? null);
+                self::assertSame(10, $pagination['total_rows'] ?? null);
                 self::assertTrue($pagination['has_more'] ?? false);
             });
         } finally {
@@ -889,6 +894,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 $pagination = $content['pagination'] ?? null;
                 self::assertIsArray($pagination);
                 self::assertSame(2, $pagination['returned_rows'] ?? null);
+                self::assertSame(2, $pagination['total_rows'] ?? null);
                 self::assertFalse($pagination['has_more'] ?? true);
             });
         } finally {

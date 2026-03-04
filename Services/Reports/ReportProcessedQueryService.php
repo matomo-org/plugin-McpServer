@@ -153,7 +153,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             filterOffset: $effectiveFilterOffset
         );
 
-        [$returnedRows, $hasMore] = $this->derivePaginationFromProcessedReport(
+        [$returnedRows, $totalRows, $hasMore] = $this->derivePaginationFromProcessedReport(
             $processed,
             $effectiveFilterOffset
         );
@@ -172,6 +172,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             filterLimit: $effectiveFilterLimit,
             filterOffset: $effectiveFilterOffset,
             returnedRows: $returnedRows,
+            totalRows: $totalRows,
             hasMore: $hasMore,
             uniqueId: $reportMetadata->uniqueId,
             apiModule: $reportMetadata->module,
@@ -580,7 +581,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     /**
      * @param array<string, mixed> $processed
-     * @return array{0: int, 1: bool}
+     * @return array{0: int, 1: int, 2: bool}
      */
     private function derivePaginationFromProcessedReport(array $processed, int $filterOffset): array
     {
@@ -597,7 +598,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     }
 
     /**
-     * @return array{0: int, 1: bool}
+     * @return array{0: int, 1: int, 2: bool}
      */
     private function derivePaginationFromDataTable(DataTable $reportData, int $filterOffset): array
     {
@@ -609,11 +610,11 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         $hasMore = ($filterOffset + $returnedRows) < $totalRowsBeforeLimit;
 
-        return [$returnedRows, $hasMore];
+        return [$returnedRows, $totalRowsBeforeLimit, $hasMore];
     }
 
     /**
-     * @return array{0: int, 1: bool}
+     * @return array{0: int, 1: int, 2: bool}
      */
     private function derivePaginationFromDataTableMap(Map $reportData, int $filterOffset): array
     {
@@ -623,18 +624,23 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
 
         $returnedRows = 0;
+        $totalRows = 0;
         $hasMore = false;
         foreach ($tables as $table) {
             if (!$table instanceof DataTable) {
                 throw new ToolCallException('Report data is invalid.');
             }
 
-            [$tableReturnedRows, $tableHasMore] = $this->derivePaginationFromDataTable($table, $filterOffset);
+            [$tableReturnedRows, $tableTotalRows, $tableHasMore] = $this->derivePaginationFromDataTable(
+                $table,
+                $filterOffset
+            );
             $returnedRows = max($returnedRows, $tableReturnedRows);
+            $totalRows = max($totalRows, $tableTotalRows);
             $hasMore = $hasMore || $tableHasMore;
         }
 
-        return [$returnedRows, $hasMore];
+        return [$returnedRows, $totalRows, $hasMore];
     }
 
     /**

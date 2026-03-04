@@ -33,8 +33,9 @@ final class DimensionSummaryToolOutputSchema
             ],
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
+            'total_rows' => ['type' => 'integer'],
         ],
-        'required' => ['dimensions', 'next_cursor', 'has_more'],
+        'required' => ['dimensions', 'next_cursor', 'has_more', 'total_rows'],
         'additionalProperties' => false,
     ];
 }

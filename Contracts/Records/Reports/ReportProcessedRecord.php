@@ -16,6 +16,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Reports;
  *     filter_limit: int,
  *     filter_offset: int,
  *     returned_rows: int,
+ *     total_rows: int,
  *     has_more: bool,
  * }
  * @phpstan-type ReportProcessedResolvedReportArray array{
@@ -41,6 +42,7 @@ final class ReportProcessedRecord
         public readonly int $filterLimit,
         public readonly int $filterOffset,
         public readonly int $returnedRows,
+        public readonly int $totalRows,
         public readonly bool $hasMore,
         public readonly string $uniqueId,
         public readonly string $apiModule,
@@ -60,6 +62,7 @@ final class ReportProcessedRecord
                 'filter_limit' => $this->filterLimit,
                 'filter_offset' => $this->filterOffset,
                 'returned_rows' => $this->returnedRows,
+                'total_rows' => $this->totalRows,
                 'has_more' => $this->hasMore,
             ],
             'resolvedReport' => [

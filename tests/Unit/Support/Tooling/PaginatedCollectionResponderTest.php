@@ -53,7 +53,7 @@ class PaginatedCollectionResponderTest extends TestCase
             },
         ];
 
-        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool} $result */
+        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool, total_rows: int} $result */
         $result = $responder->paginateRecords(
             $records,
             static fn(object $record): array => ['name' => $record->name, 'id' => $record->id],
@@ -70,6 +70,7 @@ class PaginatedCollectionResponderTest extends TestCase
             ],
             'next_cursor' => $result['next_cursor'],
             'has_more' => true,
+            'total_rows' => 3,
         ], $result);
         self::assertIsString($result['next_cursor']);
     }
@@ -83,7 +84,7 @@ class PaginatedCollectionResponderTest extends TestCase
             ['name' => 'Beta', 'id' => 2],
         ];
 
-        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool} $result */
+        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool, total_rows: int} $result */
         $result = $responder->paginateRecords(
             $records,
             /**
@@ -110,7 +111,7 @@ class PaginatedCollectionResponderTest extends TestCase
             ['name' => 'Beta', 'id' => 2],
         ];
 
-        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool} $result */
+        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool, total_rows: int} $result */
         $result = $responder->paginateRecords(
             $records,
             /**
@@ -137,7 +138,7 @@ class PaginatedCollectionResponderTest extends TestCase
             ['name' => 'Gamma', 'id' => 3],
         ];
 
-        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool} $firstPage */
+        /** @var array{items: list<array{name: string, id: int}>, next_cursor: string|null, has_more: bool, total_rows: int} $firstPage */
         $firstPage = $responder->paginateRecords(
             $records,
             /**
@@ -188,7 +189,7 @@ class PaginatedCollectionResponderTest extends TestCase
         $toArrayCalls = 0;
         $toSortCalls = 0;
 
-        /** @var array{items: list<array{name: string, id: int, payload: string}>, next_cursor: string|null, has_more: bool} $result */
+        /** @var array{items: list<array{name: string, id: int, payload: string}>, next_cursor: string|null, has_more: bool, total_rows: int} $result */
         $result = $responder->paginateRecords(
             $records,
             /**
@@ -212,6 +213,7 @@ class PaginatedCollectionResponderTest extends TestCase
         self::assertCount(10, $result['items']);
         self::assertTrue($result['has_more']);
         self::assertIsString($result['next_cursor']);
+        self::assertSame(1000, $result['total_rows']);
         self::assertSame(1000, $toSortCalls);
         self::assertSame(10, $toArrayCalls);
     }

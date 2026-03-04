@@ -39,6 +39,7 @@ class DimensionList
      *     dimensions: list<DimensionSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
+     *     total_rows: int,
      * }
      */
     #[McpTool(
@@ -100,7 +101,7 @@ class DimensionList
             ]
         );
 
-        /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        /** @var array{dimensions: list<DimensionSummaryArray>, next_cursor: string|null, has_more: bool, total_rows: int} $response */
         return $response;
     }
 }
