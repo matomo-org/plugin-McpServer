@@ -1,0 +1,9 @@
+{
+    "McpServer": {
+        "EnableMcpHelpDataScope": "The data accessible through the MCP Server is the same data that can be accessed through the Matomo user interface or Reporting API, including raw data if features such as the Visitor Log are enabled.",
+        "EnableMcpHelpPolicy": "Before enabling, ensure this complies with your organization's privacy policies and applicable regulations. You may need approval from your data protection officer (DPO) or to update your privacy policy.",
+        "EnableMcpHelpPurpose": "Enable the Matomo MCP Server (Model Context Protocol) to allow AI tools and assistants to access analytics context from your Matomo instance.",
+        "EnableMcpHelpUrl": "Your MCP URL: %1$s",
+        "EnableMcpTitle": "Enable MCP Server (Model Context Protocol)"
+    }
+}

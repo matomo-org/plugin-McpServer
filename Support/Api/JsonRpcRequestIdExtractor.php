@@ -20,6 +20,62 @@ final class JsonRpcRequestIdExtractor
      */
     public function extractId(ServerRequestInterface $request): string|int
     {
+        return $this->extractRequestMetadata($request)['requestId'];
+    }
+
+    /**
+     * @return string|int|null Returns null when there is no top-level id.
+     */
+    public function extractTopLevelId(ServerRequestInterface $request): string|int|null
+    {
+        return $this->extractRequestMetadata($request)['topLevelRequestId'];
+    }
+
+    /**
+     * @return array{requestId: string|int, topLevelRequestId: string|int|null}
+     */
+    public function extractRequestMetadata(ServerRequestInterface $request): array
+    {
+        $decoded = $this->decodeRequestBody($request);
+        if (!is_array($decoded)) {
+            return [
+                'requestId' => '',
+                'topLevelRequestId' => null,
+            ];
+        }
+
+        if (!$this->isList($decoded)) {
+            /** @var array<string, mixed> $message */
+            $message = $decoded;
+            $topLevelRequestId = $this->extractOptionalIdFromMessage($message);
+
+            return [
+                'requestId' => $topLevelRequestId ?? '',
+                'topLevelRequestId' => $topLevelRequestId,
+            ];
+        }
+
+        if (isset($decoded[0]) && is_array($decoded[0])) {
+            /** @var array<string, mixed> $message */
+            $message = $decoded[0];
+
+            return [
+                'requestId' => $this->extractIdFromMessage($message),
+                'topLevelRequestId' => null,
+            ];
+        }
+
+        return [
+            'requestId' => '',
+            'topLevelRequestId' => null,
+        ];
+    }
+
+    /**
+     * @return mixed
+     */
+    private function decodeRequestBody(ServerRequestInterface $request): mixed
+    {
         $body = $request->getBody();
         if ($body->isSeekable()) {
             $body->rewind();
@@ -32,31 +88,14 @@ final class JsonRpcRequestIdExtractor
         }
 
         if ($raw === '') {
-            return '';
+            return null;
         }
 
         try {
-            /** @var mixed $decoded */
-            $decoded = json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
+            return json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
-            return '';
+            return null;
         }
-
-        if (is_array($decoded) && !$this->isList($decoded)) {
-            /** @var array<string, mixed> $message */
-            $message = $decoded;
-
-            return $this->extractIdFromMessage($message);
-        }
-
-        if (is_array($decoded) && isset($decoded[0]) && is_array($decoded[0])) {
-            /** @var array<string, mixed> $message */
-            $message = $decoded[0];
-
-            return $this->extractIdFromMessage($message);
-        }
-
-        return '';
     }
 
     /**
@@ -65,12 +104,25 @@ final class JsonRpcRequestIdExtractor
      */
     private function extractIdFromMessage(array $message): string|int
     {
-        $id = $message['id'] ?? '';
+        return $this->extractOptionalIdFromMessage($message) ?? '';
+    }
+
+    /**
+     * @param array<string, mixed> $message
+     * @return string|int|null
+     */
+    private function extractOptionalIdFromMessage(array $message): string|int|null
+    {
+        if (!array_key_exists('id', $message)) {
+            return null;
+        }
+
+        $id = $message['id'];
         if (is_string($id) || is_int($id)) {
             return $id;
         }
 
-        return '';
+        return null;
     }
 
     /**

@@ -21,5 +21,6 @@ final class McpEndpointSpec
         'MCP endpoint requires a root API request: module=API&method=McpServer.mcp&format=mcp. '
         . 'Nested API calls (including API.getBulkRequest) are not supported.';
     public const UNAUTHORIZED_ERROR = 'Authentication required.';
+    public const DISABLED_ERROR = 'MCP endpoint is disabled. Please contact your Matomo administrator.';
     public const INTERNAL_ERROR = 'Internal endpoint error.';
 }

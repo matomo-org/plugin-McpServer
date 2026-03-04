@@ -12,7 +12,10 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Piwik\Access;
+use Piwik\Container\StaticContainer;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -119,6 +122,26 @@ class McpServerTest extends IntegrationTestCase
             self::assertSame('Session not found or has expired.', $actualError->message);
         } finally {
             McpAuthTestHelper::restoreAuth($originalTokenAuth);
+        }
+    }
+
+    public function testContainerSystemSettingCanBeToggled(): void
+    {
+        $systemSettings = StaticContainer::get(SystemSettings::class);
+        self::assertInstanceOf(SystemSettings::class, $systemSettings);
+        $originalEnableMcpValue = (bool) $systemSettings->enableMcp->getValue();
+
+        Access::getInstance()->setSuperUserAccess(true);
+
+        try {
+            $systemSettings->enableMcp->setValue(false);
+            self::assertFalse($systemSettings->isMcpEnabled());
+
+            $systemSettings->enableMcp->setValue(true);
+            self::assertTrue($systemSettings->isMcpEnabled());
+        } finally {
+            $systemSettings->enableMcp->setValue($originalEnableMcpValue);
+            Access::getInstance()->setSuperUserAccess(false);
         }
     }
 }

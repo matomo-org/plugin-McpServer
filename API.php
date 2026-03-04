@@ -32,7 +32,8 @@ class API extends \Piwik\Plugin\API
         private McpServerFactory $factory,
         private McpEndpointGuard $endpointGuard,
         private JsonRpcErrorResponseFactory $jsonRpcErrorResponseFactory,
-        private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor
+        private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor,
+        private SystemSettings $systemSettings
     ) {
     }
 
@@ -62,7 +63,8 @@ class API extends \Piwik\Plugin\API
             );
         }
 
-        $requestId = $this->jsonRpcRequestIdExtractor->extractId($request);
+        $requestMetadata = $this->jsonRpcRequestIdExtractor->extractRequestMetadata($request);
+        $requestId = $requestMetadata['requestId'];
         $guardError = $this->endpointGuard->validate(
             $format,
             $requestParams->getStringParameter('module', ''),
@@ -88,6 +90,10 @@ class API extends \Piwik\Plugin\API
                 McpEndpointSpec::INTERNAL_ERROR,
                 $requestId
             );
+        }
+
+        if (!$this->isMcpEnabled()) {
+            return $this->createDisabledResponse($requestMetadata['topLevelRequestId']);
         }
 
         try {
@@ -129,6 +135,11 @@ class API extends \Piwik\Plugin\API
         );
     }
 
+    protected function isMcpEnabled(): bool
+    {
+        return $this->systemSettings->isMcpEnabled();
+    }
+
     protected function isCurrentApiRequestRoot(): bool
     {
         return ApiRequest::isCurrentApiRequestTheRootApiRequest();
@@ -152,5 +163,19 @@ class API extends \Piwik\Plugin\API
         } while ($current !== null);
 
         return false;
+    }
+
+    protected function createDisabledResponse(string|int|null $topLevelRequestId): ResponseInterface
+    {
+        if ($topLevelRequestId === null) {
+            return (new Psr17Factory())->createResponse(403);
+        }
+
+        return $this->jsonRpcErrorResponseFactory->create(
+            403,
+            JsonRpcError::INVALID_REQUEST,
+            McpEndpointSpec::DISABLED_ERROR,
+            $topLevelRequestId
+        );
     }
 }

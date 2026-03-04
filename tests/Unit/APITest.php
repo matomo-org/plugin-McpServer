@@ -21,9 +21,11 @@ use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use PHPUnit\Framework\TestCase;
@@ -177,6 +179,7 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
+                $this->createMock(SystemSettings::class),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -207,6 +210,42 @@ class APITest extends TestCase
         self::assertSame('init-1', $message->id);
     }
 
+    public function testMcpReturnsForbiddenErrorWhenMcpIsDisabledAndTopLevelIdExists(): void
+    {
+        Access::getInstance()->setSuperUserAccess(true);
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $request = $this->createRequest(McpTestHelper::makeInitializeRequest('disabled-1'));
+        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', false);
+        $response = $api->mcp();
+
+        self::assertSame(403, $response->getStatusCode());
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame(McpEndpointSpec::DISABLED_ERROR, $message->message);
+        self::assertSame('disabled-1', $message->id);
+    }
+
+    public function testMcpReturnsForbiddenWithoutBodyWhenMcpIsDisabledAndTopLevelIdIsMissing(): void
+    {
+        Access::getInstance()->setSuperUserAccess(true);
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $initialize = \json_decode(McpTestHelper::makeInitializeRequest('batch-1'), true, 512, \JSON_THROW_ON_ERROR);
+        $batchPayload = \json_encode([$initialize], \JSON_THROW_ON_ERROR);
+        $request = $this->createRequest($batchPayload);
+        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', false);
+        $response = $api->mcp();
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('', $response->getHeaderLine('Content-Type'));
+        self::assertSame('', McpTestHelper::getResponseBody($response));
+    }
+
     public function testMcpReturnsInternalErrorResponseWhenRequestCreationFails(): void
     {
         $_GET['module'] = 'API';
@@ -222,6 +261,7 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
+                $this->createMock(SystemSettings::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -242,10 +282,11 @@ class APITest extends TestCase
         self::assertSame('', $message->id);
     }
 
-    private function createRequest(): ServerRequestInterface
+    private function createRequest(?string $payload = null): ServerRequestInterface
     {
         $factory = new Psr17Factory();
-        $body = $factory->createStream(McpTestHelper::makeInitializeRequest('init-1'));
+        $requestPayload = $payload ?? McpTestHelper::makeInitializeRequest('init-1');
+        $body = $factory->createStream($requestPayload);
 
         return $factory
             ->createServerRequest('POST', 'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp')
@@ -266,7 +307,8 @@ class APITest extends TestCase
     private function createApiWithRequest(
         ServerRequestInterface $request,
         bool $isRootApiRequest = true,
-        ?string $rootApiMethod = 'McpServer.mcp'
+        ?string $rootApiMethod = 'McpServer.mcp',
+        bool $isMcpEnabled = true
     ): API {
         $factory = $this->createFactory();
 
@@ -277,8 +319,14 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
+                $this->createMock(SystemSettings::class),
             ])
-            ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
+            ->onlyMethods([
+                'createRequestFromGlobals',
+                'isCurrentApiRequestRoot',
+                'getRootApiRequestMethod',
+                'isMcpEnabled',
+            ])
             ->getMock();
 
         $api->method('createRequestFromGlobals')
@@ -287,6 +335,8 @@ class APITest extends TestCase
             ->willReturn($isRootApiRequest);
         $api->method('getRootApiRequestMethod')
             ->willReturn($rootApiMethod);
+        $api->method('isMcpEnabled')
+            ->willReturn($isMcpEnabled);
 
         return $api;
     }
