@@ -14,6 +14,9 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
+use Piwik\DataTable;
+use Piwik\DataTable\Map;
+use Piwik\DataTable\Row;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
@@ -146,11 +149,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ) use (&$processedFetchCalls): array {
                 $processedFetchCalls++;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -242,11 +241,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ) use (&$processedFetchCalls): array {
                 $processedFetchCalls++;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -277,7 +272,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         }
     }
 
-    public function testAppliesLimitPlusOneAndTrimsResponseData(): void
+    public function testAppliesRequestedLimitAndDerivesPaginationFromCoreMetadata(): void
     {
         $observedFilterLimit = null;
         $observedFilterOffset = null;
@@ -309,17 +304,12 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedRequestParameters = $requestParameters;
                 $observedApiParameters = $apiParameters;
 
-                return [
-                    'reportData' => [
-                        ['label' => 'A', 'nb_visits' => 10],
-                        ['label' => 'B', 'nb_visits' => 9],
-                    ],
-                    'reportMetadata' => [
-                        ['idsubdatatable' => 1],
-                        ['idsubdatatable' => 2],
-                    ],
-                    'columns' => ['label' => 'Label', 'nb_visits' => 'Visits'],
-                ];
+                return self::makeProcessedReportPayload(
+                    rows: [['label' => 'A', 'nb_visits' => 10]],
+                    rowMetadata: [['idsubdatatable' => 1]],
+                    totalRowsBeforeLimit: 10,
+                    columns: ['label' => 'Label', 'nb_visits' => 'Visits']
+                );
             }
         );
 
@@ -341,7 +331,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             filterOffset: 5
         );
 
-        self::assertSame('2', $observedFilterLimit);
+        self::assertSame('1', $observedFilterLimit);
         self::assertSame('5', $observedFilterOffset);
         self::assertSame('1', $observedRequestParameters['idSite'] ?? null);
         self::assertSame('day', $observedRequestParameters['period'] ?? null);
@@ -353,6 +343,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         self::assertSame(1, $actual['pagination']['filter_limit']);
         self::assertSame(5, $actual['pagination']['filter_offset']);
         self::assertSame(1, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
         self::assertTrue($actual['pagination']['has_more']);
         $report = $actual['report'];
         $reportData = $report['reportData'] ?? null;
@@ -397,11 +388,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedGoalColumnsProcessGoals =
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -435,7 +422,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $service = $this->makeService(
             $this->makeMetadataWrapper(),
-            function (
+            static function (
                 int $idSite,
                 string $period,
                 string $date,
@@ -450,11 +437,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ) use (&$capturedRequestParameters): array {
                 $capturedRequestParameters = $requestParameters;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -480,11 +463,11 @@ class ReportProcessedQueryServiceTest extends TestCase
             'idSite' => '1',
             'period' => 'day',
             'date' => 'today',
-            'filter_limit' => '2',
-            'filter_offset' => '5',
             'flat' => '1',
             'filter_update_columns_when_show_all_goals' => '-1',
             'filter_show_goal_columns_process_goals' => '1,2',
+            'filter_limit' => '1',
+            'filter_offset' => '5',
         ], $capturedRequestParameters);
     }
 
@@ -624,11 +607,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedGoalColumnsProcessGoals =
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -685,11 +664,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedGoalColumnsProcessGoals =
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -747,11 +722,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedGoalColumnsProcessGoals =
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -807,11 +778,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 $observedGoalColumnsProcessGoals =
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -909,11 +876,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $service = $this->makeService(
             $wrapper,
             function (): array {
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -984,11 +947,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         $service = $this->makeService(
             $wrapper,
             function (): array {
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             }
         );
 
@@ -1084,16 +1043,133 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
     }
 
+    public function testFallsBackToReturnedRowsWhenCorePaginationMetadataIsMissing(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapper(),
+            static function (): array {
+                $reportData = new DataTable();
+                $reportData->addRow(new Row([Row::COLUMNS => ['label' => 'A']]));
+
+                $reportMetadata = new DataTable();
+                $reportMetadata->addRow(new Row([Row::COLUMNS => ['idsubdatatable' => 1]]));
+
+                return [
+                    'reportData' => $reportData,
+                    'reportMetadata' => $reportMetadata,
+                    'columns' => ['label' => 'Label'],
+                ];
+            }
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+
+        $actual = $record->toArray();
+        self::assertSame(1, $actual['pagination']['returned_rows']);
+        self::assertSame(1, $actual['pagination']['total_rows']);
+        self::assertFalse($actual['pagination']['has_more']);
+    }
+
+    public function testDerivesMapPaginationUsingMaxReturnedRowsAndAnyHasMore(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapper(),
+            static function (): array {
+                return self::makeProcessedReportMapPayload(
+                    rowsByTable: [
+                        [['label' => 'A1'], ['label' => 'A2']],
+                        [['label' => 'B1'], ['label' => 'B2'], ['label' => 'B3']],
+                    ],
+                    totalRowsBeforeLimitByTable: [2, 10]
+                );
+            }
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'range',
+            date: '2015-01-01,2015-01-03',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 1
+        );
+
+        $actual = $record->toArray();
+        self::assertSame(3, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
+        self::assertTrue($actual['pagination']['has_more']);
+    }
+
+    public function testFallsBackPerMapTableWhenPaginationMetadataIsMissing(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapper(),
+            static function (): array {
+                return self::makeProcessedReportMapPayload(
+                    rowsByTable: [
+                        [['label' => 'A1']],
+                        [['label' => 'B1'], ['label' => 'B2']],
+                    ],
+                    totalRowsBeforeLimitByTable: [null, 10]
+                );
+            }
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'range',
+            date: '2015-01-01,2015-01-03',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 1
+        );
+
+        $actual = $record->toArray();
+        self::assertSame(2, $actual['pagination']['returned_rows']);
+        self::assertSame(10, $actual['pagination']['total_rows']);
+        self::assertTrue($actual['pagination']['has_more']);
+    }
+
     public function testAllowsAdHocSegmentWhenStrictModeEnabledIfCoreRequestSucceeds(): void
     {
         $service = $this->makeService(
             metadataWrapper: $this->makeMetadataWrapper(),
             processedReportCaller: static function (): array {
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload();
             },
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
         );
@@ -1161,11 +1237,11 @@ class ReportProcessedQueryServiceTest extends TestCase
         $service = $this->makeService(
             metadataWrapper: $this->makeMetadataWrapper(),
             processedReportCaller: static function (): array {
-                return [
-                    'reportData' => [],
-                    'reportMetadata' => [],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload(
+                    rows: [],
+                    rowMetadata: [],
+                    totalRowsBeforeLimit: 0
+                );
             },
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
         );
@@ -1197,11 +1273,11 @@ class ReportProcessedQueryServiceTest extends TestCase
         $service = $this->makeService(
             metadataWrapper: $this->makeMetadataWrapper(),
             processedReportCaller: static function (): array {
-                return [
-                    'reportData' => [],
-                    'reportMetadata' => [],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return self::makeProcessedReportPayload(
+                    rows: [],
+                    rowMetadata: [],
+                    totalRowsBeforeLimit: 0
+                );
             },
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
         );
@@ -1225,6 +1301,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         self::assertSame(0, $record->toArray()['pagination']['returned_rows']);
+        self::assertSame(0, $record->toArray()['pagination']['total_rows']);
     }
 
     public function testReturnsStrictGuidanceWhenCoreFailureMentionsSegmentNotYetProcessedBySystem(): void
@@ -1480,11 +1557,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 ?int $idDimension,
                 ?int $idSubtable
             ): array {
-                return [
-                    'reportData' => [['label' => 'A']],
-                    'reportMetadata' => [['idsubdatatable' => 1]],
-                    'columns' => ['label' => 'Label'],
-                ];
+                return ReportProcessedQueryServiceTest::makeProcessedReportPayload();
             }
         };
         $translatorRunner = new class () implements TranslatorContextRunnerInterface {
@@ -1502,6 +1575,79 @@ class ReportProcessedQueryServiceTest extends TestCase
             $strictSegmentPolicy,
             $processedReportCaller
         );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param list<array<string, mixed>> $rowMetadata
+     * @param array<string, string> $columns
+     * @return array<string, mixed>
+     */
+    public static function makeProcessedReportPayload(
+        array $rows = [['label' => 'A']],
+        array $rowMetadata = [['idsubdatatable' => 1]],
+        ?int $totalRowsBeforeLimit = null,
+        array $columns = ['label' => 'Label']
+    ): array {
+        $reportData = new DataTable();
+        foreach ($rows as $rowColumns) {
+            $reportData->addRow(new Row([Row::COLUMNS => $rowColumns]));
+        }
+        $reportData->setMetadata(
+            DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME,
+            $totalRowsBeforeLimit ?? count($rows)
+        );
+
+        $reportMetadata = new DataTable();
+        foreach ($rowMetadata as $metadataColumns) {
+            $reportMetadata->addRow(new Row([Row::COLUMNS => $metadataColumns]));
+        }
+
+        return [
+            'reportData' => $reportData,
+            'reportMetadata' => $reportMetadata,
+            'columns' => $columns,
+        ];
+    }
+
+    /**
+     * @param list<list<array<string, mixed>>> $rowsByTable
+     * @param list<?int> $totalRowsBeforeLimitByTable
+     * @return array<string, mixed>
+     */
+    public static function makeProcessedReportMapPayload(
+        array $rowsByTable,
+        array $totalRowsBeforeLimitByTable
+    ): array {
+        $reportData = new Map();
+        $reportMetadata = new Map();
+
+        foreach ($rowsByTable as $index => $rows) {
+            $table = new DataTable();
+            foreach ($rows as $rowColumns) {
+                $table->addRow(new Row([Row::COLUMNS => $rowColumns]));
+            }
+
+            $totalRowsBeforeLimit = $totalRowsBeforeLimitByTable[$index] ?? null;
+            if ($totalRowsBeforeLimit !== null) {
+                $table->setMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME, $totalRowsBeforeLimit);
+            }
+
+            $metadataTable = new DataTable();
+            foreach ($rows as $rowIndex => $ignored) {
+                $metadataTable->addRow(new Row([Row::COLUMNS => ['idsubdatatable' => $rowIndex + 1]]));
+            }
+
+            $label = 'table-' . $index;
+            $reportData->addTable($table, $label);
+            $reportMetadata->addTable($metadataTable, $label);
+        }
+
+        return [
+            'reportData' => $reportData,
+            'reportMetadata' => $reportMetadata,
+            'columns' => ['label' => 'Label'],
+        ];
     }
 
     private function makeStrictSegmentPolicyService(

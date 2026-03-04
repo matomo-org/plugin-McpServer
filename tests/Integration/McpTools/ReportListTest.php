@@ -64,6 +64,9 @@ class ReportListTest extends IntegrationTestCase
         self::assertCount(2, $firstPage['reports']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
+        $totalRows = $firstPage['total_rows'] ?? null;
+        self::assertIsInt($totalRows);
+        self::assertGreaterThan(0, $totalRows);
 
         $first = $firstPage['reports'][0];
         self::assertArrayHasKey('uniqueId', $first);
@@ -84,6 +87,7 @@ class ReportListTest extends IntegrationTestCase
 
         self::assertIsArray($secondPage['reports'] ?? null);
         self::assertNotEmpty($secondPage['reports']);
+        self::assertSame($totalRows, $secondPage['total_rows'] ?? null);
     }
 
     public function testSupportsSortByNameDesc(): void
@@ -399,6 +403,7 @@ class ReportListTest extends IntegrationTestCase
             self::assertSame([], $content['reports'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);
             self::assertSame(null, $content['next_cursor'] ?? null);
+            self::assertSame(0, $content['total_rows'] ?? null);
         });
     }
 
@@ -426,6 +431,9 @@ class ReportListTest extends IntegrationTestCase
 
             $pageReports = $content['reports'] ?? [];
             self::assertIsArray($pageReports);
+            $totalRows = $content['total_rows'] ?? null;
+            self::assertIsInt($totalRows);
+            self::assertGreaterThanOrEqual($totalRows, count($pageReports));
             foreach ($pageReports as $pageReport) {
                 self::assertIsArray($pageReport);
                 $allReports[] = $pageReport;

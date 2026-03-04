@@ -56,6 +56,7 @@ class SiteListTest extends TestCase
             ],
             'next_cursor' => null,
             'has_more' => false,
+            'total_rows' => 2,
         ], $actual);
     }
 

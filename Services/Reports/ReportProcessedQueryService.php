@@ -13,7 +13,9 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access;
+use Piwik\DataTable;
 use Piwik\DataTable\DataTableInterface;
+use Piwik\DataTable\Map;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
 use Piwik\Period\Factory as PeriodFactory;
@@ -133,8 +135,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         $resolvedApiParametersForResponse = array_merge($apiParametersForCall, $requestParameters);
         $idGoalForCoreCall = $reportUsesIdGoalSelector ? $idGoal : null;
 
-        $requestedFilterLimit = $this->normalizeFilterLimit($filterLimit);
-        $effectiveFilterLimit = $requestedFilterLimit + 1;
+        $effectiveFilterLimit = $this->normalizeFilterLimit($filterLimit);
         $effectiveFilterOffset = $this->normalizeFilterOffset($filterOffset);
 
         $processed = $this->callProcessedReport(
@@ -152,11 +153,11 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             filterOffset: $effectiveFilterOffset
         );
 
-        $normalizedReport = $this->normalizeProcessedReportPayload($processed);
-        [$normalizedReport, $returnedRows, $hasMore] = $this->trimToRequestedLimit(
-            $normalizedReport,
-            $requestedFilterLimit
+        [$returnedRows, $totalRows, $hasMore] = $this->derivePaginationFromProcessedReport(
+            $processed,
+            $effectiveFilterOffset
         );
+        $normalizedReport = $this->normalizeProcessedReportPayload($processed);
         $this->throwStrictSegmentGuidanceForEmptySegmentedReportIfNeeded(
             $normalizedReport,
             $returnedRows,
@@ -168,9 +169,10 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         return new ReportProcessedRecord(
             report: $normalizedReport,
-            filterLimit: $requestedFilterLimit,
+            filterLimit: $effectiveFilterLimit,
             filterOffset: $effectiveFilterOffset,
             returnedRows: $returnedRows,
+            totalRows: $totalRows,
             hasMore: $hasMore,
             uniqueId: $reportMetadata->uniqueId,
             apiModule: $reportMetadata->module,
@@ -486,14 +488,10 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
         }
 
-        // Keep pagination deterministic by forcing filter_limit/filter_offset in request parameters.
-        // TODO: remove this workaround once core exposes stable total-rows metadata for processed reports.
         $resolvedRequestParameters = [
             'idSite' => (string) $idSite,
             'period' => $period,
             'date' => $date,
-            'filter_limit' => (string) $filterLimit,
-            'filter_offset' => (string) $filterOffset,
         ];
         $resolvedRequestParameters = array_merge($resolvedRequestParameters, $requestParameters);
         $resolvedRequestParameters['idSite'] = (string) $idSite;
@@ -583,6 +581,70 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
     /**
      * @param array<string, mixed> $processed
+     * @return array{0: int, 1: int, 2: bool}
+     */
+    private function derivePaginationFromProcessedReport(array $processed, int $filterOffset): array
+    {
+        $reportData = $processed['reportData'] ?? null;
+        if ($reportData instanceof DataTable) {
+            return $this->derivePaginationFromDataTable($reportData, $filterOffset);
+        }
+
+        if ($reportData instanceof Map) {
+            return $this->derivePaginationFromDataTableMap($reportData, $filterOffset);
+        }
+
+        throw new ToolCallException('Report data is invalid.');
+    }
+
+    /**
+     * @return array{0: int, 1: int, 2: bool}
+     */
+    private function derivePaginationFromDataTable(DataTable $reportData, int $filterOffset): array
+    {
+        $returnedRows = $reportData->getRowsCount();
+        $totalRowsBeforeLimit = $reportData->getMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME);
+        if (!is_int($totalRowsBeforeLimit) || $totalRowsBeforeLimit < 0) {
+            $totalRowsBeforeLimit = $returnedRows;
+        }
+
+        $hasMore = ($filterOffset + $returnedRows) < $totalRowsBeforeLimit;
+
+        return [$returnedRows, $totalRowsBeforeLimit, $hasMore];
+    }
+
+    /**
+     * @return array{0: int, 1: int, 2: bool}
+     */
+    private function derivePaginationFromDataTableMap(Map $reportData, int $filterOffset): array
+    {
+        $tables = array_values($reportData->getDataTables());
+        if ($tables === []) {
+            throw new ToolCallException('Report data is invalid.');
+        }
+
+        $returnedRows = 0;
+        $totalRows = 0;
+        $hasMore = false;
+        foreach ($tables as $table) {
+            if (!$table instanceof DataTable) {
+                throw new ToolCallException('Report data is invalid.');
+            }
+
+            [$tableReturnedRows, $tableTotalRows, $tableHasMore] = $this->derivePaginationFromDataTable(
+                $table,
+                $filterOffset
+            );
+            $returnedRows = max($returnedRows, $tableReturnedRows);
+            $totalRows = max($totalRows, $tableTotalRows);
+            $hasMore = $hasMore || $tableHasMore;
+        }
+
+        return [$returnedRows, $totalRows, $hasMore];
+    }
+
+    /**
+     * @param array<string, mixed> $processed
      * @return array<string, mixed>
      */
     private function normalizeProcessedReportPayload(array $processed): array
@@ -619,95 +681,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         return $value;
     }
-
-    /**
-     * @param array<string, mixed> $report
-     * @return array{0: array<string, mixed>, 1: int, 2: bool}
-     */
-    private function trimToRequestedLimit(array $report, int $requestedFilterLimit): array
-    {
-        $hasMore = false;
-        $returnedRows = 0;
-        $capturedReturnedRows = false;
-
-        $reportData = $report['reportData'] ?? null;
-        $reportMetadata = $report['reportMetadata'] ?? null;
-
-        $this->trimParallelRows(
-            $reportData,
-            $reportMetadata,
-            $requestedFilterLimit,
-            $hasMore,
-            $returnedRows,
-            $capturedReturnedRows
-        );
-
-        if (array_key_exists('reportData', $report)) {
-            $report['reportData'] = $reportData;
-        }
-
-        if (array_key_exists('reportMetadata', $report)) {
-            $report['reportMetadata'] = $reportMetadata;
-        }
-
-        return [$report, $returnedRows, $hasMore];
-    }
-
-    private function trimParallelRows(
-        mixed &$reportData,
-        mixed &$reportMetadata,
-        int $requestedFilterLimit,
-        bool &$hasMore,
-        int &$returnedRows,
-        bool &$capturedReturnedRows
-    ): void {
-        if (is_array($reportData) && array_is_list($reportData)) {
-            $rowCountBeforeTrim = count($reportData);
-            if ($rowCountBeforeTrim > $requestedFilterLimit) {
-                $hasMore = true;
-            }
-
-            $reportData = array_slice($reportData, 0, $requestedFilterLimit);
-            if (is_array($reportMetadata) && array_is_list($reportMetadata)) {
-                $reportMetadata = array_slice($reportMetadata, 0, $requestedFilterLimit);
-            }
-
-            if (!$capturedReturnedRows) {
-                $returnedRows = count($reportData);
-                $capturedReturnedRows = true;
-            }
-
-            return;
-        }
-
-        if (!is_array($reportData)) {
-            return;
-        }
-
-        foreach ($reportData as $key => &$childData) {
-            $childMetadata = null;
-            $hasMetadataChild = false;
-            if (is_array($reportMetadata) && array_key_exists($key, $reportMetadata)) {
-                $childMetadata = $reportMetadata[$key];
-                $hasMetadataChild = true;
-            }
-
-            $this->trimParallelRows(
-                $childData,
-                $childMetadata,
-                $requestedFilterLimit,
-                $hasMore,
-                $returnedRows,
-                $capturedReturnedRows
-            );
-
-            if ($hasMetadataChild) {
-                $reportMetadata[$key] = $childMetadata;
-            }
-        }
-        unset($childData);
-    }
-
     /**
      * @param array<string, mixed> $report
      */

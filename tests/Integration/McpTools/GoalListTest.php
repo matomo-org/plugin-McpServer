@@ -88,6 +88,7 @@ class GoalListTest extends IntegrationTestCase
         self::assertCount(2, $firstPage['goals']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
+        self::assertSame(3, $firstPage['total_rows'] ?? null);
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -99,6 +100,7 @@ class GoalListTest extends IntegrationTestCase
 
         self::assertIsArray($secondPage['goals'] ?? null);
         self::assertNotEmpty($secondPage['goals']);
+        self::assertSame(3, $secondPage['total_rows'] ?? null);
     }
 
     public function testSupportsSortByIdDesc(): void
@@ -324,6 +326,7 @@ class GoalListTest extends IntegrationTestCase
             self::assertSame([], $content['goals'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);
             self::assertSame(null, $content['next_cursor'] ?? null);
+            self::assertSame(0, $content['total_rows'] ?? null);
         });
     }
 

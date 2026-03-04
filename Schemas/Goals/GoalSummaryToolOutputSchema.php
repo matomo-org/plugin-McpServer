@@ -47,8 +47,9 @@ final class GoalSummaryToolOutputSchema
             ],
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
+            'total_rows' => ['type' => 'integer'],
         ],
-        'required' => ['goals', 'next_cursor', 'has_more'],
+        'required' => ['goals', 'next_cursor', 'has_more', 'total_rows'],
         'additionalProperties' => false,
     ];
 }

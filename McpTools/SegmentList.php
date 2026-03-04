@@ -39,6 +39,7 @@ class SegmentList
      *     segments: list<SegmentSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
+     *     total_rows: int,
      * }
      */
     #[McpTool(
@@ -100,7 +101,7 @@ class SegmentList
             ]
         );
 
-        /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        /** @var array{segments: list<SegmentSummaryArray>, next_cursor: string|null, has_more: bool, total_rows: int} $response */
         return $response;
     }
 }

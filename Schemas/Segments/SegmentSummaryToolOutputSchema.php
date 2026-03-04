@@ -34,8 +34,9 @@ final class SegmentSummaryToolOutputSchema
             ],
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
+            'total_rows' => ['type' => 'integer'],
         ],
-        'required' => ['segments', 'next_cursor', 'has_more'],
+        'required' => ['segments', 'next_cursor', 'has_more', 'total_rows'],
         'additionalProperties' => false,
     ];
 }

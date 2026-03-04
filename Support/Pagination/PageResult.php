@@ -22,7 +22,8 @@ final class PageResult
     public function __construct(
         public readonly array $items,
         public readonly ?string $nextCursor,
-        public readonly bool $hasMore
+        public readonly bool $hasMore,
+        public readonly int $totalRows
     ) {
     }
 }

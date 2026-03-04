@@ -34,8 +34,9 @@ final class SiteSummaryToolOutputSchema
             ],
             'next_cursor' => ['type' => ['string', 'null']],
             'has_more' => ['type' => 'boolean'],
+            'total_rows' => ['type' => 'integer'],
         ],
-        'required' => ['sites', 'next_cursor', 'has_more'],
+        'required' => ['sites', 'next_cursor', 'has_more', 'total_rows'],
         'additionalProperties' => false,
     ];
 }

@@ -39,6 +39,7 @@ class SiteList
      *     sites: list<SiteSummaryArray>,
      *     next_cursor: string|null,
      *     has_more: bool,
+     *     total_rows: int,
      * }
      */
     #[McpTool(
@@ -94,7 +95,7 @@ class SiteList
             ]
         );
 
-        /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool} $response */
+        /** @var array{sites: list<SiteSummaryArray>, next_cursor: string|null, has_more: bool, total_rows: int} $response */
         return $response;
     }
 }

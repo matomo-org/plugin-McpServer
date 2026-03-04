@@ -44,6 +44,7 @@ class CursorPaginatorTest extends TestCase
         ], $firstPage->items);
         self::assertTrue($firstPage->hasMore);
         self::assertIsString($firstPage->nextCursor);
+        self::assertSame(3, $firstPage->totalRows);
 
         $secondPage = $paginator->paginate(
             $items,
@@ -56,6 +57,7 @@ class CursorPaginatorTest extends TestCase
         ], $secondPage->items);
         self::assertFalse($secondPage->hasMore);
         self::assertNull($secondPage->nextCursor);
+        self::assertSame(3, $secondPage->totalRows);
     }
 
     public function testSupportsPrimaryOnlySortConfig(): void
@@ -86,6 +88,7 @@ class CursorPaginatorTest extends TestCase
         ], $page->items);
         self::assertTrue($page->hasMore);
         self::assertIsString($page->nextCursor);
+        self::assertSame(3, $page->totalRows);
     }
 
     public function testUsesBinaryCaseAndAccentSensitiveStringOrdering(): void
@@ -115,6 +118,7 @@ class CursorPaginatorTest extends TestCase
             ['name' => 'alpha'],
             ['name' => 'Álpha'],
         ], $page->items);
+        self::assertSame(3, $page->totalRows);
     }
 
     public function testRejectsInvalidSortToken(): void
@@ -194,6 +198,7 @@ class CursorPaginatorTest extends TestCase
         self::assertSame([
             ['idsite' => 3, 'name' => 'Gamma'],
         ], $secondPage->items);
+        self::assertSame(3, $secondPage->totalRows);
     }
 
     public function testRejectsCursorWhenContextMismatches(): void

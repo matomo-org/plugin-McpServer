@@ -88,6 +88,7 @@ final class PaginatedCollectionResponder
             $collectionKey => $items,
             'next_cursor' => $page->nextCursor,
             'has_more' => $page->hasMore,
+            'total_rows' => $page->totalRows,
         ];
     }
 
