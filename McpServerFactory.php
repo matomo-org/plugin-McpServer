@@ -20,10 +20,14 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\McpTools\ApiList;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiListToolInputSchema;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
 use Psr\Log\NullLogger;
@@ -83,6 +87,29 @@ final class McpServerFactory
             inputSchema: ReportProcessed::INPUT_SCHEMA,
             outputSchema: ReportProcessedToolOutputSchema::ITEM,
         );
+
+        $rawApiAccessMode = $this->resolveRawApiAccessMode();
+        if (RawApiAccessMode::allowsToolRegistration($rawApiAccessMode)) {
+            // This tool is registered manually (not via attribute discovery)
+            // so registration can be gated by the raw API access mode.
+            $builder->addTool(
+                [ApiList::class, 'list'],
+                ApiList::TOOL_NAME,
+                "Use when: you need discoverable Matomo API methods and parameter metadata.\n"
+                    . "Purpose: return paginated API method summaries aligned with Matomo API docs visibility.\n"
+                    . "Next: choose a method and map parameters for subsequent raw API tooling.",
+                new ToolAnnotations(
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: false,
+                ),
+                ApiListToolInputSchema::SCHEMA,
+                null,
+                null,
+                ApiMethodSummaryToolOutputSchema::PAGINATED_LIST,
+            );
+        }
 
         $callToolHandler = new CompatibleCallToolHandler(
             $registry,
@@ -150,6 +177,12 @@ final class McpServerFactory
         }
 
         return $normalizedLevel;
+    }
+
+    private function resolveRawApiAccessMode(): string
+    {
+        $config = $this->getMcpServerConfig();
+        return RawApiAccessMode::normalize($config['raw_api_access_mode'] ?? null);
     }
 
     /**

@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Cache;
 use Piwik\Config;
@@ -239,5 +240,62 @@ class McpToolsContractTest extends IntegrationTestCase
             Rules::setBrowserTriggerArchiving((bool) $originalBrowserTriggerEnabled);
             Cache::getTransientCache()->flushAll();
         }
+    }
+
+    public function testRawApiListToolIsHiddenWhenRawAccessModeIsNone(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayNotHasKey('matomo_api_list', $toolsByName);
+    }
+
+    public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsRead(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_list', $toolsByName);
+        $tool = $toolsByName['matomo_api_list'];
+        self::assertNotNull($tool->annotations);
+        self::assertTrue($tool->annotations->readOnlyHint);
+        self::assertFalse($tool->annotations->destructiveHint);
+        self::assertTrue($tool->annotations->idempotentHint);
+        self::assertFalse($tool->annotations->openWorldHint);
+    }
+
+    public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsFull(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_list', $toolsByName);
+        $tool = $toolsByName['matomo_api_list'];
+        self::assertNotNull($tool->annotations);
+        self::assertTrue($tool->annotations->readOnlyHint);
+        self::assertFalse($tool->annotations->destructiveHint);
+        self::assertTrue($tool->annotations->idempotentHint);
+        self::assertFalse($tool->annotations->openWorldHint);
+    }
+
+    /**
+     * @return array<string, Tool>
+     */
+    private function listToolsByNameForCurrentConfig(): array
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeListToolsRequest(__METHOD__);
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseListTools($message);
+
+        $toolsByName = [];
+        foreach ($result->tools as $tool) {
+            $toolsByName[$tool->name] = $tool;
+        }
+
+        return $toolsByName;
     }
 }

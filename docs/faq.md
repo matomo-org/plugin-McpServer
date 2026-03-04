@@ -28,6 +28,18 @@ log_tool_call_parameters_full = 0
 - `log_tool_call_level`: Tool-call logging level when `log_tool_calls = 1`. Accepted values: `ERROR`, `WARN`/`WARNING`, `INFO`, `DEBUG`, `VERBOSE` (case-insensitive). Missing or invalid values default to `DEBUG`. `VERBOSE` is logged via debug-level logger calls.
 - `log_tool_call_parameters_full`: Logs full tool-call parameter values when set to `1`. Default is redacted parameter logging when set to `0` (may expose sensitive input data when enabled).
 
+Configure raw Matomo API tool access in `config/config.ini.php`:
+
+```ini
+[McpServer]
+raw_api_access_mode = none
+```
+
+- `raw_api_access_mode`: Controls raw API discovery tool visibility for `matomo_api_list`.
+- `none`: hides `matomo_api_list` (default).
+- `read`: shows `matomo_api_list` and currently returns only API actions with `get`/`is` prefix. This prefix-based filter is a temporary heuristic and may be replaced by a more accurate read/write classification in the future.
+- `full`: shows `matomo_api_list` and returns all discoverable API actions.
+
 ## Enabling MCP
 
 MCP access is disabled by default and must be enabled in **Administration -> System -> General Settings -> McpServer**.

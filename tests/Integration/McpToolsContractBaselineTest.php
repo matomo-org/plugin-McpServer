@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Matomo\Dependencies\McpServer\Mcp\Server;
+use Piwik\Config;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
@@ -27,6 +28,7 @@ use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
@@ -233,6 +235,24 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
         self::assertStringContainsString('"reports"', $body);
         self::assertStringContainsString('"parameters":{}', $body);
+    }
+
+    public function testApiListSuccessShapeInReadMode(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['limit' => 5],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::PAGINATED_LIST, $content);
+        self::assertNotEmpty($content['methods'] ?? []);
     }
 
     /**

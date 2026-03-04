@@ -395,4 +395,48 @@ class McpServerFactoryTest extends TestCase
 
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
     }
+
+    public function testRawApiListToolIsHiddenWhenRawAccessModeIsMissingOrNone(): void
+    {
+        Config::getInstance()->McpServer = [];
+        $toolsWhenMissing = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_list', $toolsWhenMissing);
+
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
+        $toolsWhenNone = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_list', $toolsWhenNone);
+    }
+
+    public function testRawApiListToolIsVisibleWhenRawAccessModeIsReadOrFull(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        $toolsWhenRead = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_list', $toolsWhenRead);
+
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $toolsWhenFull = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_list', $toolsWhenFull);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listToolNamesForCurrentConfig(): array
+    {
+        $factory = new McpServerFactory(
+            $this->createMock(LoggerInterface::class),
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeListToolsRequest('list-tools-1');
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseListTools($message);
+
+        return array_values(array_map(static fn($tool) => $tool->name, $result->tools));
+    }
 }
