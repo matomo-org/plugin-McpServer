@@ -16,6 +16,24 @@ use Piwik\Plugins\McpServer\Session\DbSessionTable;
 
 class McpServer extends Plugin
 {
+    /**
+     * @return array<string, string>
+     */
+    public function registerEvents(): array
+    {
+        return [
+            'AssetManager.getStylesheetFiles' => 'getStylesheetFiles',
+        ];
+    }
+
+    /**
+     * @param array<string> $stylesheets
+     */
+    public function getStylesheetFiles(array &$stylesheets): void
+    {
+        $stylesheets[] = 'plugins/McpServer/stylesheets/mcpServer.less';
+    }
+
     public function install(): void
     {
         (new DbSessionTable())->install();
