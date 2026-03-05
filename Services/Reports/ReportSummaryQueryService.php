@@ -13,10 +13,9 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterface
@@ -38,12 +37,14 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
                 ],
                 []
             );
-        } catch (NoAccessException $e) {
-            // Keep list behavior aligned with other list tools: no view access yields no rows.
-            return [];
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+            // Keep list behavior aligned with other list tools: no view access yields no rows.
+            if (
+                ToolErrorMapper::shouldReturnEmptyListFor(
+                    $e,
+                    fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                )
+            ) {
                 return [];
             }
 
@@ -124,5 +125,17 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
 
         $alias = $report['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
+    }
+
+    private function isNoAccessLikeFailure(\Throwable $e): bool
+    {
+        $message = strtolower(trim((string) $e->getMessage()));
+        if ($message === '') {
+            return false;
+        }
+
+        return str_contains($message, 'no access')
+            || str_contains($message, 'checkuserhasviewaccess')
+            || str_contains($message, 'view access');
     }
 }

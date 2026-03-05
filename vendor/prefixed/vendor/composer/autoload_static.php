@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit1e5f96ffd6713fd54500be288b0855f1
+class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
 {
     public static $files = array (
         'c855ed707b6003bfa8b26e0244490be1' => __DIR__ . '/../..' . '/symfony/polyfill-uuid/bootstrap.php',
@@ -38,17 +38,6 @@ class ComposerStaticInit1e5f96ffd6713fd54500be288b0855f1
         'Matomo\\Dependencies\\McpServer\\Http\\Discovery\\Strategy\\PuliBetaStrategy' => __DIR__ . '/../..' . '/php-http/discovery/src/Strategy/PuliBetaStrategy.php',
         'Matomo\\Dependencies\\McpServer\\Http\\Discovery\\StreamFactoryDiscovery' => __DIR__ . '/../..' . '/php-http/discovery/src/StreamFactoryDiscovery.php',
         'Matomo\\Dependencies\\McpServer\\Http\\Discovery\\UriFactoryDiscovery' => __DIR__ . '/../..' . '/php-http/discovery/src/UriFactoryDiscovery.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\ConfigProvider' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/ConfigProvider.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Emitter\\EmitterInterface' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Emitter/EmitterInterface.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Emitter\\EmitterStack' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Emitter/EmitterStack.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Emitter\\SapiEmitter' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Emitter/SapiEmitter.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Emitter\\SapiEmitterTrait' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Emitter/SapiEmitterTrait.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Emitter\\SapiStreamEmitter' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Emitter/SapiStreamEmitter.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Exception\\EmitterException' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Exception/EmitterException.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Exception\\ExceptionInterface' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Exception/ExceptionInterface.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\Exception\\InvalidEmitterException' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/Exception/InvalidEmitterException.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\RequestHandlerRunner' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/RequestHandlerRunner.php',
-        'Matomo\\Dependencies\\McpServer\\Laminas\\HttpHandlerRunner\\RequestHandlerRunnerInterface' => __DIR__ . '/../..' . '/laminas/laminas-httphandlerrunner/src/RequestHandlerRunnerInterface.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Attribute\\CompletionProvider' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Attribute/CompletionProvider.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Attribute\\McpPrompt' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Attribute/McpPrompt.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Attribute\\McpResource' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Attribute/McpResource.php',
@@ -541,7 +530,6 @@ class ComposerStaticInit1e5f96ffd6713fd54500be288b0855f1
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UploadedFileInterface' => __DIR__ . '/../..' . '/psr/http-message/src/UploadedFileInterface.php',
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UriFactoryInterface' => __DIR__ . '/../..' . '/psr/http-factory/src/UriFactoryInterface.php',
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UriInterface' => __DIR__ . '/../..' . '/psr/http-message/src/UriInterface.php',
-        'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Server\\RequestHandlerInterface' => __DIR__ . '/../..' . '/psr/http-server-handler/src/RequestHandlerInterface.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\Comparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/Comparator.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\DateComparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/DateComparator.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\NumberComparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/NumberComparator.php',
@@ -740,7 +728,7 @@ class ComposerStaticInit1e5f96ffd6713fd54500be288b0855f1
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit1e5f96ffd6713fd54500be288b0855f1::$classMap;
+            $loader->classMap = ComposerStaticInit087ec2c977310ceab1d42c00098b8df7::$classMap;
 
         }, null, ClassLoader::class);
     }

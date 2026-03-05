@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\Services\Reports;
 use Piwik\API\Request;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
 
@@ -58,7 +59,7 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
 
             $report = Request::processRequest('API.getProcessedReport', $paramOverride, []);
         } catch (NoAccessException $e) {
-            throw $e;
+            throw new AccessDeniedLikeException('No access to processed report.', 0, $e);
         } catch (\Throwable $e) {
             throw new CoreApiRequestException('Core API processed report request failed.', 0, $e);
         }

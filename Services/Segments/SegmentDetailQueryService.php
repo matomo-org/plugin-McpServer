@@ -12,12 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterface
@@ -39,17 +39,14 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
 
         try {
             $segments = $this->coreSegmentEditorGateway->getAll($idSite);
-        } catch (NoAccessException $e) {
-            throw new ToolCallException('Segment not found.');
         } catch (\Throwable $e) {
-            if (
-                $this->isNoAccessLikeFailure($e)
-                || ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
-            ) {
-                throw new ToolCallException('Segment not found.');
-            }
-
-            throw new ToolCallException('Segment retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $e,
+                'Segment not found.',
+                'Segment retrieval failed.',
+                fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                    || ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            );
         }
 
         return $this->normalizeSegmentDetailRows(
@@ -138,10 +135,6 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
 
     private function isNoAccessLikeFailure(\Throwable $e): bool
     {
-        if ($e instanceof NoAccessException) {
-            return true;
-        }
-
         $message = strtolower(trim((string) $e->getMessage()));
         if ($message === '') {
             return false;

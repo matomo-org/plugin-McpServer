@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterface
@@ -49,7 +49,7 @@ final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterfac
             return Request::processRequest($method, $paramOverride, []);
         } catch (\Throwable $e) {
             if ($this->isNoAccessLikeFailure($e)) {
-                throw new NoAccessException('No access to this resource.', 0);
+                throw new AccessDeniedLikeException('No access to this resource.', 0, $e);
             }
 
             throw $e;
@@ -58,7 +58,7 @@ final class CoreSegmentEditorGateway implements CoreSegmentEditorGatewayInterfac
 
     private function isNoAccessLikeFailure(\Throwable $e): bool
     {
-        if ($e instanceof NoAccessException) {
+        if ($e instanceof AccessDeniedLikeException || $e instanceof \Piwik\NoAccessException) {
             return true;
         }
 

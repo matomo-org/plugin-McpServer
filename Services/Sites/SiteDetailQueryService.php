@@ -11,12 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Exception\UnexpectedWebsiteFoundException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
@@ -30,15 +29,13 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
     {
         try {
             $site = $this->coreSitesManagerGateway->getSiteFromId($idSite);
-        } catch (NoAccessException | UnexpectedWebsiteFoundException $e) {
-            // Intentional: collapse not-found and no-access to avoid information disclosure.
-            throw new ToolCallException('Site not found or access denied.');
         } catch (\Throwable $e) {
-            if ($this->isNotFoundOrNoAccessLikeFailure($e)) {
-                throw new ToolCallException('Site not found or access denied.');
-            }
-
-            throw new ToolCallException('Site retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $e,
+                'Site not found or access denied.',
+                'Site retrieval failed.',
+                fn(\Throwable $error): bool => $this->isNotFoundOrNoAccessLikeFailure($error)
+            );
         }
 
         $siteData = ToolDataNormalizer::requireStringKeyedArray($site, 'Site retrieval failed.');
@@ -71,7 +68,7 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
 
     private function isNotFoundOrNoAccessLikeFailure(\Throwable $e): bool
     {
-        if ($e instanceof NoAccessException || $e instanceof UnexpectedWebsiteFoundException) {
+        if ($e instanceof UnexpectedWebsiteFoundException) {
             return true;
         }
 

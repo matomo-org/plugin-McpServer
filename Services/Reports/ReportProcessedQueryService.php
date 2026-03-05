@@ -27,8 +27,10 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceIn
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 use Piwik\Plugins\SegmentEditor\UnprocessedSegmentException;
@@ -529,6 +531,8 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             });
         } catch (NoAccessException $e) {
             throw new ToolCallException('Report not found.');
+        } catch (AccessDeniedLikeException $e) {
+            throw new ToolCallException('Report not found.');
         } catch (InfrastructureDataException $e) {
             throw new ToolCallException('Report data is invalid.');
         } catch (CoreApiRequestException $e) {
@@ -555,25 +559,23 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 throw new ToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
             }
 
-            if (
-                $this->isNoAccessLikeFailure($rootCause)
-                && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
-            ) {
-                throw new ToolCallException('Report not found.');
-            }
-
-            throw new ToolCallException('Report retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $rootCause,
+                'Report not found.',
+                'Report retrieval failed.',
+                fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                    && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            );
         } catch (ToolCallException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            if (
-                $this->isNoAccessLikeFailure($e)
-                && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
-            ) {
-                throw new ToolCallException('Report not found.');
-            }
-
-            throw new ToolCallException('Report retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $e,
+                'Report not found.',
+                'Report retrieval failed.',
+                fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                    && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            );
         }
 
         return ToolDataNormalizer::requireStringKeyedArray($processed, 'Report data is invalid.');

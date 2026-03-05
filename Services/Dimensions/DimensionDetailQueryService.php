@@ -12,12 +12,12 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class DimensionDetailQueryService implements DimensionDetailQueryServiceInterface
@@ -36,14 +36,13 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
 
         try {
             $dimensions = $this->coreCustomDimensionsGateway->getConfiguredCustomDimensions($idSite);
-        } catch (NoAccessException $e) {
-            throw new ToolCallException('Dimension not found.');
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                throw new ToolCallException('Dimension not found.');
-            }
-
-            throw new ToolCallException('Dimension retrieval failed.');
+            ToolErrorMapper::throwDetailFailure(
+                $e,
+                'Dimension not found.',
+                'Dimension retrieval failed.',
+                static fn(\Throwable $error): bool => ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
+            );
         }
 
         foreach ($dimensions as $dimension) {

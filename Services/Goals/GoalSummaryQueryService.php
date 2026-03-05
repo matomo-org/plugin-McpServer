@@ -12,12 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
+use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
@@ -39,12 +38,9 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
 
         try {
             $goals = $this->coreGoalsGateway->getGoals($idSite);
-        } catch (NoAccessException $e) {
-            // Keep goal list behavior aligned with site/segment list: no view access yields no rows.
-            return [];
         } catch (\Throwable $e) {
-            if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                // Compatibility fallback for no-access backends that do not throw NoAccessException.
+            // Keep goal list behavior aligned with site/segment list: no view access yields no rows.
+            if (ToolErrorMapper::shouldReturnEmptyListFor($e)) {
                 return [];
             }
 

@@ -1,5 +1,15 @@
 # Matomo MCP Server Plugin
 
+## Endpoint
+
+Use the API endpoint:
+
+`index.php?module=API&method=McpServer.mcp&format=mcp`
+
+- `format=mcp` is required.
+- The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
+- Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
+
 ## Configuration
 
 Configure options in `config/config.ini.php`:
