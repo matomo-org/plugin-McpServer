@@ -1,0 +1,5 @@
+[
+  {"id":"report_processed","tool":"matomo_report_processed","expected_mode":"success","prompt_file":"report_processed.txt"},
+  {"id":"site_get","tool":"matomo_site_get","expected_mode":"success","prompt_file":"site_get.txt"},
+  {"id":"site_list","tool":"matomo_site_list","expected_mode":"success","prompt_file":"site_list.txt"}
+]

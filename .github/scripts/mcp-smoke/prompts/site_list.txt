@@ -1,0 +1,1 @@
+Use exactly one MCP tool call: matomo_site_list with arguments {"limit": 5}. Return only the count and first site name.

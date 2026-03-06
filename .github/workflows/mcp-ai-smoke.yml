@@ -5,10 +5,10 @@ on:
     types: [opened, synchronize]
   workflow_dispatch:
     inputs:
-      gemini_model:
-        description: Gemini model
+      codex_model:
+        description: Codex model
         required: false
-        default: gemini-2.5-flash
+        default: gpt-5-mini
 
 permissions:
   actions: read
@@ -35,7 +35,7 @@ env:
   MYSQL_USER: root
   MYSQL_PASSWORD: root
   MYSQL_DATABASE: matomo
-  GEMINI_MODEL: ${{ github.event.inputs.gemini_model || 'gemini-2.5-flash' }}
+  CODEX_MODEL: ${{ github.event.inputs.codex_model || 'gpt-5-mini' }}
 
 jobs:
   preflight:
@@ -43,20 +43,29 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
+      has_codex: ${{ steps.check.outputs.has_codex }}
       reason: ${{ steps.check.outputs.reason }}
     steps:
       - id: check
         name: Check secret availability
         env:
-          GEMINI_APIKEY: ${{ secrets.GEMINI_APIKEY }}
+          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
         run: |
           set -euo pipefail
-          if [ -z "${GEMINI_APIKEY:-}" ]; then
+          has_codex=false
+
+          if [ -n "${OPENAI_APIKEY:-}" ]; then
+            has_codex=true
+          fi
+
+          echo "has_codex=${has_codex}" >> "$GITHUB_OUTPUT"
+
+          if [ "$has_codex" = false ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "reason=GEMINI_APIKEY is not available in this context (likely fork PR)." >> "$GITHUB_OUTPUT"
+            echo "reason=No provider secret is available in this context (likely fork PR)." >> "$GITHUB_OUTPUT"
           else
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "reason=Ready to run smoke checks." >> "$GITHUB_OUTPUT"
+            echo "reason=Ready to run smoke checks for one or more providers." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Preflight summary
@@ -65,15 +74,17 @@ jobs:
             echo "## MCP AI Smoke Preflight"
             echo
             echo "- should_run: ${{ steps.check.outputs.should_run }}"
+            echo "- Codex available: ${{ steps.check.outputs.has_codex }}"
             echo "- reason: ${{ steps.check.outputs.reason }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   smoke:
-    name: Gemini smoke
+    name: AI smoke
     runs-on: ubuntu-24.04
     needs: preflight
     if: needs.preflight.outputs.should_run == 'true'
     continue-on-error: true
+    timeout-minutes: 30
     services:
       mysql:
         image: mysql:5.7
@@ -87,10 +98,10 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=30
-
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 1
           lfs: false
           persist-credentials: false
 
@@ -111,6 +122,8 @@ jobs:
           repository: matomo-org/github-action-tests
           ref: main
           path: github-action-tests
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Check out Matomo for plugin builds
         run: ${{ github.workspace }}/github-action-tests/scripts/bash/checkout_matomo.sh
@@ -122,7 +135,7 @@ jobs:
 
       - name: Prepare Matomo composer setup
         run: composer install --ignore-platform-reqs --no-interaction --no-progress
-        working-directory: matomo
+        working-directory: ${{ env.MATOMO_DIR }}
 
       - name: Setup Matomo with OmniFixture
         run: ./.github/scripts/mcp-smoke/setup-matomo-omnifixture.sh
@@ -135,8 +148,84 @@ jobs:
           MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
 
-      - name: Install Gemini CLI
-        run: npm install -g @google/gemini-cli
+      # Intentionally install the latest release: this smoke job monitors CLI/MCP compatibility.
+      - name: Install Codex CLI
+        if: needs.preflight.outputs.has_codex == 'true'
+        run: npm install -g @openai/codex
+
+      - name: Codex MCP smoke suite
+        if: needs.preflight.outputs.has_codex == 'true'
+        run: ./.github/scripts/mcp-smoke/run-codex-smoke.sh
+        env:
+          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
+          CODEX_MODEL: ${{ env.CODEX_MODEL }}
+          BASE_URL: ${{ env.BASE_URL }}
+          STATE_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/.state.json
+          CASES_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/cases.json
+          PROMPTS_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/prompts
+          ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
+          MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
+
+      - name: Build smoke summary
+        if: always()
+        run: |
+          set -euo pipefail
+          ARTIFACT_DIR="${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts"
+          {
+            echo "## MCP AI Smoke"
+            echo
+            echo "- should_run: ${{ needs.preflight.outputs.should_run }}"
+            echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
+            echo "- reason: ${{ needs.preflight.outputs.reason }}"
+            echo "- smoke job result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          summarize_provider() {
+            local provider="$1"
+            local results_file="$ARTIFACT_DIR/$provider/results.json"
+
+            if [ ! -f "$results_file" ]; then
+              {
+                echo
+                echo "## ${provider^} Results"
+                echo
+                echo "No results.json was produced."
+              } >> "$GITHUB_STEP_SUMMARY"
+              return
+            fi
+
+            total=$(jq 'length' "$results_file")
+            passed=$(jq '[.[] | select(.status == "pass")] | length' "$results_file")
+            skipped=$(jq '[.[] | select(.status == "skip")] | length' "$results_file")
+            failed=$(jq '[.[] | select(.status == "fail")] | length' "$results_file")
+
+            {
+              echo
+              echo "## ${provider^} Results"
+              echo
+              echo "| Case | Expected Tool | Status | Reason |"
+              echo "|---|---|---|---|"
+              jq -r '.[] | "| \(.case_id) | \(.expected_tool) | \(.status) | \(.reason) |"' "$results_file"
+              echo
+              echo "- Total checks: ${total}"
+              echo "- Passed: ${passed}"
+              echo "- Skipped: ${skipped}"
+              echo "- Failed: ${failed}"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          if [ "${{ needs.preflight.outputs.has_codex }}" = "true" ]; then
+            summarize_provider codex
+          fi
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mcp-ai-smoke-artifacts
+          path: .github/scripts/mcp-smoke/artifacts
+          if-no-files-found: warn
+          retention-days: 7
 
   summary:
     name: Final status
@@ -150,6 +239,7 @@ jobs:
             echo "## MCP AI Smoke Result"
             echo
             echo "- preflight: ${{ needs.preflight.outputs.should_run }}"
+            echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
             echo "- reason: ${{ needs.preflight.outputs.reason }}"
             echo "- smoke result: ${{ needs.smoke.result || 'skipped' }}"
             echo
