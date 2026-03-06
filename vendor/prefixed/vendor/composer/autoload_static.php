@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
+class ComposerStaticInitca6eb2087c12f87e6297cb3c15f15c76
 {
     public static $files = array (
         'c855ed707b6003bfa8b26e0244490be1' => __DIR__ . '/../..' . '/symfony/polyfill-uuid/bootstrap.php',
@@ -56,6 +56,9 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Discovery\\SchemaGenerator' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Discovery/SchemaGenerator.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Discovery\\SchemaGeneratorInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Discovery/SchemaGeneratorInterface.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Discovery\\SchemaValidator' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Discovery/SchemaValidator.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Formatter\\PromptResultFormatter' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Formatter/PromptResultFormatter.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Formatter\\ResourceResultFormatter' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Formatter/ResourceResultFormatter.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Formatter\\ToolResultFormatter' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Formatter/ToolResultFormatter.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Logger\\ClientLogger' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Logger/ClientLogger.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Registry' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Registry.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\RegistryInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/RegistryInterface.php',
@@ -71,9 +74,13 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Registry\\ResourceTemplateReference' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Registry/ResourceTemplateReference.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Registry\\ToolReference' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Registry/ToolReference.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Capability\\Tool\\NameValidator' => __DIR__ . '/../..' . '/mcp/sdk/src/Capability/Tool/NameValidator.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\ErrorEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/ErrorEvent.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\NotificationEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/NotificationEvent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\PromptListChangedEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/PromptListChangedEvent.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\RequestEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/RequestEvent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\ResourceListChangedEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/ResourceListChangedEvent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\ResourceTemplateListChangedEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/ResourceTemplateListChangedEvent.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\ResponseEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/ResponseEvent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Event\\ToolListChangedEvent' => __DIR__ . '/../..' . '/mcp/sdk/src/Event/ToolListChangedEvent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Exception\\BadMethodCallException' => __DIR__ . '/../..' . '/mcp/sdk/src/Exception/BadMethodCallException.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Exception\\ClientException' => __DIR__ . '/../..' . '/mcp/sdk/src/Exception/ClientException.php',
@@ -109,6 +116,14 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Content\\SamplingMessage' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Content/SamplingMessage.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Content\\TextContent' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Content/TextContent.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Content\\TextResourceContents' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Content/TextResourceContents.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\AbstractSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/AbstractSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\BooleanSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/BooleanSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\ElicitationSchema' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/ElicitationSchema.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\EnumSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/EnumSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\NumberSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/NumberSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\PrimitiveSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/PrimitiveSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Elicitation\\StringSchemaDefinition' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Elicitation/StringSchemaDefinition.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Enum\\ElicitAction' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Enum/ElicitAction.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Enum\\LoggingLevel' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Enum/LoggingLevel.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Enum\\ProtocolVersion' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Enum/ProtocolVersion.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Enum\\Role' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Enum/Role.php',
@@ -140,6 +155,7 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\CallToolRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/CallToolRequest.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\CompletionCompleteRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/CompletionCompleteRequest.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\CreateSamplingMessageRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/CreateSamplingMessageRequest.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\ElicitRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/ElicitRequest.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\GetPromptRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/GetPromptRequest.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\InitializeRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/InitializeRequest.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Request\\ListPromptsRequest' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Request/ListPromptsRequest.php',
@@ -158,6 +174,7 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\CallToolResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/CallToolResult.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\CompletionCompleteResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/CompletionCompleteResult.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\CreateSamplingMessageResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/CreateSamplingMessageResult.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\ElicitResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/ElicitResult.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\EmptyResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/EmptyResult.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\GetPromptResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/GetPromptResult.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Schema\\Result\\InitializeResult' => __DIR__ . '/../..' . '/mcp/sdk/src/Schema/Result/InitializeResult.php',
@@ -188,13 +205,17 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\PingHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/PingHandler.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\ReadResourceHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/ReadResourceHandler.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\RequestHandlerInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/RequestHandlerInterface.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\ResourceSubscribeHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/ResourceSubscribeHandler.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\ResourceUnsubscribeHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/ResourceUnsubscribeHandler.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Handler\\Request\\SetLogLevelHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Handler/Request/SetLogLevelHandler.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\NativeClock' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/NativeClock.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Protocol' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Protocol.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\RequestContext' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/RequestContext.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Resource\\SessionSubscriptionManager' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Resource/SessionSubscriptionManager.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Resource\\SubscriptionManagerInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Resource/SubscriptionManagerInterface.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\FileSessionStore' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/FileSessionStore.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\InMemorySessionStore' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/InMemorySessionStore.php',
-        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\Psr16StoreSession' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/Psr16StoreSession.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\Psr16SessionStore' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/Psr16SessionStore.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\Session' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/Session.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\SessionFactory' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/SessionFactory.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\SessionFactoryInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/SessionFactoryInterface.php',
@@ -202,6 +223,7 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Session\\SessionStoreInterface' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Session/SessionStoreInterface.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\BaseTransport' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/BaseTransport.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\CallbackStream' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/CallbackStream.php',
+        'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\Http\\MiddlewareRequestHandler' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/Http/MiddlewareRequestHandler.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\InMemoryTransport' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/InMemoryTransport.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\ManagesTransportCallbacks' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/ManagesTransportCallbacks.php',
         'Matomo\\Dependencies\\McpServer\\Mcp\\Server\\Transport\\StdioTransport' => __DIR__ . '/../..' . '/mcp/sdk/src/Server/Transport/StdioTransport.php',
@@ -530,6 +552,8 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UploadedFileInterface' => __DIR__ . '/../..' . '/psr/http-message/src/UploadedFileInterface.php',
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UriFactoryInterface' => __DIR__ . '/../..' . '/psr/http-factory/src/UriFactoryInterface.php',
         'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Message\\UriInterface' => __DIR__ . '/../..' . '/psr/http-message/src/UriInterface.php',
+        'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Server\\MiddlewareInterface' => __DIR__ . '/../..' . '/psr/http-server-middleware/src/MiddlewareInterface.php',
+        'Matomo\\Dependencies\\McpServer\\Psr\\Http\\Server\\RequestHandlerInterface' => __DIR__ . '/../..' . '/psr/http-server-handler/src/RequestHandlerInterface.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\Comparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/Comparator.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\DateComparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/DateComparator.php',
         'Matomo\\Dependencies\\McpServer\\Symfony\\Component\\Finder\\Comparator\\NumberComparator' => __DIR__ . '/../..' . '/symfony/finder/Comparator/NumberComparator.php',
@@ -728,7 +752,7 @@ class ComposerStaticInit087ec2c977310ceab1d42c00098b8df7
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit087ec2c977310ceab1d42c00098b8df7::$classMap;
+            $loader->classMap = ComposerStaticInitca6eb2087c12f87e6297cb3c15f15c76::$classMap;
 
         }, null, ClassLoader::class);
     }

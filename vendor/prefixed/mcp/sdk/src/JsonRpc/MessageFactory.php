@@ -35,11 +35,11 @@ final class MessageFactory
     /**
      * Registry of all known message classes that have methods.
      *
-     * @var array<int, class-string<Request|Notification>>
+     * @var list<class-string<Request>|class-string<Notification>>
      */
     private const REGISTERED_MESSAGES = [Schema\Notification\CancelledNotification::class, Schema\Notification\InitializedNotification::class, Schema\Notification\LoggingMessageNotification::class, Schema\Notification\ProgressNotification::class, Schema\Notification\PromptListChangedNotification::class, Schema\Notification\ResourceListChangedNotification::class, Schema\Notification\ResourceUpdatedNotification::class, Schema\Notification\RootsListChangedNotification::class, Schema\Notification\ToolListChangedNotification::class, Schema\Request\CallToolRequest::class, Schema\Request\CompletionCompleteRequest::class, Schema\Request\CreateSamplingMessageRequest::class, Schema\Request\GetPromptRequest::class, Schema\Request\InitializeRequest::class, Schema\Request\ListPromptsRequest::class, Schema\Request\ListResourcesRequest::class, Schema\Request\ListResourceTemplatesRequest::class, Schema\Request\ListRootsRequest::class, Schema\Request\ListToolsRequest::class, Schema\Request\PingRequest::class, Schema\Request\ReadResourceRequest::class, Schema\Request\ResourceSubscribeRequest::class, Schema\Request\ResourceUnsubscribeRequest::class, Schema\Request\SetLogLevelRequest::class];
     /**
-     * @param array<int, class-string<Request|Notification>> $registeredMessages
+     * @param list<class-string<Request>|class-string<Notification>> $registeredMessages
      */
     public function __construct(private readonly array $registeredMessages)
     {
@@ -110,7 +110,7 @@ final class MessageFactory
     /**
      * Finds the registered message class for a given method name.
      *
-     * @return class-string<Request|Notification>
+     * @return class-string<Request>|class-string<Notification>
      *
      * @throws InvalidInputMessageException
      */

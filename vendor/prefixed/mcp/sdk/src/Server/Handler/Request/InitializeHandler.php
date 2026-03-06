@@ -39,6 +39,7 @@ final class InitializeHandler implements RequestHandlerInterface
     {
         \assert($request instanceof InitializeRequest);
         $session->set('client_info', $request->clientInfo->jsonSerialize());
+        $session->set('client_capabilities', $request->capabilities->jsonSerialize());
         return new Response($request->getId(), new InitializeResult($this->configuration->capabilities ?? new ServerCapabilities(), $this->configuration->serverInfo ?? new Implementation(), $this->configuration?->instructions, null, $this->configuration?->protocolVersion));
     }
 }

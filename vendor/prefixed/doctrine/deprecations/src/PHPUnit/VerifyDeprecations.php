@@ -37,7 +37,7 @@ trait VerifyDeprecations
         }
         foreach ($this->doctrineNoDeprecationsExpectations as $identifier => $expectation) {
             $actualCount = Deprecation::getTriggeredDeprecations()[$identifier] ?? 0;
-            $this->assertTrue($actualCount === $expectation, sprintf("Expected deprecation with identifier '%s' was triggered by code executed in test, but expected not to.", $identifier));
+            $this->assertTrue($actualCount === $expectation, sprintf("Deprecation with identifier '%s' was triggered by code executed in test, but expected not to.", $identifier));
         }
     }
 }

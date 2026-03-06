@@ -43,7 +43,7 @@ class ListPromptsResult implements ResultInterface
         if (!isset($data['prompts']) || !\is_array($data['prompts'])) {
             throw new InvalidArgumentException('Missing or invalid "prompts" array in ListPromptsResult data.');
         }
-        return new self(array_map(fn(array $prompt) => Prompt::fromArray($prompt), $data['prompts']), $data['nextCursor'] ?? null);
+        return new self(array_map(static fn(array $prompt) => Prompt::fromArray($prompt), $data['prompts']), $data['nextCursor'] ?? null);
     }
     /**
      * @return array{

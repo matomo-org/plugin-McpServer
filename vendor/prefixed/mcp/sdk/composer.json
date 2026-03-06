@@ -1,7 +1,7 @@
 {
     "name": "mcp\/sdk",
     "description": "Model Context Protocol SDK for Client and Server applications in PHP",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "type": "library",
     "authors": [
         {
@@ -28,6 +28,8 @@
         "psr\/event-dispatcher": "^1.0",
         "psr\/http-factory": "^1.1",
         "psr\/http-message": "^1.1 || ^2.0",
+        "psr\/http-server-handler": "^1.0",
+        "psr\/http-server-middleware": "^1.0",
         "psr\/log": "^1.0 || ^2.0 || ^3.0",
         "symfony\/finder": "^5.4 || ^6.4 || ^7.3 || ^8.0",
         "symfony\/uid": "^5.4 || ^6.4 || ^7.3 || ^8.0"
@@ -36,7 +38,9 @@
         "laminas\/laminas-httphandlerrunner": "^2.12",
         "nyholm\/psr7": "^1.8",
         "nyholm\/psr7-server": "^1.1",
+        "phar-io\/composer-distributor": "^1.0.2",
         "php-cs-fixer\/shim": "^3.91",
+        "phpdocumentor\/shim": "^3",
         "phpstan\/phpstan": "^2.1",
         "phpunit\/phpunit": "^10.5",
         "psr\/simple-cache": "^2.0 || ^3.0",
@@ -55,6 +59,7 @@
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\ClientCommunication\\": "examples\/server\/client-communication\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\ClientLogging\\": "examples\/server\/client-logging\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\CombinedRegistration\\": "examples\/server\/combined-registration\/",
+            "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\Elicitation\\": "examples\/server\/elicitation\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\ComplexToolSchema\\": "examples\/server\/complex-tool-schema\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\Conformance\\": "examples\/server\/conformance\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\CustomDependencies\\": "examples\/server\/custom-dependencies\/",
@@ -69,7 +74,8 @@
     },
     "config": {
         "allow-plugins": {
-            "php-http\/discovery": false
+            "php-http\/discovery": false,
+            "phpdocumentor\/shim": true
         },
         "sort-packages": true
     }

@@ -10,8 +10,8 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\Formatter\ToolResultFormatter;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\Content;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 /**
  * @phpstan-import-type Handler from ElementReference
@@ -48,48 +48,7 @@ class ToolReference extends ElementReference
      */
     public function formatResult(mixed $toolExecutionResult) : array
     {
-        if ($toolExecutionResult instanceof Content) {
-            return [$toolExecutionResult];
-        }
-        if (\is_array($toolExecutionResult)) {
-            if (empty($toolExecutionResult)) {
-                return [new TextContent('[]')];
-            }
-            $allAreContent = \true;
-            $hasContent = \false;
-            foreach ($toolExecutionResult as $item) {
-                if ($item instanceof Content) {
-                    $hasContent = \true;
-                } else {
-                    $allAreContent = \false;
-                }
-            }
-            if ($allAreContent && $hasContent) {
-                return $toolExecutionResult;
-            }
-            if ($hasContent) {
-                $result = [];
-                foreach ($toolExecutionResult as $item) {
-                    if ($item instanceof Content) {
-                        $result[] = $item;
-                    } else {
-                        $result = array_merge($result, $this->formatResult($item));
-                    }
-                }
-                return $result;
-            }
-        }
-        if (null === $toolExecutionResult) {
-            return [new TextContent('(null)')];
-        }
-        if (\is_bool($toolExecutionResult)) {
-            return [new TextContent($toolExecutionResult ? 'true' : 'false')];
-        }
-        if (\is_scalar($toolExecutionResult)) {
-            return [new TextContent($toolExecutionResult)];
-        }
-        $jsonResult = json_encode($toolExecutionResult, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR | \JSON_INVALID_UTF8_SUBSTITUTE);
-        return [new TextContent($jsonResult)];
+        return (new ToolResultFormatter())->format($toolExecutionResult);
     }
     /**
      * Extracts structured content from a tool result using the output schema.

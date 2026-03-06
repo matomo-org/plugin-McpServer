@@ -55,7 +55,7 @@ class Annotations implements \JsonSerializable
     {
         $audience = null;
         if (isset($data['audience']) && \is_array($data['audience'])) {
-            $audience = array_map(fn(string $r) => Role::from($r), $data['audience']);
+            $audience = array_map(static fn(string $r) => Role::from($r), $data['audience']);
         }
         return new self($audience, isset($data['priority']) ? (float) $data['priority'] : null);
     }
@@ -66,7 +66,7 @@ class Annotations implements \JsonSerializable
     {
         $data = [];
         if (null !== $this->audience) {
-            $data['audience'] = array_map(fn(Role $r) => $r->value, $this->audience);
+            $data['audience'] = array_map(static fn(Role $r) => $r->value, $this->audience);
         }
         if (null !== $this->priority) {
             $data['priority'] = $this->priority;

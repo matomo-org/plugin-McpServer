@@ -56,7 +56,7 @@ class Prompt implements \JsonSerializable
         }
         $arguments = null;
         if (isset($data['arguments']) && \is_array($data['arguments'])) {
-            $arguments = array_map(fn(array $argData) => PromptArgument::fromArray($argData), $data['arguments']);
+            $arguments = array_map(static fn(array $argData) => PromptArgument::fromArray($argData), $data['arguments']);
         }
         if (!empty($data['_meta']) && !\is_array($data['_meta'])) {
             throw new InvalidArgumentException('Invalid "_meta" in Prompt data.');
