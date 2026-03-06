@@ -15,9 +15,6 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 
 final class JsonRpcRequestIdExtractor
 {
-    /**
-     * @return string|int
-     */
     public function extractId(ServerRequestInterface $request): string|int
     {
         return $this->extractRequestMetadata($request)['requestId'];
@@ -71,9 +68,6 @@ final class JsonRpcRequestIdExtractor
         ];
     }
 
-    /**
-     * @return mixed
-     */
     private function decodeRequestBody(ServerRequestInterface $request): mixed
     {
         $body = $request->getBody();
@@ -100,7 +94,6 @@ final class JsonRpcRequestIdExtractor
 
     /**
      * @param array<string, mixed> $message
-     * @return string|int
      */
     private function extractIdFromMessage(array $message): string|int
     {
@@ -109,7 +102,6 @@ final class JsonRpcRequestIdExtractor
 
     /**
      * @param array<string, mixed> $message
-     * @return string|int|null
      */
     private function extractOptionalIdFromMessage(array $message): string|int|null
     {

@@ -84,7 +84,6 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
     }
 
     /**
-     * @param mixed $extractions
      * @return list<array{dimension: string, pattern: string}>
      */
     private function normalizeExtractions(mixed $extractions, string $context): array

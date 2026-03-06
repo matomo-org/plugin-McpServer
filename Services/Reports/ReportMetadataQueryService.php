@@ -193,7 +193,6 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     }
 
     /**
-     * @param mixed $value
      * @return array<string, mixed>
      */
     private function normalizeParameterObject(mixed $value, string $field): array

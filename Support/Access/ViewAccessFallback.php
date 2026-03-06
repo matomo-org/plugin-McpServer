@@ -15,9 +15,6 @@ use Piwik\Access;
 
 final class ViewAccessFallback
 {
-    /**
-     * @param mixed $siteIds
-     */
     public static function shouldReturnEmptyOnNoAccessFallbackForSiteIds(mixed $siteIds): bool
     {
         return !is_array($siteIds) || $siteIds === [];
