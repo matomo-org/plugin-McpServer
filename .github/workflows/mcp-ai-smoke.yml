@@ -1,0 +1,157 @@
+name: MCP AI Smoke
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      gemini_model:
+        description: Gemini model
+        required: false
+        default: gemini-2.5-flash
+
+permissions:
+  actions: read
+  checks: none
+  contents: read
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: read
+  repository-projects: none
+  security-events: none
+  statuses: none
+
+concurrency:
+  group: mcp-ai-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLUGIN_NAME: McpServer
+  MATOMO_DIR: ${{ github.workspace }}/matomo
+  BASE_URL: http://127.0.0.1:8000
+  MYSQL_HOST: 127.0.0.1
+  MYSQL_PORT: 3306
+  MYSQL_USER: root
+  MYSQL_PASSWORD: root
+  MYSQL_DATABASE: matomo
+  GEMINI_MODEL: ${{ github.event.inputs.gemini_model || 'gemini-2.5-flash' }}
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-24.04
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - id: check
+        name: Check secret availability
+        env:
+          GEMINI_APIKEY: ${{ secrets.GEMINI_APIKEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_APIKEY:-}" ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "reason=GEMINI_APIKEY is not available in this context (likely fork PR)." >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "reason=Ready to run smoke checks." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Preflight summary
+        run: |
+          {
+            echo "## MCP AI Smoke Preflight"
+            echo
+            echo "- should_run: ${{ steps.check.outputs.should_run }}"
+            echo "- reason: ${{ steps.check.outputs.reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    name: Gemini smoke
+    runs-on: ubuntu-24.04
+    needs: preflight
+    if: needs.preflight.outputs.should_run == 'true'
+    continue-on-error: true
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: matomo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, mysqli
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Check out github-action-tests repository
+        uses: actions/checkout@v6
+        with:
+          repository: matomo-org/github-action-tests
+          ref: main
+          path: github-action-tests
+
+      - name: Check out Matomo for plugin builds
+        run: ${{ github.workspace }}/github-action-tests/scripts/bash/checkout_matomo.sh
+        env:
+          PLUGIN_NAME: ${{ env.PLUGIN_NAME }}
+          WORKSPACE: ${{ github.workspace }}
+          ACTION_PATH: ${{ github.workspace }}/github-action-tests
+          MATOMO_TEST_TARGET: maximum_supported_matomo
+
+      - name: Prepare Matomo composer setup
+        run: composer install --ignore-platform-reqs --no-interaction --no-progress
+        working-directory: matomo
+
+      - name: Setup Matomo with OmniFixture
+        run: ./.github/scripts/mcp-smoke/setup-matomo-omnifixture.sh
+        env:
+          MATOMO_DIR: ${{ env.MATOMO_DIR }}
+          BASE_URL: ${{ env.BASE_URL }}
+          MYSQL_HOST: ${{ env.MYSQL_HOST }}
+          MYSQL_PORT: ${{ env.MYSQL_PORT }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+
+      - name: Install Gemini CLI
+        run: npm install -g @google/gemini-cli
+
+  summary:
+    name: Final status
+    runs-on: ubuntu-24.04
+    needs: [preflight, smoke]
+    if: always()
+    steps:
+      - name: Final status summary
+        run: |
+          {
+            echo "## MCP AI Smoke Result"
+            echo
+            echo "- preflight: ${{ needs.preflight.outputs.should_run }}"
+            echo "- reason: ${{ needs.preflight.outputs.reason }}"
+            echo "- smoke result: ${{ needs.smoke.result || 'skipped' }}"
+            echo
+            echo "Prototype smoke is intentionally non-blocking."
+          } >> "$GITHUB_STEP_SUMMARY"
