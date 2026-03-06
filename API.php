@@ -121,9 +121,6 @@ class API extends \Piwik\Plugin\API
         Piwik::checkUserHasSomeViewAccess();
     }
 
-    /**
-     * @param string|int $requestId
-     */
     protected function createUnauthorizedResponse(string|int $requestId = ''): ResponseInterface
     {
         return $this->jsonRpcErrorResponseFactory->create(

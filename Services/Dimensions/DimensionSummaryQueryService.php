@@ -71,7 +71,6 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $dimensions
      * @return array<int, DimensionSummaryRecord>
      */
     public function normalizeDimensionSummaryRows(

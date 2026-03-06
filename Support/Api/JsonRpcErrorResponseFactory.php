@@ -19,7 +19,6 @@ final class JsonRpcErrorResponseFactory
 {
     /**
      * @param array<string, string> $headers
-     * @param string|int $id
      */
     public function create(
         int $httpStatus,
@@ -43,9 +42,6 @@ final class JsonRpcErrorResponseFactory
         return $response;
     }
 
-    /**
-     * @param string|int $id
-     */
     private function encodeError(string|int $id, int $code, string $message): string
     {
         $json = json_encode(

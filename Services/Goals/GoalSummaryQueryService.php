@@ -76,7 +76,6 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $goals
      * @return array<int, GoalSummaryRecord>
      */
     public function normalizeGoalSummaryRows(

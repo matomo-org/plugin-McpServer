@@ -87,7 +87,6 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $reports
      * @return array<int, ReportSummaryRecord>
      */
     public function normalizeReportSummaryRows(

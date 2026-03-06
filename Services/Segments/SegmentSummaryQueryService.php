@@ -74,7 +74,6 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $segments
      * @return array<int, SegmentSummaryRecord>
      */
     public function normalizeSegmentSummaryRows(

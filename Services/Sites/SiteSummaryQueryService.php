@@ -68,7 +68,6 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $sites
      * @return array<int, SiteSummaryRecord>
      */
     public function normalizeSiteSummaryRows(

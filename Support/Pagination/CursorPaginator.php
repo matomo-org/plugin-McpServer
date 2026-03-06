@@ -196,10 +196,6 @@ final class CursorPaginator
         return 0;
     }
 
-    /**
-     * @param int|string $left
-     * @param int|string $right
-     */
     private function compareValues(int|string $left, int|string $right, string $type): int
     {
         if ($type === KeySpec::TYPE_INT) {

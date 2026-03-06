@@ -112,7 +112,6 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
     /**
      * Public for testability and to keep top-level payload-shape validation centralized.
      *
-     * @param mixed $segments
      * @return array<int, SegmentDetailRecord>
      */
     public function normalizeSegmentDetailRows(
