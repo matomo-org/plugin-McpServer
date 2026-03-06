@@ -32,6 +32,8 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Notification\NotificationHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SessionSubscriptionManager;
+use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SubscriptionManagerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionFactory;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionFactoryInterface;
@@ -50,6 +52,7 @@ final class Builder
 {
     private ?Implementation $serverInfo = null;
     private RegistryInterface $registry;
+    private ?SubscriptionManagerInterface $subscriptionManager = null;
     private ?LoggerInterface $logger = null;
     private ?CacheInterface $discoveryCache = null;
     private ?EventDispatcherInterface $eventDispatcher = null;
@@ -249,6 +252,11 @@ final class Builder
         $this->discoverer = $discoverer;
         return $this;
     }
+    public function setResourceSubscriptionManager(SubscriptionManagerInterface $subscriptionManager) : self
+    {
+        $this->subscriptionManager = $subscriptionManager;
+        return $this;
+    }
     public function setSession(SessionStoreInterface $sessionStore, SessionFactoryInterface $sessionFactory = new SessionFactory(), int $ttl = 3600) : self
     {
         $this->sessionFactory = $sessionFactory;
@@ -348,7 +356,11 @@ final class Builder
         $logger = $this->logger ?? new NullLogger();
         $container = $this->container ?? new Container();
         $registry = $this->registry ?? new Registry($this->eventDispatcher, $logger);
+        $subscriptionManager = $this->subscriptionManager ?? new SessionSubscriptionManager($logger);
         $loaders = [...$this->loaders, new ArrayLoader($this->tools, $this->resources, $this->resourceTemplates, $this->prompts, $logger, $this->schemaGenerator)];
+        $sessionTtl = $this->sessionTtl ?? 3600;
+        $sessionFactory = $this->sessionFactory ?? new SessionFactory();
+        $sessionStore = $this->sessionStore ?? new InMemorySessionStore($sessionTtl);
         if (null !== $this->discoveryBasePath) {
             $discoverer = $this->discoverer ?? $this->createDiscoverer($logger);
             $loaders[] = new DiscoveryLoader($this->discoveryBasePath, $this->discoveryScanDirs, $this->discoveryExcludeDirs, $discoverer);
@@ -356,17 +368,14 @@ final class Builder
         foreach ($loaders as $loader) {
             $loader->load($registry);
         }
-        $sessionTtl = $this->sessionTtl ?? 3600;
-        $sessionFactory = $this->sessionFactory ?? new SessionFactory();
-        $sessionStore = $this->sessionStore ?? new InMemorySessionStore($sessionTtl);
         $messageFactory = MessageFactory::make();
-        $capabilities = $this->serverCapabilities ?? new ServerCapabilities(tools: $registry->hasTools(), toolsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, resources: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesSubscribe: \false, resourcesListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, prompts: $registry->hasPrompts(), promptsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, logging: \true, completions: \true);
+        $capabilities = $this->serverCapabilities ?? new ServerCapabilities(tools: $registry->hasTools(), toolsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, resources: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesSubscribe: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, prompts: $registry->hasPrompts(), promptsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, logging: \true, completions: \true);
         $serverInfo = $this->serverInfo ?? new Implementation();
         $configuration = new Configuration($serverInfo, $capabilities, $this->paginationLimit, $this->instructions, $this->protocolVersion);
         $referenceHandler = new ReferenceHandler($container);
-        $requestHandlers = array_merge($this->requestHandlers, [new Handler\Request\CallToolHandler($registry, $referenceHandler, $logger), new Handler\Request\CompletionCompleteHandler($registry, $container), new Handler\Request\GetPromptHandler($registry, $referenceHandler, $logger), new Handler\Request\InitializeHandler($configuration), new Handler\Request\ListPromptsHandler($registry, $this->paginationLimit), new Handler\Request\ListResourcesHandler($registry, $this->paginationLimit), new Handler\Request\ListResourceTemplatesHandler($registry, $this->paginationLimit), new Handler\Request\ListToolsHandler($registry, $this->paginationLimit), new Handler\Request\PingHandler(), new Handler\Request\ReadResourceHandler($registry, $referenceHandler, $logger), new Handler\Request\SetLogLevelHandler()]);
+        $requestHandlers = array_merge($this->requestHandlers, [new Handler\Request\CallToolHandler($registry, $referenceHandler, $logger), new Handler\Request\CompletionCompleteHandler($registry, $container), new Handler\Request\GetPromptHandler($registry, $referenceHandler, $logger), new Handler\Request\InitializeHandler($configuration), new Handler\Request\ListPromptsHandler($registry, $this->paginationLimit), new Handler\Request\ListResourcesHandler($registry, $this->paginationLimit), new Handler\Request\ListResourceTemplatesHandler($registry, $this->paginationLimit), new Handler\Request\ListToolsHandler($registry, $this->paginationLimit), new Handler\Request\PingHandler(), new Handler\Request\ReadResourceHandler($registry, $referenceHandler, $logger), new Handler\Request\ResourceSubscribeHandler($registry, $subscriptionManager, $logger), new Handler\Request\ResourceUnsubscribeHandler($registry, $subscriptionManager, $logger), new Handler\Request\SetLogLevelHandler()]);
         $notificationHandlers = array_merge($this->notificationHandlers, [new Handler\Notification\InitializedHandler()]);
-        $protocol = new Protocol(requestHandlers: $requestHandlers, notificationHandlers: $notificationHandlers, messageFactory: $messageFactory, sessionFactory: $sessionFactory, sessionStore: $sessionStore, logger: $logger);
+        $protocol = new Protocol(requestHandlers: $requestHandlers, notificationHandlers: $notificationHandlers, messageFactory: $messageFactory, sessionFactory: $sessionFactory, sessionStore: $sessionStore, logger: $logger, eventDispatcher: $this->eventDispatcher);
         return new Server($protocol, $logger);
     }
     private function createDiscoverer(LoggerInterface $logger) : DiscovererInterface

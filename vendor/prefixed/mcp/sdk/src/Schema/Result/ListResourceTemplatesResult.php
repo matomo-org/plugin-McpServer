@@ -43,7 +43,7 @@ class ListResourceTemplatesResult implements ResultInterface
         if (!isset($data['resourceTemplates']) || !\is_array($data['resourceTemplates'])) {
             throw new InvalidArgumentException('Missing or invalid "resourceTemplates" array in ListResourceTemplatesResult data.');
         }
-        return new self(array_map(fn(array $resourceTemplate) => ResourceTemplate::fromArray($resourceTemplate), $data['resourceTemplates']), $data['nextCursor'] ?? null);
+        return new self(array_map(static fn(array $resourceTemplate) => ResourceTemplate::fromArray($resourceTemplate), $data['resourceTemplates']), $data['nextCursor'] ?? null);
     }
     /**
      * @return array{

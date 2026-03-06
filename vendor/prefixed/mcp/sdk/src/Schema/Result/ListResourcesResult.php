@@ -43,7 +43,7 @@ class ListResourcesResult implements ResultInterface
         if (!isset($data['resources']) || !\is_array($data['resources'])) {
             throw new InvalidArgumentException('Missing or invalid "resources" array in ListResourcesResult data.');
         }
-        return new self(array_map(fn(array $resource) => ResourceSchema::fromArray($resource), $data['resources']), $data['nextCursor'] ?? null);
+        return new self(array_map(static fn(array $resource) => ResourceSchema::fromArray($resource), $data['resources']), $data['nextCursor'] ?? null);
     }
     /**
      * @return array{

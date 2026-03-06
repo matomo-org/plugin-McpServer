@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Content\Content;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\ImageContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\SamplingMessage;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Elicitation\ElicitationSchema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\LoggingLevel;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\Role;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\SamplingContext;
@@ -29,7 +30,9 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ModelPreferences;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\LoggingMessageNotification;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\ProgressNotification;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CreateSamplingMessageRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ElicitRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CreateSamplingMessageResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ElicitResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 /**
  * @final
@@ -129,6 +132,44 @@ class ClientGateway
             throw new ClientException($response);
         }
         return CreateSamplingMessageResult::fromArray($response->result);
+    }
+    /**
+     * Convenience method for elicitation requests.
+     *
+     * Requests additional information from the user via the client. The user can
+     * accept (providing the requested data), decline, or cancel the request.
+     *
+     * @param string            $message         A human-readable message describing what information is needed
+     * @param ElicitationSchema $requestedSchema The schema defining the fields to elicit from the user
+     * @param int               $timeout         The timeout in seconds
+     *
+     * @return ElicitResult The elicitation response containing the user's action and any provided content
+     *
+     * @throws ClientException if the client request results in an error message
+     */
+    public function elicit(string $message, ElicitationSchema $requestedSchema, int $timeout = 120) : ElicitResult
+    {
+        $request = new ElicitRequest($message, $requestedSchema);
+        $response = $this->request($request, $timeout);
+        if ($response instanceof Error) {
+            throw new ClientException($response);
+        }
+        return ElicitResult::fromArray($response->result);
+    }
+    /**
+     * Check if the connected client supports elicitation.
+     *
+     * Elicitation allows servers to request additional information from users
+     * during tool execution. This method checks the client's advertised capabilities
+     * to determine if elicitation/create requests are supported.
+     *
+     * @return bool True if the client supports elicitation, false otherwise
+     */
+    public function supportsElicitation() : bool
+    {
+        $capabilities = $this->session->get('client_capabilities', []);
+        // MCP spec: capability presence indicates support (value is typically {} or [])
+        return \array_key_exists('elicitation', $capabilities);
     }
     /**
      * Send a request to the client and wait for a response (blocking).

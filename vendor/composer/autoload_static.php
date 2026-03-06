@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e
+class ComposerStaticInit563590b2e82acd6e9ca081e3284ab097
 {
     public static $files = array(
 );
@@ -27,6 +27,7 @@ class ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e
         ),
         'P' => 
         array (
+            'Psr\\Http\\Server\\' => 16,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Clock\\' => 10,
             'PHPStan\\PhpDocParser\\' => 21,
@@ -78,6 +79,11 @@ class ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e
         'Symfony\\Component\\Finder\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/finder',
+        ),
+        'Psr\\Http\\Server\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-server-handler/src',
+            1 => __DIR__ . '/..' . '/psr/http-server-middleware/src',
         ),
         'Psr\\Http\\Message\\' => 
         array (
@@ -133,9 +139,9 @@ class ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit7d1f00ba0fb2675e8f895bb9b9dab64e::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit563590b2e82acd6e9ca081e3284ab097::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit563590b2e82acd6e9ca081e3284ab097::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit563590b2e82acd6e9ca081e3284ab097::$classMap;
 
         }, null, ClassLoader::class);
     }

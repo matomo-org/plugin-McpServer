@@ -14,14 +14,14 @@ namespace Matomo\Dependencies\McpServer\Mcp\Server\Session;
 use Psr\SimpleCache\CacheInterface;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 /**
- * @author luoyue <1569097443@qq.com>
- *
  * PSR-16 compliant cache-based session store.
  *
  * This implementation uses any PSR-16 compliant cache as the storage backend
  * for session data. Each session is stored with a prefixed key using the session ID.
+ *
+ * @author luoyue <1569097443@qq.com>
  */
-class Psr16StoreSession implements SessionStoreInterface
+class Psr16SessionStore implements SessionStoreInterface
 {
     public function __construct(private readonly CacheInterface $cache, private readonly string $prefix = 'mcp-', private readonly int $ttl = 3600)
     {

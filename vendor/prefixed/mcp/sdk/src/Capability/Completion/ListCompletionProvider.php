@@ -26,6 +26,6 @@ class ListCompletionProvider implements ProviderInterface
         if (empty($currentValue)) {
             return $this->values;
         }
-        return array_values(array_filter($this->values, fn(string $value) => str_starts_with($value, $currentValue)));
+        return array_values(array_filter($this->values, static fn(string $value) => str_starts_with($value, $currentValue)));
     }
 }

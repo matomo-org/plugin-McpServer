@@ -115,10 +115,9 @@ class SchemaValidator
                     $obj->{$key} = $this->convertDataForValidator($value);
                 }
                 return $obj;
-            } else {
-                // It's a list (sequential array), convert items recursively
-                return array_map([$this, 'convertDataForValidator'], $data);
             }
+            // It's a list (sequential array), convert items recursively
+            return array_map([$this, 'convertDataForValidator'], $data);
         } elseif (\is_object($data) && $data instanceof \stdClass) {
             // Deep copy/convert stdClass objects as well
             $obj = new \stdClass();
@@ -156,7 +155,7 @@ class SchemaValidator
         if (empty($pathComponents)) {
             return '/';
         }
-        $escapedComponents = array_map(function ($component) {
+        $escapedComponents = array_map(static function ($component) {
             $componentStr = (string) $component;
             return str_replace(['~', '/'], ['~0', '~1'], $componentStr);
         }, $pathComponents);
@@ -173,7 +172,7 @@ class SchemaValidator
         switch (strtolower($keyword)) {
             case 'required':
                 $missing = $args['missing'] ?? [];
-                $formattedMissing = implode(', ', array_map(fn($p) => "`{$p}`", $missing));
+                $formattedMissing = implode(', ', array_map(static fn($p) => "`{$p}`", $missing));
                 $message = "Missing required properties: {$formattedMissing}.";
                 break;
             case 'type':
@@ -194,7 +193,7 @@ class SchemaValidator
                 if (empty($allowedValues)) {
                     $message = 'Value does not match the allowed enumeration.';
                 } else {
-                    $formattedAllowed = array_map(function ($v) {
+                    $formattedAllowed = array_map(static function ($v) {
                         /* ... formatting logic ... */
                         if (\is_string($v)) {
                             return '"' . $v . '"';
@@ -278,7 +277,7 @@ class SchemaValidator
             case 'additionalProperties':
                 // Corrected casing
                 $unexpected = $args['properties'] ?? [];
-                $formattedUnexpected = implode(', ', array_map(fn($p) => "`{$p}`", $unexpected));
+                $formattedUnexpected = implode(', ', array_map(static fn($p) => "`{$p}`", $unexpected));
                 $message = "Object contains unexpected additional properties: {$formattedUnexpected}.";
                 break;
             case 'format':
@@ -289,7 +288,7 @@ class SchemaValidator
                 $builtInMessage = $error->message();
                 if ($builtInMessage && 'The data must match the schema' !== $builtInMessage) {
                     $placeholders = $args;
-                    $builtInMessage = preg_replace_callback('/\\{(\\w+)\\}/', function ($match) use($placeholders) {
+                    $builtInMessage = preg_replace_callback('/\\{(\\w+)\\}/', static function ($match) use($placeholders) {
                         $key = $match[1];
                         $value = $placeholders[$key] ?? '{' . $key . '}';
                         return \is_array($value) ? json_encode($value) : (string) $value;

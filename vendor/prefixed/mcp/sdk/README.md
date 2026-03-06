@@ -192,7 +192,7 @@ By default, the SDK uses in-memory sessions. You can configure different session
 ```php
 use Mcp\Server\Session\FileSessionStore;
 use Mcp\Server\Session\InMemorySessionStore;
-use Mcp\Server\Session\Psr16StoreSession;
+use Mcp\Server\Session\Psr16SessionStore;
 use Symfony\Component\Cache\Psr16Cache;
 use Symfony\Component\Cache\Adapter\RedisAdapter;
 
@@ -220,7 +220,7 @@ $redisAdapter = new RedisAdapter(
 );
 
 $server = Server::builder()
-    ->setSession(new Psr16StoreSession(
+    ->setSession(new Psr16SessionStore(
         cache: new Psr16Cache($redisAdapter),
         prefix: 'mcp-',
         ttl: 3600
@@ -255,6 +255,7 @@ $server = Server::builder()
 - [Transports](docs/transports.md) - STDIO and HTTP transport setup and usage
 - [MCP Elements](docs/mcp-elements.md) - Creating tools, resources, and prompts
 - [Client Communication](docs/client-communication.md) - Communicating back to the client from server-side
+- [Events](docs/events.md) - Hooking into server lifecycle with events
 
 **Learning:**
 - [Examples](docs/examples.md) - Comprehensive example walkthroughs
@@ -283,4 +284,4 @@ done by both projects and their contributors, which created a solid foundation f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License, Version 2.0 for new contributions, with existing code under the MIT License - see the [LICENSE](LICENSE) file for details.

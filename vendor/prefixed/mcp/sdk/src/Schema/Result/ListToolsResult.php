@@ -43,7 +43,7 @@ class ListToolsResult implements ResultInterface
         if (!isset($data['tools']) || !\is_array($data['tools'])) {
             throw new InvalidArgumentException('Missing or invalid "tools" array in ListToolsResult data.');
         }
-        return new self(array_map(fn(array $tool) => Tool::fromArray($tool), $data['tools']), $data['nextCursor'] ?? null);
+        return new self(array_map(static fn(array $tool) => Tool::fromArray($tool), $data['tools']), $data['nextCursor'] ?? null);
     }
     /**
      * @return array{

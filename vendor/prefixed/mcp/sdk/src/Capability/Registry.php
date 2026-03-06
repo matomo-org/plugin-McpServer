@@ -237,10 +237,10 @@ final class Registry implements RegistryInterface
      */
     public function getDiscoveryState() : DiscoveryState
     {
-        return new DiscoveryState(tools: array_filter($this->tools, fn($tool) => !$tool->isManual), resources: array_filter($this->resources, fn($resource) => !$resource->isManual), prompts: array_filter($this->prompts, fn($prompt) => !$prompt->isManual), resourceTemplates: array_filter($this->resourceTemplates, fn($template) => !$template->isManual));
+        return new DiscoveryState(tools: array_filter($this->tools, static fn($tool) => !$tool->isManual), resources: array_filter($this->resources, static fn($resource) => !$resource->isManual), prompts: array_filter($this->prompts, static fn($prompt) => !$prompt->isManual), resourceTemplates: array_filter($this->resourceTemplates, static fn($template) => !$template->isManual));
     }
     /**
-     * Set discovery state, replacing all discovered elements.
+     * Set the discovery state, replacing all discovered elements.
      * Manual elements are preserved.
      */
     public function setDiscoveryState(DiscoveryState $state) : void

@@ -10,6 +10,10 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server;
 
+use Matomo\Dependencies\McpServer\Mcp\Event\ErrorEvent;
+use Matomo\Dependencies\McpServer\Mcp\Event\NotificationEvent;
+use Matomo\Dependencies\McpServer\Mcp\Event\RequestEvent;
+use Matomo\Dependencies\McpServer\Mcp\Event\ResponseEvent;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidInputMessageException;
 use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
@@ -24,6 +28,7 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionFactoryInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\TransportInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
@@ -53,7 +58,7 @@ class Protocol
      * @param array<int, RequestHandlerInterface<ResultInterface|array<string, mixed>>> $requestHandlers
      * @param array<int, NotificationHandlerInterface>                                  $notificationHandlers
      */
-    public function __construct(private readonly array $requestHandlers, private readonly array $notificationHandlers, private readonly MessageFactory $messageFactory, private readonly SessionFactoryInterface $sessionFactory, private readonly SessionStoreInterface $sessionStore, private readonly LoggerInterface $logger = new NullLogger())
+    public function __construct(private readonly array $requestHandlers, private readonly array $notificationHandlers, private readonly MessageFactory $messageFactory, private readonly SessionFactoryInterface $sessionFactory, private readonly SessionStoreInterface $sessionStore, private readonly LoggerInterface $logger = new NullLogger(), private readonly ?EventDispatcherInterface $eventDispatcher = null)
     {
     }
     /**
@@ -121,6 +126,19 @@ class Protocol
         $this->sendResponse($transport, $error, $session);
     }
     /**
+     * Dispatches an event through the event dispatcher if available.
+     *
+     * @template T of object
+     *
+     * @param T $event
+     *
+     * @return T
+     */
+    private function dispatchEvent(object $event) : object
+    {
+        return $this->eventDispatcher?->dispatch($event) ?? $event;
+    }
+    /**
      * Handle a request from the transport.
      *
      * @param TransportInterface<mixed> $transport
@@ -129,6 +147,8 @@ class Protocol
     {
         $this->logger->info('Handling request.', ['request' => $request]);
         $session->set(self::SESSION_ACTIVE_REQUEST_META, $request->getMeta());
+        $event = $this->dispatchEvent(new RequestEvent($request, $session));
+        $request = $event->getRequest();
         $handlerFound = \false;
         foreach ($this->requestHandlers as $handler) {
             if (!$handler->supports($request)) {
@@ -137,7 +157,7 @@ class Protocol
             $handlerFound = \true;
             try {
                 /** @var McpFiber $fiber */
-                $fiber = new \Fiber(fn() => $handler->handle($request, $session));
+                $fiber = new \Fiber(static fn() => $handler->handle($request, $session));
                 $result = $fiber->start();
                 if ($fiber->isSuspended()) {
                     if (\is_array($result) && isset($result['type'])) {
@@ -152,23 +172,35 @@ class Protocol
                     }
                     $transport->attachFiberToSession($fiber, $session->getId());
                     return;
-                } else {
-                    $finalResult = $fiber->getReturn();
-                    $this->sendResponse($transport, $finalResult, $session);
                 }
+                $finalResult = $fiber->getReturn();
+                if ($finalResult instanceof Response) {
+                    $responseEvent = $this->dispatchEvent(new ResponseEvent($finalResult, $request, $session));
+                    $finalResult = $responseEvent->getResponse();
+                } elseif ($finalResult instanceof Error) {
+                    $errorEvent = $this->dispatchEvent(new ErrorEvent($finalResult, $request, $session, null));
+                    $finalResult = $errorEvent->getError();
+                }
+                $this->sendResponse($transport, $finalResult, $session);
             } catch (\InvalidArgumentException $e) {
                 $this->logger->warning(\sprintf('Invalid argument: %s', $e->getMessage()), ['exception' => $e]);
                 $error = Error::forInvalidParams($e->getMessage(), $request->getId());
+                $errorEvent = $this->dispatchEvent(new ErrorEvent($error, $request, $session, $e));
+                $error = $errorEvent->getError();
                 $this->sendResponse($transport, $error, $session);
             } catch (\Throwable $e) {
                 $this->logger->error(\sprintf('Uncaught exception: %s', $e->getMessage()), ['exception' => $e]);
                 $error = Error::forInternalError($e->getMessage(), $request->getId());
+                $errorEvent = $this->dispatchEvent(new ErrorEvent($error, $request, $session, $e));
+                $error = $errorEvent->getError();
                 $this->sendResponse($transport, $error, $session);
             }
             break;
         }
         if (!$handlerFound) {
             $error = Error::forMethodNotFound(\sprintf('No handler found for method "%s".', $request::getMethod()), $request->getId());
+            $errorEvent = $this->dispatchEvent(new ErrorEvent($error, $request, $session, null));
+            $error = $errorEvent->getError();
             $this->sendResponse($transport, $error, $session);
         }
     }
@@ -186,6 +218,8 @@ class Protocol
     private function handleNotification(Notification $notification, SessionInterface $session) : void
     {
         $this->logger->info('Handling notification.', ['notification' => $notification]);
+        $event = $this->dispatchEvent(new NotificationEvent($notification, $session));
+        $notification = $event->getNotification();
         foreach ($this->notificationHandlers as $handler) {
             if (!$handler->supports($notification)) {
                 continue;
@@ -424,7 +458,7 @@ class Protocol
         }
         $deletedSessions = $this->sessionStore->gc();
         if (!empty($deletedSessions)) {
-            $this->logger->debug('Garbage collected expired sessions.', ['count' => \count($deletedSessions), 'session_ids' => array_map(fn(Uuid $id) => $id->toRfc4122(), $deletedSessions)]);
+            $this->logger->debug('Garbage collected expired sessions.', ['count' => \count($deletedSessions), 'session_ids' => array_map(static fn(Uuid $id) => $id->toRfc4122(), $deletedSessions)]);
         }
     }
     /**

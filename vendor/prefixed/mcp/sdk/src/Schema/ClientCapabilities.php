@@ -21,7 +21,7 @@ class ClientCapabilities implements \JsonSerializable
     /**
      * @param array<string, mixed> $experimental
      */
-    public function __construct(public readonly ?bool $roots = \false, public readonly ?bool $rootsListChanged = null, public readonly ?bool $sampling = null, public readonly ?array $experimental = null)
+    public function __construct(public readonly ?bool $roots = \false, public readonly ?bool $rootsListChanged = null, public readonly ?bool $sampling = null, public readonly ?bool $elicitation = null, public readonly ?array $experimental = null)
     {
     }
     /**
@@ -30,6 +30,7 @@ class ClientCapabilities implements \JsonSerializable
      *         listChanged?: bool,
      *     },
      *     sampling?: bool,
+     *     elicitation?: bool,
      *     experimental?: array<string, mixed>,
      * } $data
      */
@@ -48,12 +49,17 @@ class ClientCapabilities implements \JsonSerializable
         if (isset($data['sampling'])) {
             $sampling = \true;
         }
-        return new self($rootsEnabled, $rootsListChanged, $sampling, $data['experimental'] ?? null);
+        $elicitation = null;
+        if (isset($data['elicitation'])) {
+            $elicitation = \true;
+        }
+        return new self($rootsEnabled, $rootsListChanged, $sampling, $elicitation, $data['experimental'] ?? null);
     }
     /**
      * @return array{
      *     roots?: object,
      *     sampling?: object,
+     *     elicitation?: object,
      *     experimental?: object,
      * }
      */
@@ -68,6 +74,9 @@ class ClientCapabilities implements \JsonSerializable
         }
         if ($this->sampling) {
             $data['sampling'] = new \stdClass();
+        }
+        if ($this->elicitation) {
+            $data['elicitation'] = new \stdClass();
         }
         if ($this->experimental) {
             $data['experimental'] = (object) $this->experimental;

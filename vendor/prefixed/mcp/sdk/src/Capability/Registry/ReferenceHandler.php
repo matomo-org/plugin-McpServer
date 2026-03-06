@@ -150,19 +150,17 @@ final class ReferenceHandler implements ReferenceHandlerInterface
                     throw new InvalidArgumentException("Invalid value '{$argument}' for backed enum {$typeName}. Expected one of its backing values.");
                 }
                 return $value;
-            } else {
-                if (\is_string($argument)) {
-                    foreach ($typeName::cases() as $case) {
-                        if ($case->name === $argument) {
-                            return $case;
-                        }
-                    }
-                    $validNames = array_map(fn($c) => $c->name, $typeName::cases());
-                    throw new InvalidArgumentException("Invalid value '{$argument}' for unit enum {$typeName}. Expected one of: " . implode(', ', $validNames) . '.');
-                } else {
-                    throw new InvalidArgumentException("Invalid value type '{$argument}' for unit enum {$typeName}. Expected a string matching a case name.");
-                }
             }
+            if (\is_string($argument)) {
+                foreach ($typeName::cases() as $case) {
+                    if ($case->name === $argument) {
+                        return $case;
+                    }
+                }
+                $validNames = array_map(static fn($c) => $c->name, $typeName::cases());
+                throw new InvalidArgumentException("Invalid value '{$argument}' for unit enum {$typeName}. Expected one of: " . implode(', ', $validNames) . '.');
+            }
+            throw new InvalidArgumentException("Invalid value type '{$argument}' for unit enum {$typeName}. Expected a string matching a case name.");
         }
         try {
             return match (strtolower($typeName)) {
