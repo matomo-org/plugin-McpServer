@@ -20,9 +20,11 @@ use Piwik\Container\StaticContainer;
 use Piwik\FrontController;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -39,17 +41,21 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
 
     private string $originalRootApiMethod = '';
 
+    private bool $originalEnableMcpValue = false;
+
     public function setUp(): void
     {
         parent::setUp();
         $this->originalGet = $_GET;
         $this->originalNestedApiInvocationCount = $this->getNestedApiInvocationCount();
         $this->originalRootApiMethod = (string) ApiRequest::getRootApiRequestMethod();
+        $this->originalEnableMcpValue = (bool) StaticContainer::get(SystemSettings::class)->enableMcp->getValue();
     }
 
     public function tearDown(): void
     {
         $_GET = $this->originalGet;
+        $this->setMcpEnabled($this->originalEnableMcpValue);
         $this->setNestedApiInvocationCount($this->originalNestedApiInvocationCount);
         ApiRequest::setIsRootRequestApiRequest($this->originalRootApiMethod);
         Access::getInstance()->setSuperUserAccess(false);
@@ -157,6 +163,67 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertIsInt($decoded['error']['code'] ?? null);
     }
 
+    public function testDisabledMcpReturnsForbiddenErrorWhenTopLevelIdExists(): void
+    {
+        $this->setMcpEnabled(false);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest($this->createRequest(McpTestHelper::makeInitializeRequest('disabled-1')));
+        $response = $api->mcp();
+        $error = McpTestHelper::decodeError($response);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+        self::assertSame(McpEndpointSpec::DISABLED_ERROR, $error->message);
+        self::assertSame('disabled-1', $error->id);
+    }
+
+    public function testDisabledMcpAndUnauthenticatedReturnsUnauthorizedChallenge(): void
+    {
+        $this->setMcpEnabled(false);
+        Access::getInstance()->setSuperUserAccess(false);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest(
+            $this->createRequest(McpTestHelper::makeInitializeRequest('disabled-auth-1'))
+        );
+        $response = $api->mcp();
+        $error = McpTestHelper::decodeError($response);
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+        self::assertSame(McpEndpointSpec::UNAUTHORIZED_ERROR, $error->message);
+        self::assertSame('disabled-auth-1', $error->id);
+    }
+
+    public function testDisabledMcpReturnsForbiddenWithEmptyBodyWhenTopLevelIdMissing(): void
+    {
+        $this->setMcpEnabled(false);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $initialize = \json_decode(McpTestHelper::makeInitializeRequest('batch-1'), true, 512, \JSON_THROW_ON_ERROR);
+        $batchPayload = \json_encode([$initialize], \JSON_THROW_ON_ERROR);
+
+        $api = $this->createApiWithRequest($this->createRequest($batchPayload));
+        $response = $api->mcp();
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('', $response->getHeaderLine('Content-Type'));
+        self::assertSame('', McpTestHelper::getResponseBody($response));
+    }
+
     private function createRequest(string $payload): ServerRequestInterface
     {
         $factory = new Psr17Factory();
@@ -178,6 +245,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
+                StaticContainer::get(SystemSettings::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -203,6 +271,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
+                StaticContainer::get(SystemSettings::class),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();
@@ -228,5 +297,18 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $property = new \ReflectionProperty(ApiRequest::class, 'nestedApiInvocationCount');
         $property->setAccessible(true);
         $property->setValue($count);
+    }
+
+    private function setMcpEnabled(bool $isEnabled): void
+    {
+        $settings = StaticContainer::get(SystemSettings::class);
+        $hadSuperUserAccess = Access::getInstance()->hasSuperUserAccess();
+        Access::getInstance()->setSuperUserAccess(true);
+
+        try {
+            $settings->enableMcp->setValue($isEnabled);
+        } finally {
+            Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
+        }
     }
 }
