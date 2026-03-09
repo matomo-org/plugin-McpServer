@@ -2,6 +2,7 @@
 /tests/ export-ignore
 
 /.gitattributes export-ignore
+/AGENTS.md export-ignore
 /bootstrap-phpstan.php export-ignore
 /composer.lock export-ignore
 /config/test.php export-ignore
