@@ -38,7 +38,9 @@
     {% if isMcpEnabled %}
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectEndpointTitle'|translate }}" anchor="endpoint">
             <p>{{ 'McpServer_ConnectEndpointDescription'|translate }}</p>
-            <p><code class="mcpServerLongCode">{{ mcpApiEndpoint }}</code></p>
+            <div class="mcpServerCopyField">
+                <pre class="mcpServerLongCode mcpServerCopyValue" vue-directive="CoreHome.CopyToClipboard">{{ mcpApiEndpoint }}</pre>
+            </div>
         </div>
 
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectInClientTitle'|translate }}" anchor="set-up-client">
@@ -55,7 +57,7 @@
                 <li>{{ 'McpServer_ConnectInClientStepInitialize'|translate }}</li>
             </ol>
             <h3>{{ 'McpServer_ConnectTokenTitle'|translate }}</h3>
-            <p>{{ 'McpServer_ConnectInClientTokenHelp'|translate('<a href="' ~ userSecurityUrl ~ '">', '</a>', '<code>', '</code>')|raw }}</p>
+            <p>{{ 'McpServer_ConnectInClientTokenHelp'|translate('<a href="' ~ userSecurityUrl ~ '">', '</a>', '<code>', '</code>', externallink('https://matomo.org/faq/general/faq_114/'), '</a>')|raw }}</p>
         </div>
 
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectTroubleshootingTitle'|translate }}" anchor="troubleshooting">
