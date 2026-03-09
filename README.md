@@ -73,8 +73,7 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 ## Troubleshooting
 
 - `401 Unauthorized`: verify the Bearer token is present, active, and belongs to a user with access to the requested site data.
-- `403 Forbidden` when MCP is disabled: enable MCP in **Administration -> System -> Plugin Settings -> McpServer**.
-- `403 Forbidden` for authenticated requests: verify the authenticated Matomo user has access to the requested site or report data.
+- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> Plugin Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user has access to the requested site or report data.
 - `400 Bad Request`: verify the client is using the exact MCP endpoint and is not proxying requests through `API.getBulkRequest`.
 
 ## Support
