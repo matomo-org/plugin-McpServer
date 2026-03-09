@@ -38,7 +38,9 @@
     {% if isMcpEnabled %}
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectEndpointTitle'|translate }}" anchor="endpoint">
             <p>{{ 'McpServer_ConnectEndpointDescription'|translate }}</p>
-            <p><code class="mcpServerLongCode">{{ mcpApiEndpoint }}</code></p>
+            <div class="mcpServerCopyField">
+                <pre class="mcpServerLongCode mcpServerCopyValue" vue-directive="CoreHome.CopyToClipboard">{{ mcpApiEndpoint }}</pre>
+            </div>
         </div>
 
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectInClientTitle'|translate }}" anchor="set-up-client">
