@@ -16,6 +16,7 @@ use Piwik\Config;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
+use Piwik\Plugins\McpServer\McpTools\ApiCall;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
@@ -29,6 +30,7 @@ use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
@@ -271,6 +273,23 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         );
 
         ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::ITEM, $content);
+    }
+
+    public function testApiCallSuccessShapeInReadMode(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiCallToolOutputSchema::ITEM, $content);
     }
 
     /**

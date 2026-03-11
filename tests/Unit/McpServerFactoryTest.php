@@ -401,11 +401,13 @@ class McpServerFactoryTest extends TestCase
     {
         Config::getInstance()->McpServer = [];
         $toolsWhenMissing = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_call', $toolsWhenMissing);
         self::assertNotContains('matomo_api_get', $toolsWhenMissing);
         self::assertNotContains('matomo_api_list', $toolsWhenMissing);
 
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
         $toolsWhenNone = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_call', $toolsWhenNone);
         self::assertNotContains('matomo_api_get', $toolsWhenNone);
         self::assertNotContains('matomo_api_list', $toolsWhenNone);
     }
@@ -414,11 +416,13 @@ class McpServerFactoryTest extends TestCase
     {
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $toolsWhenRead = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_call', $toolsWhenRead);
         self::assertContains('matomo_api_get', $toolsWhenRead);
         self::assertContains('matomo_api_list', $toolsWhenRead);
 
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $toolsWhenFull = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_call', $toolsWhenFull);
         self::assertContains('matomo_api_get', $toolsWhenFull);
         self::assertContains('matomo_api_list', $toolsWhenFull);
     }
@@ -445,6 +449,31 @@ class McpServerFactoryTest extends TestCase
         self::assertTrue($toolWhenFull->annotations->readOnlyHint);
         self::assertFalse($toolWhenFull->annotations->destructiveHint);
         self::assertTrue($toolWhenFull->annotations->idempotentHint);
+        self::assertFalse($toolWhenFull->annotations->openWorldHint);
+    }
+
+    public function testRawApiCallToolHasFullAnnotationsWhenVisible(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        $toolsWhenRead = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_call', $toolsWhenRead);
+        $toolWhenRead = $toolsWhenRead['matomo_api_call'];
+        self::assertNotNull($toolWhenRead->annotations);
+        self::assertFalse($toolWhenRead->annotations->readOnlyHint);
+        self::assertFalse($toolWhenRead->annotations->destructiveHint);
+        self::assertFalse($toolWhenRead->annotations->idempotentHint);
+        self::assertFalse($toolWhenRead->annotations->openWorldHint);
+
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $toolsWhenFull = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_call', $toolsWhenFull);
+        $toolWhenFull = $toolsWhenFull['matomo_api_call'];
+        self::assertNotNull($toolWhenFull->annotations);
+        self::assertFalse($toolWhenFull->annotations->readOnlyHint);
+        self::assertTrue($toolWhenFull->annotations->destructiveHint);
+        self::assertFalse($toolWhenFull->annotations->idempotentHint);
         self::assertFalse($toolWhenFull->annotations->openWorldHint);
     }
 

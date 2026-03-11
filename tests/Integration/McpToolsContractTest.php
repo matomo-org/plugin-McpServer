@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Cache;
 use Piwik\Config;
+use Piwik\Plugins\McpServer\McpTools\ApiCall;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -247,6 +248,7 @@ class McpToolsContractTest extends IntegrationTestCase
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
+        self::assertArrayNotHasKey(ApiCall::TOOL_NAME, $toolsByName);
         self::assertArrayNotHasKey('matomo_api_get', $toolsByName);
         self::assertArrayNotHasKey('matomo_api_list', $toolsByName);
     }
@@ -271,6 +273,14 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertFalse($tool->annotations->destructiveHint);
         self::assertTrue($tool->annotations->idempotentHint);
         self::assertFalse($tool->annotations->openWorldHint);
+
+        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertNotNull($callTool->annotations);
+        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertFalse($callTool->annotations->destructiveHint);
+        self::assertFalse($callTool->annotations->idempotentHint);
+        self::assertFalse($callTool->annotations->openWorldHint);
     }
 
     public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsFull(): void
@@ -293,6 +303,14 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertFalse($tool->annotations->destructiveHint);
         self::assertTrue($tool->annotations->idempotentHint);
         self::assertFalse($tool->annotations->openWorldHint);
+
+        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertNotNull($callTool->annotations);
+        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertTrue($callTool->annotations->destructiveHint);
+        self::assertFalse($callTool->annotations->idempotentHint);
+        self::assertFalse($callTool->annotations->openWorldHint);
     }
 
     /**

@@ -35,10 +35,10 @@ Configure raw Matomo API tool access in `config/config.ini.php`:
 raw_api_access_mode = none
 ```
 
-- `raw_api_access_mode`: Controls raw API discovery tool visibility for `matomo_api_list` and `matomo_api_get`.
-- `none`: hides `matomo_api_list` and `matomo_api_get` (default).
-- `read`: shows `matomo_api_list` and `matomo_api_get`, and currently returns only API actions with `get`/`is` prefix. This prefix-based filter is a temporary heuristic and may be replaced by a more accurate read/write classification in the future.
-- `full`: shows `matomo_api_list` and `matomo_api_get`, and returns all discoverable API actions.
+- `raw_api_access_mode`: Controls raw API tool visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
+- `none`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
+- `read`: shows the raw API tools and currently allows only API actions with `get`/`is` prefix. This prefix-based filter is a temporary heuristic and may be replaced by a more accurate read/write classification in the future.
+- `full`: shows the raw API tools and allows all discoverable API actions.
 
 ## Enabling MCP
 

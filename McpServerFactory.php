@@ -20,9 +20,12 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\McpTools\ApiCall;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\ApiList;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolInputSchema;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiGetToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiListToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
@@ -92,6 +95,33 @@ final class McpServerFactory
 
         $rawApiAccessMode = $this->resolveRawApiAccessMode();
         if (RawApiAccessMode::allowsToolRegistration($rawApiAccessMode)) {
+            $rawApiCallDestructiveHint = $rawApiAccessMode === RawApiAccessMode::FULL;
+            $builder->addTool(
+                [ApiCall::class, 'call'],
+                ApiCall::TOOL_NAME,
+                "Use when: you need to execute a known Matomo API method directly.\n"
+                    . "Purpose: call one allowed API method and return its result plus the resolved method metadata.\n"
+                    . "Next: use " . ApiGet::TOOL_NAME . ' or ' . ApiList::TOOL_NAME
+                    . ' first if you still need to confirm the method signature.',
+                // Keep these conservative defaults for raw API calls:
+                // - readOnlyHint=false because even "read" API methods can trigger
+                //   archive/materialization side effects depending on Matomo runtime config.
+                // - destructiveHint=false in read mode because those effects are additive,
+                //   not destructive mutations; full mode remains destructive because it can
+                //   call arbitrary mutating methods.
+                // - idempotentHint=false because repeated identical calls cannot guarantee
+                //   zero additional environmental effect across archive configurations.
+                new ToolAnnotations(
+                    readOnlyHint: false,
+                    destructiveHint: $rawApiCallDestructiveHint,
+                    idempotentHint: false,
+                    openWorldHint: false,
+                ),
+                ApiCallToolInputSchema::SCHEMA,
+                null,
+                null,
+                ApiCallToolOutputSchema::ITEM,
+            );
             // This tool is registered manually (not via attribute discovery)
             // so registration can be gated by the raw API access mode.
             $builder->addTool(
