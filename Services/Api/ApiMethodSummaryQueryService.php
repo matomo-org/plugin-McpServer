@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Api;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\DocumentationGenerator;
 use Piwik\API\NoDefaultValue;
 use Piwik\API\Proxy;
@@ -27,6 +28,25 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
     public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
     {
         return $this->filterRecords($this->loadApiMethodSummaries(), $query);
+    }
+
+    public function getApiMethodSummaryBySelector(
+        string $accessMode,
+        ?string $method = null,
+        ?string $module = null,
+        ?string $action = null,
+    ): ApiMethodSummaryRecord {
+        $records = $this->filterRecords(
+            $this->loadApiMethodSummaries(),
+            ApiMethodSummaryQueryRecord::fromInputs($accessMode),
+        );
+
+        $selectedRecord = $this->findApiMethodSummaryRecord($records, $method, $module, $action);
+        if ($selectedRecord === null) {
+            throw new ToolCallException('API method not found or unavailable.');
+        }
+
+        return $selectedRecord;
     }
 
     /**
@@ -88,6 +108,43 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
         $records = $this->filterBySearch($records, $query->search);
 
         return $records;
+    }
+
+    /**
+     * Public for testability and to share normalization contract across MCP tools.
+     *
+     * @param array<int, ApiMethodSummaryRecord> $records
+     */
+    public function findApiMethodSummaryRecord(
+        array $records,
+        ?string $method = null,
+        ?string $module = null,
+        ?string $action = null,
+    ): ?ApiMethodSummaryRecord {
+        $normalizedMethod = $this->normalizeSelectorValue($method);
+        if ($normalizedMethod !== '') {
+            foreach ($records as $record) {
+                if ($this->normalizeSelectorValue($record->method) === $normalizedMethod) {
+                    return $record;
+                }
+            }
+
+            return null;
+        }
+
+        $normalizedModule = $this->normalizeSelectorValue($module);
+        $normalizedAction = $this->normalizeSelectorValue($action);
+
+        foreach ($records as $record) {
+            if (
+                $this->normalizeSelectorValue($record->module) === $normalizedModule
+                && $this->normalizeSelectorValue($record->action) === $normalizedAction
+            ) {
+                return $record;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -225,5 +282,10 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
             $records,
             static fn(ApiMethodSummaryRecord $record): bool => str_contains(strtolower($record->method), $searchTerm)
         ));
+    }
+
+    private function normalizeSelectorValue(?string $value): string
+    {
+        return strtolower(trim((string) $value));
     }
 }

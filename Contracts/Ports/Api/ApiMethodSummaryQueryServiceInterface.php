@@ -20,4 +20,11 @@ interface ApiMethodSummaryQueryServiceInterface
      * @return array<int, ApiMethodSummaryRecord>
      */
     public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array;
+
+    public function getApiMethodSummaryBySelector(
+        string $accessMode,
+        ?string $method = null,
+        ?string $module = null,
+        ?string $action = null,
+    ): ApiMethodSummaryRecord;
 }

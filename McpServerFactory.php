@@ -20,8 +20,10 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\ApiList;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiGetToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiListToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
@@ -92,6 +94,23 @@ final class McpServerFactory
         if (RawApiAccessMode::allowsToolRegistration($rawApiAccessMode)) {
             // This tool is registered manually (not via attribute discovery)
             // so registration can be gated by the raw API access mode.
+            $builder->addTool(
+                [ApiGet::class, 'get'],
+                ApiGet::TOOL_NAME,
+                "Use when: you already know the Matomo API method name and need its exact signature.\n"
+                    . "Purpose: return one authoritative API method summary with parameter metadata.\n"
+                    . "Do not use: for broad discovery across APIs; use " . ApiList::TOOL_NAME . ' instead.',
+                new ToolAnnotations(
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: false,
+                ),
+                ApiGetToolInputSchema::SCHEMA,
+                null,
+                null,
+                ApiMethodSummaryToolOutputSchema::ITEM,
+            );
             $builder->addTool(
                 [ApiList::class, 'list'],
                 ApiList::TOOL_NAME,

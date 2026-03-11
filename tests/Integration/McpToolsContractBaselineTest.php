@@ -16,6 +16,7 @@ use Piwik\Config;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
+use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
@@ -253,6 +254,23 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
         ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::PAGINATED_LIST, $content);
         self::assertNotEmpty($content['methods'] ?? []);
+    }
+
+    public function testApiGetSuccessShapeInReadMode(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::ITEM, $content);
     }
 
     /**

@@ -180,6 +180,46 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
     }
 
+    public function testFindApiMethodSummaryRecordMatchesMethodCaseInsensitively(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $record = $service->findApiMethodSummaryRecord(
+            $this->createMethodRecords(),
+            ' usersmanager.getusers ',
+        );
+
+        self::assertInstanceOf(ApiMethodSummaryRecord::class, $record);
+        self::assertSame('UsersManager.getUsers', $record->method);
+    }
+
+    public function testFindApiMethodSummaryRecordMatchesModuleAndActionCaseInsensitively(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $record = $service->findApiMethodSummaryRecord(
+            $this->createMethodRecords(),
+            null,
+            ' usersmanager ',
+            ' adduser ',
+        );
+
+        self::assertInstanceOf(ApiMethodSummaryRecord::class, $record);
+        self::assertSame('UsersManager.addUser', $record->method);
+    }
+
+    public function testFindApiMethodSummaryRecordReturnsNullWhenNoMatchExists(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $record = $service->findApiMethodSummaryRecord(
+            $this->createMethodRecords(),
+            'API.missingMethod',
+        );
+
+        self::assertNull($record);
+    }
+
     /**
      * @return array<int, ApiMethodSummaryRecord>
      */

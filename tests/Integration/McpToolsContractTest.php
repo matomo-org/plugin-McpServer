@@ -247,6 +247,7 @@ class McpToolsContractTest extends IntegrationTestCase
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
+        self::assertArrayNotHasKey('matomo_api_get', $toolsByName);
         self::assertArrayNotHasKey('matomo_api_list', $toolsByName);
     }
 
@@ -254,6 +255,14 @@ class McpToolsContractTest extends IntegrationTestCase
     {
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsByName);
+        $getTool = $toolsByName['matomo_api_get'];
+        self::assertNotNull($getTool->annotations);
+        self::assertTrue($getTool->annotations->readOnlyHint);
+        self::assertFalse($getTool->annotations->destructiveHint);
+        self::assertTrue($getTool->annotations->idempotentHint);
+        self::assertFalse($getTool->annotations->openWorldHint);
 
         self::assertArrayHasKey('matomo_api_list', $toolsByName);
         $tool = $toolsByName['matomo_api_list'];
@@ -268,6 +277,14 @@ class McpToolsContractTest extends IntegrationTestCase
     {
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsByName);
+        $getTool = $toolsByName['matomo_api_get'];
+        self::assertNotNull($getTool->annotations);
+        self::assertTrue($getTool->annotations->readOnlyHint);
+        self::assertFalse($getTool->annotations->destructiveHint);
+        self::assertTrue($getTool->annotations->idempotentHint);
+        self::assertFalse($getTool->annotations->openWorldHint);
 
         self::assertArrayHasKey('matomo_api_list', $toolsByName);
         $tool = $toolsByName['matomo_api_list'];

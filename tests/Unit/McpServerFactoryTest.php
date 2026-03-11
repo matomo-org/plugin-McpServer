@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use PHPUnit\Framework\TestCase;
 use Piwik\Config;
@@ -400,10 +401,12 @@ class McpServerFactoryTest extends TestCase
     {
         Config::getInstance()->McpServer = [];
         $toolsWhenMissing = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_get', $toolsWhenMissing);
         self::assertNotContains('matomo_api_list', $toolsWhenMissing);
 
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
         $toolsWhenNone = $this->listToolNamesForCurrentConfig();
+        self::assertNotContains('matomo_api_get', $toolsWhenNone);
         self::assertNotContains('matomo_api_list', $toolsWhenNone);
     }
 
@@ -411,17 +414,52 @@ class McpServerFactoryTest extends TestCase
     {
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $toolsWhenRead = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_get', $toolsWhenRead);
         self::assertContains('matomo_api_list', $toolsWhenRead);
 
         Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $toolsWhenFull = $this->listToolNamesForCurrentConfig();
+        self::assertContains('matomo_api_get', $toolsWhenFull);
         self::assertContains('matomo_api_list', $toolsWhenFull);
+    }
+
+    public function testRawApiGetToolHasFullAnnotationsWhenVisible(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        $toolsWhenRead = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsWhenRead);
+        $toolWhenRead = $toolsWhenRead['matomo_api_get'];
+        self::assertNotNull($toolWhenRead->annotations);
+        self::assertTrue($toolWhenRead->annotations->readOnlyHint);
+        self::assertFalse($toolWhenRead->annotations->destructiveHint);
+        self::assertTrue($toolWhenRead->annotations->idempotentHint);
+        self::assertFalse($toolWhenRead->annotations->openWorldHint);
+
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $toolsWhenFull = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsWhenFull);
+        $toolWhenFull = $toolsWhenFull['matomo_api_get'];
+        self::assertNotNull($toolWhenFull->annotations);
+        self::assertTrue($toolWhenFull->annotations->readOnlyHint);
+        self::assertFalse($toolWhenFull->annotations->destructiveHint);
+        self::assertTrue($toolWhenFull->annotations->idempotentHint);
+        self::assertFalse($toolWhenFull->annotations->openWorldHint);
     }
 
     /**
      * @return list<string>
      */
     private function listToolNamesForCurrentConfig(): array
+    {
+        return array_keys($this->listToolsByNameForCurrentConfig());
+    }
+
+    /**
+     * @return array<string, Tool>
+     */
+    private function listToolsByNameForCurrentConfig(): array
     {
         $factory = new McpServerFactory(
             $this->createMock(LoggerInterface::class),
@@ -437,6 +475,11 @@ class McpServerFactoryTest extends TestCase
         $message = McpTestHelper::decodeResponse($response);
         $result = McpTestHelper::parseListTools($message);
 
-        return array_values(array_map(static fn($tool) => $tool->name, $result->tools));
+        $toolsByName = [];
+        foreach ($result->tools as $tool) {
+            $toolsByName[$tool->name] = $tool;
+        }
+
+        return $toolsByName;
     }
 }

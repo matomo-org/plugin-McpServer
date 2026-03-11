@@ -297,6 +297,15 @@ class ApiListTest extends TestCase
             {
                 return ($this->callback)($query);
             }
+
+            public function getApiMethodSummaryBySelector(
+                string $accessMode,
+                ?string $method = null,
+                ?string $module = null,
+                ?string $action = null,
+            ): ApiMethodSummaryRecord {
+                throw new \BadMethodCallException('Not used in ApiList tests.');
+            }
         };
     }
 
@@ -337,6 +346,15 @@ class ApiListTest extends TestCase
                             || str_contains(strtolower($record->action), $query->search);
                     },
                 ));
+            }
+
+            public function getApiMethodSummaryBySelector(
+                string $accessMode,
+                ?string $method = null,
+                ?string $module = null,
+                ?string $action = null,
+            ): ApiMethodSummaryRecord {
+                throw new \BadMethodCallException('Not used in ApiList tests.');
             }
         };
     }

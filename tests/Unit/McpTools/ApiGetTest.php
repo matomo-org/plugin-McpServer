@@ -1,0 +1,157 @@
+<?php
+
+/**
+ * Matomo - free/libre analytics platform
+ *
+ * @link    https://matomo.org
+ * @license https://www.gnu.org/licenses/gpl-3.0.html GPL v3 or later
+ */
+
+declare(strict_types=1);
+
+namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
+
+use PHPUnit\Framework\TestCase;
+use Piwik\Config;
+use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
+use Piwik\Plugins\McpServer\McpTools\ApiGet;
+use stdClass;
+
+/**
+ * @group McpServer
+ * @group Plugins
+ */
+class ApiGetTest extends TestCase
+{
+    /** @var array<string, mixed>|null */
+    private ?array $originalMcpServerConfig = null;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $originalConfig = Config::getInstance()->McpServer ?? null;
+        $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
+    }
+
+    public function tearDown(): void
+    {
+        Config::getInstance()->McpServer = $this->originalMcpServerConfig;
+
+        parent::tearDown();
+    }
+
+    public function testGetReturnsRecordFromMethodSelector(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        $captured = new stdClass();
+        $captured->values = [];
+
+        $tool = new ApiGet(
+            new class ($captured) implements ApiMethodSummaryQueryServiceInterface {
+                public function __construct(private stdClass $captured)
+                {
+                }
+
+                public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
+                {
+                    return [];
+                }
+
+                public function getApiMethodSummaryBySelector(
+                    string $accessMode,
+                    ?string $method = null,
+                    ?string $module = null,
+                    ?string $action = null,
+                ): ApiMethodSummaryRecord {
+                    $this->captured->values = [
+                        'accessMode' => $accessMode,
+                        'method' => $method,
+                        'module' => $module,
+                        'action' => $action,
+                    ];
+
+                    return new ApiMethodSummaryRecord(
+                        module: 'API',
+                        action: 'getMatomoVersion',
+                        method: 'API.getMatomoVersion',
+                        parameters: [],
+                    );
+                }
+            },
+        );
+
+        $actual = $tool->get(method: ' API.getMatomoVersion ');
+
+        self::assertSame([
+            'module' => 'API',
+            'action' => 'getMatomoVersion',
+            'method' => 'API.getMatomoVersion',
+            'parameters' => [],
+        ], $actual);
+        /** @var array<string, mixed> $capturedValues */
+        $capturedValues = $captured->values;
+        self::assertSame('read', $capturedValues['accessMode']);
+        self::assertSame(' API.getMatomoVersion ', $capturedValues['method']);
+        self::assertNull($capturedValues['module']);
+        self::assertNull($capturedValues['action']);
+    }
+
+    public function testGetReturnsRecordFromModuleAndActionSelectors(): void
+    {
+        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $captured = new stdClass();
+        $captured->values = [];
+
+        $tool = new ApiGet(
+            new class ($captured) implements ApiMethodSummaryQueryServiceInterface {
+                public function __construct(private stdClass $captured)
+                {
+                }
+
+                public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
+                {
+                    return [];
+                }
+
+                public function getApiMethodSummaryBySelector(
+                    string $accessMode,
+                    ?string $method = null,
+                    ?string $module = null,
+                    ?string $action = null,
+                ): ApiMethodSummaryRecord {
+                    $this->captured->values = [
+                        'accessMode' => $accessMode,
+                        'method' => $method,
+                        'module' => $module,
+                        'action' => $action,
+                    ];
+
+                    return new ApiMethodSummaryRecord(
+                        module: 'UsersManager',
+                        action: 'addUser',
+                        method: 'UsersManager.addUser',
+                        parameters: [],
+                    );
+                }
+            },
+        );
+
+        $actual = $tool->get(module: ' UsersManager ', action: ' addUser ');
+
+        self::assertSame([
+            'module' => 'UsersManager',
+            'action' => 'addUser',
+            'method' => 'UsersManager.addUser',
+            'parameters' => [],
+        ], $actual);
+        /** @var array<string, mixed> $capturedValues */
+        $capturedValues = $captured->values;
+        self::assertSame('full', $capturedValues['accessMode']);
+        self::assertNull($capturedValues['method']);
+        self::assertSame(' UsersManager ', $capturedValues['module']);
+        self::assertSame(' addUser ', $capturedValues['action']);
+    }
+}
