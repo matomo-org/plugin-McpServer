@@ -165,6 +165,33 @@ class ReportProcessedTest extends IntegrationTestCase
         );
     }
 
+    public function testSerializesEmptyResolvedApiParametersAsObjectInResponseBody(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'filter_limit' => 1,
+                'filter_offset' => 0,
+            ],
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"resolvedReport"', $body);
+        self::assertStringContainsString('"apiParameters":{}', $body);
+    }
+
     public function testRejectsInvalidPeriodDateParameters(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
@@ -508,6 +535,107 @@ class ReportProcessedTest extends IntegrationTestCase
         );
 
         self::assertStringContainsString('goal_columns_mode', $error->message ?? '');
+    }
+
+    public function testAllowsUniqueIdCombinedWithEmptyListApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'apiParameters' => [],
+                'filter_limit' => 1,
+                'filter_offset' => 0,
+            ],
+            __METHOD__
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testAllowsUniqueIdCombinedWithEmptyObjectApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportProcessed::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'reportUniqueId' => $reportUniqueId,
+                    'apiParameters' => new \stdClass(),
+                    'filter_limit' => 1,
+                    'filter_offset' => 0,
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $content = McpTestHelper::assertToolSuccess(
+            McpTestHelper::parseCallTool(McpTestHelper::decodeResponse($response))
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testAllowsModuleActionCombinedWithEmptyListApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => [],
+                'filter_limit' => 1,
+                'filter_offset' => 0,
+            ],
+            __METHOD__
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testRejectsModuleActionWithNonEmptyListApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => ['flat'],
+        ]);
     }
 
     public function testReturnsStrictGuidanceForAdHocSegmentInStrictArchivingMode(): void

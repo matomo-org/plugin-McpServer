@@ -1,5 +1,10 @@
 ## Changelog
 
+### Unreleased
+
+- Aligned `matomo_report_processed` so empty `resolvedReport.apiParameters` values serialize as `{}` rather than `[]`, matching the declared MCP output schema.
+- Updated `matomo_report_processed` and `matomo_report_metadata` to accept `apiParameters: []` as the empty-input compatibility form.
+
 ### 5.0.1
 
 - Marked the plugin as not compatible with WordPress installations of Matomo

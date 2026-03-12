@@ -61,4 +61,17 @@ class ToolDataNormalizerTest extends TestCase
 
         ToolDataNormalizer::requireBoolLikeField(['sitesearch' => 'yes'], 'sitesearch', 'Site data');
     }
+
+    public function testRequireStringKeyedArrayOrEmptyListAcceptsEmptyList(): void
+    {
+        self::assertSame([], ToolDataNormalizer::requireStringKeyedArrayOrEmptyList([], 'apiParameters'));
+    }
+
+    public function testRequireStringKeyedArrayOrEmptyListRejectsNonEmptyList(): void
+    {
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('apiParameters is invalid.');
+
+        ToolDataNormalizer::requireStringKeyedArrayOrEmptyList(['flat'], 'apiParameters');
+    }
 }

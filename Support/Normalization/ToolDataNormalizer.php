@@ -34,6 +34,22 @@ final class ToolDataNormalizer
         return $value;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public static function requireStringKeyedArrayOrEmptyList(mixed $value, string $context): array
+    {
+        if (!is_array($value)) {
+            throw new ToolCallException(self::invalidMessage($context));
+        }
+
+        if ($value === []) {
+            return [];
+        }
+
+        return self::requireStringKeyedArray($value, $context);
+    }
+
     private static function invalidMessage(string $context): string
     {
         if (str_ends_with($context, '.')) {

@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 /**
  * @phpstan-import-type ReportMetadataArray from ReportMetadataRecord
@@ -76,9 +77,18 @@ class ReportMetadata
                 'description' => 'Date for module/action metadata lookup (default today).',
             ],
             'apiParameters' => [
-                'type' => 'object',
-                'description' => 'Optional report parameter object used with module/action lookup.',
-                'additionalProperties' => true,
+                'oneOf' => [
+                    [
+                        'type' => 'object',
+                        'description' => 'Optional report parameter object used with module/action lookup.',
+                        'additionalProperties' => true,
+                    ],
+                    [
+                        'type' => 'array',
+                        'maxItems' => 0,
+                        'description' => 'Empty array is accepted and normalized as no apiParameters.',
+                    ],
+                ],
             ],
         ],
         'required' => ['idSite'],
@@ -86,7 +96,7 @@ class ReportMetadata
         // valid:   reportUniqueId
         // valid:   apiModule + apiAction
         // invalid: no selector, partial module/action selector, or reportUniqueId combined
-        //          with apiModule/apiAction/apiParameters
+        //          with apiModule/apiAction/non-empty apiParameters
         'not' => [
             'anyOf' => [
                 [
@@ -100,7 +110,31 @@ class ReportMetadata
                 ],
                 ['required' => ['reportUniqueId', 'apiModule']],
                 ['required' => ['reportUniqueId', 'apiAction']],
-                ['required' => ['reportUniqueId', 'apiParameters']],
+                [
+                    'allOf' => [
+                        ['required' => ['reportUniqueId', 'apiParameters']],
+                        [
+                            'anyOf' => [
+                                [
+                                    'properties' => [
+                                        'apiParameters' => [
+                                            'type' => 'object',
+                                            'minProperties' => 1,
+                                        ],
+                                    ],
+                                ],
+                                [
+                                    'properties' => [
+                                        'apiParameters' => [
+                                            'type' => 'array',
+                                            'minItems' => 1,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
                 [
                     'required' => ['apiModule'],
                     'not' => ['required' => ['apiAction']],
@@ -122,15 +156,19 @@ class ReportMetadata
         ?string $date = null,
         ?array $apiParameters = null
     ): array {
+        $apiParameters = $apiParameters === null
+            ? null
+            : ToolDataNormalizer::requireStringKeyedArrayOrEmptyList($apiParameters, 'apiParameters');
+
         if ($reportUniqueId !== null) {
             if (
                 $apiModule !== null
                 || $apiAction !== null
-                || $apiParameters !== null
+                || ($apiParameters !== null && $apiParameters !== [])
             ) {
                 throw new ToolCallException(
                     'Invalid parameter combination: reportUniqueId cannot be combined '
-                    . 'with apiModule, apiAction, or apiParameters.'
+                    . 'with apiModule, apiAction, or non-empty apiParameters.'
                 );
             }
 

@@ -153,6 +153,49 @@ class ReportMetadataTest extends TestCase
         self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);
     }
 
+    public function testGetAllowsUniqueIdCombinedWithEmptyListApiParameters(): void
+    {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
+            /** @var array<string, mixed> */
+            public array $captured = [];
+
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
+            {
+                $this->captured = ['idSite' => $idSite, 'reportUniqueId' => $reportUniqueId];
+
+                return new ReportMetadataRecord(
+                    uniqueId: $reportUniqueId,
+                    module: 'Actions',
+                    action: 'getPageUrls',
+                    name: 'Page URLs',
+                    category: 'Actions',
+                    parameters: [],
+                    metadata: ['uniqueId' => $reportUniqueId]
+                );
+            }
+
+            public function getReportMetadataByModuleAction(
+                int $idSite,
+                string $apiModule,
+                string $apiAction,
+                array $apiParameters,
+                string $period,
+                string $date
+            ): ReportMetadataRecord {
+                throw new \RuntimeException('unexpected');
+            }
+        };
+
+        $actual = (new ReportMetadata($wrapper))->get(
+            idSite: 1,
+            reportUniqueId: 'Actions_getPageUrls',
+            apiParameters: []
+        );
+
+        self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
+        self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);
+    }
+
     public function testGetRejectsUniqueIdCombinedWithModuleActionOrApiParameters(): void
     {
         $wrapper = new class () implements ReportMetadataQueryServiceInterface {
@@ -181,5 +224,39 @@ class ReportMetadataTest extends TestCase
             reportUniqueId: 'Actions_getPageUrls',
             apiModule: 'Actions'
         );
+    }
+
+    public function testGetRejectsNonEmptyListApiParameters(): void
+    {
+        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
+            {
+                throw new \RuntimeException('unexpected');
+            }
+
+            public function getReportMetadataByModuleAction(
+                int $idSite,
+                string $apiModule,
+                string $apiAction,
+                array $apiParameters,
+                string $period,
+                string $date
+            ): ReportMetadataRecord {
+                throw new \RuntimeException('unexpected');
+            }
+        };
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('apiParameters is invalid.');
+
+        $tool = new ReportMetadata($wrapper);
+        $method = new \ReflectionMethod($tool, 'get');
+
+        $method->invokeArgs($tool, [
+            'idSite' => 1,
+            'apiModule' => 'VisitsSummary',
+            'apiAction' => 'get',
+            'apiParameters' => ['flat'],
+        ]);
     }
 }

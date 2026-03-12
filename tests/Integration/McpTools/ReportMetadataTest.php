@@ -90,6 +90,31 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
     }
 
+    public function testSerializesEmptyParametersAsObjectInResponseBody(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => [],
+            ],
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"parameters":{}', $body);
+        self::assertStringContainsString('"uniqueId":"' . $reportUniqueId . '"', $body);
+    }
+
     public function testReturnsReportByModuleActionWithMonthLast3(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
@@ -234,6 +259,162 @@ class ReportMetadataTest extends IntegrationTestCase
             'idSite' => $this->idSite,
             'reportUniqueId' => $uniqueId,
             'apiParameters' => ['idGoal' => 1],
+        ]);
+    }
+
+    public function testAllowsUniqueIdCombinedWithEmptyListApiParameters(): void
+    {
+        $report = $this->findAnyReportMetadata($this->idSite);
+        self::assertNotNull($report);
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'reportUniqueId' => $uniqueId,
+                'apiParameters' => [],
+            ],
+            __METHOD__
+        );
+
+        self::assertSame($uniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testAllowsUniqueIdCombinedWithEmptyObjectApiParameters(): void
+    {
+        $report = $this->findAnyReportMetadata($this->idSite);
+        self::assertNotNull($report);
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'reportUniqueId' => $uniqueId,
+                    'apiParameters' => new \stdClass(),
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseCallTool($message);
+
+        self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
+        self::assertSame($uniqueId, $result->structuredContent['uniqueId'] ?? null);
+    }
+
+    public function testAllowsModuleActionCombinedWithEmptyListApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => [],
+            ],
+            __METHOD__
+        );
+
+        self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testAllowsModuleActionCombinedWithEmptyObjectApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'apiModule' => 'Actions',
+                    'apiAction' => 'getPageUrls',
+                    'apiParameters' => new \stdClass(),
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeResponse($response);
+        $result = McpTestHelper::parseCallTool($message);
+
+        self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
+        self::assertSame($reportUniqueId, $result->structuredContent['uniqueId'] ?? null);
+    }
+
+    public function testRejectsUniqueIdWithNonEmptyListApiParametersAtSchemaLevel(): void
+    {
+        $report = $this->findAnyReportMetadata($this->idSite);
+        self::assertNotNull($report);
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'reportUniqueId' => $uniqueId,
+            'apiParameters' => ['flat'],
+        ]);
+    }
+
+    public function testRejectsUniqueIdWithNonEmptyObjectApiParametersAtSchemaLevel(): void
+    {
+        $report = $this->findAnyReportMetadata($this->idSite);
+        self::assertNotNull($report);
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $this->assertInvalidSchemaPayload(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'reportUniqueId' => $uniqueId,
+                    'apiParameters' => ['idGoal' => 1],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    public function testRejectsModuleActionWithNonEmptyListApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => ['flat'],
         ]);
     }
 
@@ -387,6 +568,19 @@ class ReportMetadataTest extends IntegrationTestCase
             __METHOD__
         );
 
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
+            $message->message ?? ''
+        );
+    }
+
+    private function assertInvalidSchemaPayload(string $payload): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
