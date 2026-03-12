@@ -1,6 +1,6 @@
 {
     "name": "McpServer",
-    "description": "Connect AI assistants and MCP clients to Matomo with secure access to sites, reports, goals, segments, and dimensions.",
+    "description": "Early preview: connect AI assistants and MCP clients to Matomo with secure access to sites, reports, goals, segments, and dimensions.",
     "version": "5.0.0",
     "theme": false,
     "require": {

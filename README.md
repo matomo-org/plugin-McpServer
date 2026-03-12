@@ -2,7 +2,7 @@
 
 ## Description
 
-McpServer adds a secure Model Context Protocol (MCP) endpoint to Matomo so AI assistants and MCP-compatible clients can work with analytics context directly from your Matomo instance.
+McpServer is an early preview plugin that adds a secure Model Context Protocol (MCP) endpoint to Matomo so AI assistants and MCP-compatible clients can work with analytics context directly from your Matomo instance.
 
 It provides read-oriented tools for sites, reports, processed report data, goals, segments, and dimensions using the same Matomo authentication and access rules you already use in Matomo.
 
