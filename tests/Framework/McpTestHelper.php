@@ -35,6 +35,7 @@ use PHPUnit\Framework\Assert;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
  * @phpstan-import-type ToolData from Tool
@@ -67,6 +68,24 @@ final class McpTestHelper
         Assert::assertNotSame('', $sessionId, 'Expected Mcp-Session-Id header on initialize response.');
 
         return $sessionId;
+    }
+
+    public static function getRawApiAccessMode(): string
+    {
+        return StaticContainer::get(SystemSettings::class)->getRawApiAccessMode();
+    }
+
+    public static function setRawApiAccessMode(string $rawApiAccessMode): void
+    {
+        $access = Access::getInstance();
+        $hadSuperUserAccess = $access->hasSuperUserAccess();
+        $access->setSuperUserAccess(true);
+
+        try {
+            StaticContainer::get(SystemSettings::class)->rawApiAccessMode->setValue($rawApiAccessMode);
+        } finally {
+            $access->setSuperUserAccess($hadSuperUserAccess);
+        }
     }
 
     /**

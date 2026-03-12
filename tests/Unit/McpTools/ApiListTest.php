@@ -13,7 +13,6 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
@@ -21,6 +20,7 @@ use Piwik\Plugins\McpServer\McpTools\ApiList;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
  * @group McpServer
@@ -28,28 +28,8 @@ use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
  */
 class ApiListTest extends TestCase
 {
-    /** @var array<string, mixed>|null */
-    private ?array $originalMcpServerConfig = null;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $originalConfig = Config::getInstance()->McpServer ?? null;
-        $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
-    }
-
-    public function tearDown(): void
-    {
-        Config::getInstance()->McpServer = $this->originalMcpServerConfig;
-
-        parent::tearDown();
-    }
-
     public function testListReturnsReadOnlyMethodsInReadMode(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
-
         $tool = new ApiList(
             $this->createQueryServiceStub(
                 static fn(ApiMethodSummaryQueryRecord $query): array => [
@@ -57,6 +37,7 @@ class ApiListTest extends TestCase
                 ]
             ),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('read'),
         );
 
         $actual = $tool->list(limit: 10, sort: ApiMethodsPagination::SORT_METHOD_ASC);
@@ -78,7 +59,6 @@ class ApiListTest extends TestCase
 
     public function testListReturnsAllMethodsInFullModeAndSupportsFilters(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $capturedQuery = null;
 
         $tool = new ApiList(
@@ -92,6 +72,7 @@ class ApiListTest extends TestCase
                 },
             ),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $actual = $tool->list(module: 'usersmanager', search: 'add', limit: 10);
@@ -117,11 +98,10 @@ class ApiListTest extends TestCase
 
     public function testListRejectsInvalidCursor(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createQueryServiceStub(static fn(ApiMethodSummaryQueryRecord $query): array => []),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $this->expectException(ToolCallException::class);
@@ -132,11 +112,10 @@ class ApiListTest extends TestCase
 
     public function testListSupportsPaginationAndSortOrdering(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $firstPage = $tool->list(limit: 2, sort: ApiMethodsPagination::SORT_METHOD_ASC);
@@ -177,17 +156,18 @@ class ApiListTest extends TestCase
 
     public function testListRejectsCursorWhenModeChanges(): void
     {
+        $rawApiAccessMode = 'read';
+        $settings = $this->createMutableSystemSettingsStub($rawApiAccessMode);
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $settings,
         );
-
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC);
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        $rawApiAccessMode = 'full';
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC);
@@ -195,11 +175,10 @@ class ApiListTest extends TestCase
 
     public function testListRejectsCursorWhenSearchChanges(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'get');
@@ -213,11 +192,10 @@ class ApiListTest extends TestCase
 
     public function testListRejectsCursorWhenModuleChanges(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'UsersManager');
@@ -231,11 +209,10 @@ class ApiListTest extends TestCase
 
     public function testListAcceptsCursorWhenEquivalentModuleNormalizationIsUsed(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: ' UsersManager ');
@@ -257,11 +234,10 @@ class ApiListTest extends TestCase
 
     public function testListAcceptsCursorWhenEquivalentSearchNormalizationIsUsed(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
-
         $tool = new ApiList(
             $this->createExpandedQueryServiceStub(),
             new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
         );
 
         $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: '  GET ');
@@ -357,5 +333,25 @@ class ApiListTest extends TestCase
                 throw new \BadMethodCallException('Not used in ApiList tests.');
             }
         };
+    }
+
+    private function createSystemSettingsStub(string $rawApiAccessMode): SystemSettings
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('getRawApiAccessMode')
+            ->willReturn($rawApiAccessMode);
+
+        return $settings;
+    }
+
+    private function createMutableSystemSettingsStub(string &$rawApiAccessMode): SystemSettings
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('getRawApiAccessMode')
+            ->willReturnCallback(static function () use (&$rawApiAccessMode): string {
+                return $rawApiAccessMode;
+            });
+
+        return $settings;
     }
 }

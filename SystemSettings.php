@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer;
 
 use Piwik\Piwik;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Settings\FieldConfig;
 use Piwik\Settings\Setting;
 use Piwik\SettingsPiwik;
@@ -21,6 +22,9 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
     /** @var Setting */
     public $enableMcp;
+
+    /** @var Setting */
+    public $rawApiAccessMode;
 
     protected function init(): void
     {
@@ -43,11 +47,38 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
             },
         );
+
+        $this->rawApiAccessMode = $this->makeSetting(
+            'raw_api_access_mode',
+            RawApiAccessMode::NONE,
+            FieldConfig::TYPE_STRING,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessModeTitle');
+                $field->inlineHelp = implode('<br><br>', [
+                    Piwik::translate('McpServer_RawApiAccessModeHelpPurpose'),
+                    Piwik::translate('McpServer_RawApiAccessModeHelpDataScope'),
+                    Piwik::translate('McpServer_RawApiAccessModeHelpDestructive'),
+                    Piwik::translate('McpServer_RawApiAccessModeHelpPolicy'),
+                ]);
+                $field->uiControl = FieldConfig::UI_CONTROL_SINGLE_SELECT;
+                $field->condition = 'enable_mcp==1';
+                $field->availableValues = [
+                    RawApiAccessMode::NONE => Piwik::translate('McpServer_RawApiAccessModeOptionNone'),
+                    RawApiAccessMode::READ => Piwik::translate('McpServer_RawApiAccessModeOptionRead'),
+                    RawApiAccessMode::FULL => Piwik::translate('McpServer_RawApiAccessModeOptionFull'),
+                ];
+            },
+        );
     }
 
     public function isMcpEnabled(): bool
     {
         return (bool) $this->enableMcp->getValue();
+    }
+
+    public function getRawApiAccessMode(): string
+    {
+        return RawApiAccessMode::normalize($this->rawApiAccessMode->getValue());
     }
 
     private function getMcpEndpointUrl(): string

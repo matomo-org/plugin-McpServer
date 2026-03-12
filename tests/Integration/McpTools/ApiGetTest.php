@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
-use Piwik\Config;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -23,9 +22,25 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ApiGetTest extends IntegrationTestCase
 {
+    private string $originalRawApiAccessMode = 'none';
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->originalRawApiAccessMode = McpTestHelper::getRawApiAccessMode();
+    }
+
+    public function tearDown(): void
+    {
+        McpTestHelper::setRawApiAccessMode($this->originalRawApiAccessMode);
+
+        parent::tearDown();
+    }
+
     public function testReadModeReturnsKnownReadMethodByMethodSelector(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -45,7 +60,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testFullModeReturnsKnownMutatingMethodByModuleAndActionSelectors(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -65,7 +80,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testReadModeRejectsWriteOnlyMethod(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -81,7 +96,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testRejectsIncompleteSplitSelectorAtSchemaLevel(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -98,7 +113,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testRejectsMissingSelectorAtSchemaLevel(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -115,7 +130,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testRejectsMixedSelectorStyleAtSchemaLevel(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -137,7 +152,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testSchemaDeclaresFlatSelectorsWithoutTopLevelCombinators(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -177,7 +192,7 @@ class ApiGetTest extends IntegrationTestCase
 
     public function testNoneModeHidesAndRejectsToolCall(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
+        McpTestHelper::setRawApiAccessMode('none');
         self::assertNotContains(ApiGet::TOOL_NAME, $this->listToolNamesForCurrentConfig());
 
         $server = McpTestHelper::buildServer();

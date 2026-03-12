@@ -28,17 +28,13 @@ log_tool_call_parameters_full = 0
 - `log_tool_call_level`: Tool-call logging level when `log_tool_calls = 1`. Accepted values: `ERROR`, `WARN`/`WARNING`, `INFO`, `DEBUG`, `VERBOSE` (case-insensitive). Missing or invalid values default to `DEBUG`. `VERBOSE` is logged via debug-level logger calls.
 - `log_tool_call_parameters_full`: Logs full tool-call parameter values when set to `1`. Default is redacted parameter logging when set to `0` (may expose sensitive input data when enabled).
 
-Configure raw Matomo API tool access in `config/config.ini.php`:
+Configure raw Matomo API tool access in **Administration -> System -> General Settings -> McpServer**:
 
-```ini
-[McpServer]
-raw_api_access_mode = none
-```
-
-- `raw_api_access_mode`: Controls raw API tool visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
-- `none`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
-- `read`: shows the raw API tools and currently allows only API actions with `get`/`is` prefix. This prefix-based filter is a temporary heuristic and may be replaced by a more accurate read/write classification in the future.
-- `full`: shows the raw API tools and allows all discoverable API actions.
+- Use the **Raw Matomo API tool access** setting to control visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
+- `Disabled`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
+- `Read only`: shows the raw API tools and allows only the current read-only heuristic (`get`/`is` methods).
+- `Full API access`: shows the raw API tools and allows direct API calls, including state-changing or destructive methods.
+- Direct API access can expose raw or personal data depending on enabled Matomo features. Review privacy and security requirements before enabling it, and consult your DPO or compliance owner when needed.
 
 ## Enabling MCP
 
@@ -62,6 +58,7 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 - goals
 - segments
 - dimensions
+- raw Matomo API discovery and execution, when enabled by an administrator
 
 `matomo_report_processed` is advertised to MCP clients as read-only only when Matomo is configured so report requests do not trigger browser-based archiving work. In practice, if browser-triggered archiving is enabled or browser-based segment archiving is available, MCP clients will see this tool as not read-only.
 

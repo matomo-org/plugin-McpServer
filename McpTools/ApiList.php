@@ -11,14 +11,13 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
  * @phpstan-import-type ApiMethodSummaryArray from ApiMethodSummaryRecord
@@ -30,6 +29,7 @@ class ApiList
     public function __construct(
         private ApiMethodSummaryQueryServiceInterface $queryService,
         private PaginatedCollectionResponder $paginationResponder,
+        private SystemSettings $systemSettings,
     ) {
     }
 
@@ -49,7 +49,7 @@ class ApiList
         ?string $search = null,
     ): array {
         $query = ApiMethodSummaryQueryRecord::fromInputs(
-            RawApiAccessMode::normalize(Config::getInstance()->McpServer['raw_api_access_mode'] ?? null),
+            $this->systemSettings->getRawApiAccessMode(),
             $module,
             $search,
         );

@@ -25,12 +25,30 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class McpToolsContractTest extends IntegrationTestCase
 {
+    private string $originalRawApiAccessMode = 'none';
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->originalRawApiAccessMode = McpTestHelper::getRawApiAccessMode();
+    }
+
+    public function tearDown(): void
+    {
+        McpTestHelper::setRawApiAccessMode($this->originalRawApiAccessMode);
+
+        parent::tearDown();
+    }
+
     public function testToolsListContainsAllPluginTools(): void
     {
         $this->runWithArchivingMode(
             browserTriggerEnabled: false,
             browserArchivingDisabledEnforce: 1,
             callback: function (): void {
+                McpTestHelper::setRawApiAccessMode('none');
+
                 $server = McpTestHelper::buildServer();
                 $sessionId = McpTestHelper::initializeSession($server);
                 $payload = McpTestHelper::makeListToolsRequest('list-1');
@@ -245,7 +263,7 @@ class McpToolsContractTest extends IntegrationTestCase
 
     public function testRawApiListToolIsHiddenWhenRawAccessModeIsNone(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
+        McpTestHelper::setRawApiAccessMode('none');
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
         self::assertArrayNotHasKey(ApiCall::TOOL_NAME, $toolsByName);
@@ -255,7 +273,7 @@ class McpToolsContractTest extends IntegrationTestCase
 
     public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsRead(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
         self::assertArrayHasKey('matomo_api_get', $toolsByName);
@@ -285,7 +303,7 @@ class McpToolsContractTest extends IntegrationTestCase
 
     public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsFull(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
         self::assertArrayHasKey('matomo_api_get', $toolsByName);

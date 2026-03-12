@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -23,9 +22,25 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ApiListTest extends IntegrationTestCase
 {
+    private string $originalRawApiAccessMode = 'none';
+
+    public function setUp(): void
+    {
+        parent::setUp();
+
+        $this->originalRawApiAccessMode = McpTestHelper::getRawApiAccessMode();
+    }
+
+    public function tearDown(): void
+    {
+        McpTestHelper::setRawApiAccessMode($this->originalRawApiAccessMode);
+
+        parent::tearDown();
+    }
+
     public function testReadModeExposesReadOnlyActionsOnly(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -55,7 +70,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testFullModeCanReturnMutatingActions(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -89,7 +104,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testReturnsPagedResultsWithCursor(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -137,7 +152,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testRejectsInvalidLimit(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -155,7 +170,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testRejectsInvalidSort(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -173,7 +188,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testRejectsInvalidCursor(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -189,7 +204,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testRejectsCursorSortMismatch(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -216,7 +231,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testRejectsCursorFromDifferentFilterContext(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
+        McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -243,7 +258,7 @@ class ApiListTest extends IntegrationTestCase
 
     public function testNoneModeHidesAndRejectsToolCall(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'none'];
+        McpTestHelper::setRawApiAccessMode('none');
         self::assertNotContains('matomo_api_list', $this->listToolNamesForCurrentConfig());
 
         $server = McpTestHelper::buildServer();

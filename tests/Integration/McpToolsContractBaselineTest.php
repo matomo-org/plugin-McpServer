@@ -12,7 +12,6 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Matomo\Dependencies\McpServer\Mcp\Server;
-use Piwik\Config;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
@@ -60,6 +59,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     private int $idDimension = 0;
     private int $idGoal = 0;
     private string $reportUniqueId = '';
+    private string $originalRawApiAccessMode = 'none';
 
     protected static function configureFixture($fixture): void
     {
@@ -71,6 +71,8 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     public function setUp(): void
     {
         parent::setUp();
+
+        $this->originalRawApiAccessMode = McpTestHelper::getRawApiAccessMode();
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
         $this->idSite = Fixture::createWebsite(
@@ -126,6 +128,13 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
         self::assertNotNull($reportUniqueId, 'Expected Actions/getPageUrls report in metadata.');
         $this->reportUniqueId = $reportUniqueId;
+    }
+
+    public function tearDown(): void
+    {
+        McpTestHelper::setRawApiAccessMode($this->originalRawApiAccessMode);
+
+        parent::tearDown();
     }
 
     /**
@@ -242,7 +251,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
     public function testApiListSuccessShapeInReadMode(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -260,7 +269,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
     public function testApiGetSuccessShapeInReadMode(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -277,7 +286,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
     public function testApiCallSuccessShapeInReadMode(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
+        McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);

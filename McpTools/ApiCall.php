@@ -11,10 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
-use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
  * @phpstan-import-type ApiCallArray from ApiCallRecord
@@ -23,8 +22,10 @@ class ApiCall
 {
     public const TOOL_NAME = 'matomo_api_call';
 
-    public function __construct(private ApiCallQueryServiceInterface $queryService)
-    {
+    public function __construct(
+        private ApiCallQueryServiceInterface $queryService,
+        private SystemSettings $systemSettings,
+    ) {
     }
 
     /**
@@ -38,7 +39,7 @@ class ApiCall
         ?array $parameters = null,
     ): array {
         return $this->queryService->callApi(
-            RawApiAccessMode::normalize(Config::getInstance()->McpServer['raw_api_access_mode'] ?? null),
+            $this->systemSettings->getRawApiAccessMode(),
             $method,
             $module,
             $action,

@@ -301,6 +301,7 @@ class APITest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            $this->createMock(SystemSettings::class),
         );
     }
 

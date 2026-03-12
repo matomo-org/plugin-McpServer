@@ -14,6 +14,7 @@ describe('McpServer', function () {
     const connectUrl = '?module=McpServer&action=connect&idSite=1&period=day&date=yesterday';
     const settingsSelector = '#McpServerPluginSettings';
     const enabledCheckboxSelector = 'input[name="enable_mcp"]';
+    const rawApiAccessModeSelector = 'select[name="raw_api_access_mode"]';
     const settingsSaveButtonSelector = `${settingsSelector} .pluginsSettingsSubmit`;
     const connectSelector = '.mcpServerConnect';
 
@@ -55,18 +56,45 @@ describe('McpServer', function () {
         await page.waitForNetworkIdle();
     }
 
-    async function setMcpEnabled(enabled)
+    async function isRawApiAccessModeVisible()
+    {
+        return page.evaluate((selector) => {
+            const element = document.querySelector(selector);
+
+            if (!element) {
+                return false;
+            }
+
+            return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+        }, rawApiAccessModeSelector);
+    }
+
+    async function configureMcp(enabled, rawApiAccessMode = 'string:read')
     {
         resetUserToSuperUser();
         await page.goto(settingsUrl);
         await waitForSettingsSection();
 
-        const isChecked = await page.$eval(enabledCheckboxSelector, (el) => !!el.checked);
+        const isEnabled = await page.$eval(enabledCheckboxSelector, (el) => !!el.checked);
 
-        if (isChecked !== enabled) {
+        if (isEnabled !== enabled) {
             await page.click(`${enabledCheckboxSelector} + span`);
             await page.waitForTimeout(250);
             await saveSettings();
+
+            await page.goto(settingsUrl);
+            await waitForSettingsSection();
+        }
+
+        if (enabled) {
+            await page.waitForSelector(rawApiAccessModeSelector, { visible: true });
+            const currentRawApiAccessMode = await page.$eval(rawApiAccessModeSelector, (el) => el.value);
+
+            if (currentRawApiAccessMode !== rawApiAccessMode) {
+                await page.select(rawApiAccessModeSelector, rawApiAccessMode);
+                await page.waitForTimeout(250);
+                await saveSettings();
+            }
         }
 
         await page.goto(settingsUrl);
@@ -93,14 +121,23 @@ describe('McpServer', function () {
         resetUserToSuperUser();
     });
 
-    it('should display the plugin settings', async function () {
-        await setMcpEnabled(false);
+    it('should only show the enable checkbox when MCP is disabled', async function () {
+        await configureMcp(false);
 
+        expect(await page.$eval(enabledCheckboxSelector, (el) => !!el.checked)).to.equal(false);
+        expect(await isRawApiAccessModeVisible()).to.equal(false);
+    });
+
+    it('should display the plugin settings when MCP is enabled with read-only API access', async function () {
+        await configureMcp(true, 'string:read');
+
+        expect(await isRawApiAccessModeVisible()).to.equal(true);
+        expect(await page.$eval(rawApiAccessModeSelector, (el) => el.value)).to.equal('string:read');
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');
     });
 
     it('should show connect guidance for superusers when MCP is disabled', async function () {
-        await setMcpEnabled(false);
+        await configureMcp(false);
         await page.goto(connectUrl);
         await page.waitForNetworkIdle();
 
@@ -116,7 +153,7 @@ describe('McpServer', function () {
     });
 
     it('should show contact-admin guidance for view users when MCP is disabled', async function () {
-        await setMcpEnabled(false);
+        await configureMcp(false);
         setViewUser();
 
         await page.goto(connectUrl);
@@ -135,10 +172,10 @@ describe('McpServer', function () {
     });
 
     it('should display the connect page when MCP is enabled', async function () {
-        await setMcpEnabled(true);
+        await configureMcp(true);
         await page.goto(connectUrl);
         await page.waitForNetworkIdle();
-        await page.waitForSelector(`${connectSelector} .card-action`, { visible: true });
+        await page.waitForSelector(connectSelector, { visible: true });
         await page.mouse.move(-10, -10);
 
         const text = await getConnectText();
@@ -153,7 +190,7 @@ describe('McpServer', function () {
     });
 
     it('should display OAuth2 guidance when the OAuth2 plugin is enabled', async function () {
-        await setMcpEnabled(true);
+        await configureMcp(true);
         testEnvironment.mockOAuth2PluginEnabled = 1;
         testEnvironment.save();
 

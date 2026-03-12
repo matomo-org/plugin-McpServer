@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\SystemSettings;
 use stdClass;
 
 /**
@@ -25,27 +25,8 @@ use stdClass;
  */
 class ApiCallTest extends TestCase
 {
-    /** @var array<string, mixed>|null */
-    private ?array $originalMcpServerConfig = null;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $originalConfig = Config::getInstance()->McpServer ?? null;
-        $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
-    }
-
-    public function tearDown(): void
-    {
-        Config::getInstance()->McpServer = $this->originalMcpServerConfig;
-
-        parent::tearDown();
-    }
-
     public function testCallUsesMethodSelector(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $captured = new stdClass();
         $captured->values = [];
 
@@ -76,6 +57,7 @@ class ApiCallTest extends TestCase
                     );
                 }
             },
+            $this->createSystemSettingsStub('read'),
         );
 
         $actual = $tool->call(method: ' API.getMatomoVersion ');
@@ -100,7 +82,6 @@ class ApiCallTest extends TestCase
 
     public function testCallUsesSplitSelectorAndParameters(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $captured = new stdClass();
         $captured->values = [];
 
@@ -131,6 +112,7 @@ class ApiCallTest extends TestCase
                     );
                 }
             },
+            $this->createSystemSettingsStub('full'),
         );
 
         $actual = $tool->call(
@@ -147,5 +129,14 @@ class ApiCallTest extends TestCase
         self::assertSame(' UsersManager ', $capturedValues['module']);
         self::assertSame(' addUser ', $capturedValues['action']);
         self::assertSame(['userLogin' => 'alice'], $capturedValues['parameters']);
+    }
+
+    private function createSystemSettingsStub(string $rawApiAccessMode): SystemSettings
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('getRawApiAccessMode')
+            ->willReturn($rawApiAccessMode);
+
+        return $settings;
     }
 }

@@ -12,11 +12,11 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use PHPUnit\Framework\TestCase;
-use Piwik\Config;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
+use Piwik\Plugins\McpServer\SystemSettings;
 use stdClass;
 
 /**
@@ -25,27 +25,8 @@ use stdClass;
  */
 class ApiGetTest extends TestCase
 {
-    /** @var array<string, mixed>|null */
-    private ?array $originalMcpServerConfig = null;
-
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        $originalConfig = Config::getInstance()->McpServer ?? null;
-        $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
-    }
-
-    public function tearDown(): void
-    {
-        Config::getInstance()->McpServer = $this->originalMcpServerConfig;
-
-        parent::tearDown();
-    }
-
     public function testGetReturnsRecordFromMethodSelector(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'read'];
         $captured = new stdClass();
         $captured->values = [];
 
@@ -81,6 +62,7 @@ class ApiGetTest extends TestCase
                     );
                 }
             },
+            $this->createSystemSettingsStub('read'),
         );
 
         $actual = $tool->get(method: ' API.getMatomoVersion ');
@@ -101,7 +83,6 @@ class ApiGetTest extends TestCase
 
     public function testGetReturnsRecordFromModuleAndActionSelectors(): void
     {
-        Config::getInstance()->McpServer = ['raw_api_access_mode' => 'full'];
         $captured = new stdClass();
         $captured->values = [];
 
@@ -137,6 +118,7 @@ class ApiGetTest extends TestCase
                     );
                 }
             },
+            $this->createSystemSettingsStub('full'),
         );
 
         $actual = $tool->get(module: ' UsersManager ', action: ' addUser ');
@@ -153,5 +135,14 @@ class ApiGetTest extends TestCase
         self::assertNull($capturedValues['method']);
         self::assertSame(' UsersManager ', $capturedValues['module']);
         self::assertSame(' addUser ', $capturedValues['action']);
+    }
+
+    private function createSystemSettingsStub(string $rawApiAccessMode): SystemSettings
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('getRawApiAccessMode')
+            ->willReturn($rawApiAccessMode);
+
+        return $settings;
     }
 }

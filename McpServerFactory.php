@@ -48,6 +48,7 @@ final class McpServerFactory
         private SessionStoreInterface $sessionStore,
         private ContainerInterface $container,
         private ToolCallParameterFormatter $toolCallParameterFormatter,
+        private SystemSettings $systemSettings,
     ) {
     }
 
@@ -93,7 +94,7 @@ final class McpServerFactory
             outputSchema: ReportProcessedToolOutputSchema::ITEM,
         );
 
-        $rawApiAccessMode = $this->resolveRawApiAccessMode();
+        $rawApiAccessMode = $this->systemSettings->getRawApiAccessMode();
         if (RawApiAccessMode::allowsToolRegistration($rawApiAccessMode)) {
             $rawApiCallDestructiveHint = $rawApiAccessMode === RawApiAccessMode::FULL;
             $builder->addTool(
@@ -226,12 +227,6 @@ final class McpServerFactory
         }
 
         return $normalizedLevel;
-    }
-
-    private function resolveRawApiAccessMode(): string
-    {
-        $config = $this->getMcpServerConfig();
-        return RawApiAccessMode::normalize($config['raw_api_access_mode'] ?? null);
     }
 
     /**

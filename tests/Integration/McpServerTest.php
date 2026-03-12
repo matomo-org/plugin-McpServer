@@ -130,6 +130,7 @@ class McpServerTest extends IntegrationTestCase
         $systemSettings = StaticContainer::get(SystemSettings::class);
         self::assertInstanceOf(SystemSettings::class, $systemSettings);
         $originalEnableMcpValue = (bool) $systemSettings->enableMcp->getValue();
+        $originalRawApiAccessMode = $systemSettings->getRawApiAccessMode();
 
         Access::getInstance()->setSuperUserAccess(true);
 
@@ -139,8 +140,15 @@ class McpServerTest extends IntegrationTestCase
 
             $systemSettings->enableMcp->setValue(true);
             self::assertTrue($systemSettings->isMcpEnabled());
+
+            $systemSettings->rawApiAccessMode->setValue('read');
+            self::assertSame('read', $systemSettings->getRawApiAccessMode());
+
+            $systemSettings->rawApiAccessMode->setValue('full');
+            self::assertSame('full', $systemSettings->getRawApiAccessMode());
         } finally {
             $systemSettings->enableMcp->setValue($originalEnableMcpValue);
+            $systemSettings->rawApiAccessMode->setValue($originalRawApiAccessMode);
             Access::getInstance()->setSuperUserAccess(false);
         }
     }
