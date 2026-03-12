@@ -1,8 +1,9 @@
 {
     "name": "McpServer",
     "description": "Early preview: connect AI assistants and MCP clients to Matomo with secure access to sites, reports, goals, segments, and dimensions.",
-    "version": "5.0.0",
+    "version": "5.0.1",
     "theme": false,
+    "wordpress-compatible": false,
     "require": {
         "matomo": ">=5.8.0-rc1,<6.0.0-b1"
     },
