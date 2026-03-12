@@ -1,0 +1,11 @@
+/.github/ export-ignore
+/tests/ export-ignore
+
+/.gitattributes export-ignore
+/AGENTS.md export-ignore
+/bootstrap-phpstan.php export-ignore
+/composer.lock export-ignore
+/config/test.php export-ignore
+/phpcs.xml export-ignore
+/phpstan.neon export-ignore
+/scoper.inc.php export-ignore

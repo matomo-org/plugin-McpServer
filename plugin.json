@@ -1,6 +1,6 @@
 {
     "name": "McpServer",
-    "description": "Matomo MCP Server",
+    "description": "Early preview: connect AI assistants and MCP clients to Matomo with secure access to sites, reports, goals, segments, and dimensions.",
     "version": "5.0.0",
     "theme": false,
     "require": {
@@ -19,7 +19,14 @@
         "forum": "https://forum.matomo.org",
         "source": "https://github.com/matomo-org/plugin-McpServer"
     },
-    "homepage": "",
+    "homepage": "https://github.com/matomo-org/plugin-McpServer",
     "license": "GPL v3+",
-    "keywords": []
+    "keywords": [
+        "mcp",
+        "ai",
+        "assistant",
+        "analytics",
+        "integration"
+    ],
+    "category": "integration"
 }
