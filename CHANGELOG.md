@@ -1,5 +1,9 @@
 ## Changelog
 
+### 5.0.1
+
+- Marked the plugin as not compatible with WordPress installations of Matomo
+
 ### 5.0.0
 
 - Initial release
