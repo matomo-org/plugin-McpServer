@@ -32,8 +32,9 @@ Configure raw Matomo API tool access in **Administration -> System -> General Se
 
 - Use the **Raw Matomo API tool access** setting to control visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
 - `Disabled`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
-- `Read only`: shows the raw API tools and allows only the current read-only heuristic (`get`/`is` methods).
+- `Best-effort read filtering`: shows the raw API tools, blocks known risky proxy-like APIs, and otherwise falls back to method-name filtering (`get`/`is`) for discovered methods.
 - `Full API access`: shows the raw API tools and allows direct API calls, including state-changing or destructive methods.
+- Best-effort read filtering is not a strict security boundary for unknown plugin APIs.
 - Direct API access can expose raw or personal data depending on enabled Matomo features. Review privacy and security requirements before enabling it, and consult your DPO or compliance owner when needed.
 
 ## Enabling MCP

@@ -27,10 +27,46 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
     {
         $service = new ApiMethodSummaryQueryService();
 
-        self::assertFalse($service->shouldIncludeMethodMetadataEntry('__documentation', [], false));
-        self::assertFalse($service->shouldIncludeMethodMetadataEntry('getUsers', [], true));
-        self::assertFalse($service->shouldIncludeMethodMetadataEntry('getUsers', 'invalid', false));
-        self::assertTrue($service->shouldIncludeMethodMetadataEntry('getUsers', [], false));
+        self::assertFalse($service->shouldIncludeMethodMetadataEntry(self::class, '__documentation', [], false));
+        self::assertFalse($service->shouldIncludeMethodMetadataEntry(self::class, 'getUsers', [], true));
+        self::assertFalse($service->shouldIncludeMethodMetadataEntry(self::class, 'getUsers', 'invalid', false));
+        self::assertTrue($service->shouldIncludeMethodMetadataEntry(self::class, 'getUsers', [], false));
+    }
+
+    public function testShouldIncludeMethodMetadataEntryRejectsMethodLevelInternalAnnotation(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        self::assertFalse($service->shouldIncludeMethodMetadataEntry(
+            InternalMethodFixture::class,
+            'hiddenMethod',
+            [],
+            false,
+        ));
+    }
+
+    public function testShouldIncludeMethodMetadataEntryRejectsClassLevelInternalAnnotation(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        self::assertFalse($service->shouldIncludeMethodMetadataEntry(
+            InternalClassFixture::class,
+            'visibleMethod',
+            [],
+            false,
+        ));
+    }
+
+    public function testShouldIncludeMethodMetadataEntryAllowsMissingClassMetadata(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        self::assertTrue($service->shouldIncludeMethodMetadataEntry(
+            'Piwik\\Plugins\\Missing\\API',
+            'getUsers',
+            [],
+            false,
+        ));
     }
 
     public function testNormalizeParameterMetadataHandlesNoDefaultValueAsRequired(): void
@@ -129,6 +165,56 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
 
         self::assertSame(
             ['API.getMatomoVersion', 'SitesManager.isSiteNameUnique', 'UsersManager.getUsers'],
+            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
+        );
+    }
+
+    public function testFilterRecordsUsesFullModeForNonHeuristicReadMethod(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $readRecords = $service->filterRecords(
+            [new ApiMethodSummaryRecord('UsersManager', 'hasSuperUserAccess', 'UsersManager.hasSuperUserAccess', [])],
+            ApiMethodSummaryQueryRecord::fromInputs('read'),
+        );
+        $fullRecords = $service->filterRecords(
+            [new ApiMethodSummaryRecord('UsersManager', 'hasSuperUserAccess', 'UsersManager.hasSuperUserAccess', [])],
+            ApiMethodSummaryQueryRecord::fromInputs('full'),
+        );
+
+        self::assertSame([], $readRecords);
+        self::assertSame(
+            ['UsersManager.hasSuperUserAccess'],
+            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $fullRecords)),
+        );
+    }
+
+    public function testFilterRecordsRemovesBlockedProxyLikeMethodsInFullMode(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $records = $service->filterRecords(
+            [
+                new ApiMethodSummaryRecord('API', 'getProcessedReport', 'API.getProcessedReport', []),
+                new ApiMethodSummaryRecord('API', 'getMetadata', 'API.getMetadata', []),
+                new ApiMethodSummaryRecord(
+                    'API',
+                    'getSuggestedValuesForSegment',
+                    'API.getSuggestedValuesForSegment',
+                    [],
+                ),
+                new ApiMethodSummaryRecord(
+                    'TreemapVisualization',
+                    'getTreemapData',
+                    'TreemapVisualization.getTreemapData',
+                    [],
+                ),
+            ],
+            ApiMethodSummaryQueryRecord::fromInputs('full'),
+        );
+
+        self::assertSame(
+            ['API.getSuggestedValuesForSegment'],
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
         );
     }
@@ -232,5 +318,25 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
             new ApiMethodSummaryRecord('UsersManager', 'getUsers', 'UsersManager.getUsers', []),
         ];
+    }
+}
+
+class InternalMethodFixture
+{
+    /**
+     * @internal
+     */
+    public function hiddenMethod(): void
+    {
+    }
+}
+
+/**
+ * @internal
+ */
+class InternalClassFixture
+{
+    public function visibleMethod(): void
+    {
     }
 }

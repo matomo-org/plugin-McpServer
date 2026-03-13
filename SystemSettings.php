@@ -56,6 +56,7 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                 $field->title = Piwik::translate('McpServer_RawApiAccessModeTitle');
                 $field->inlineHelp = implode('<br><br>', [
                     Piwik::translate('McpServer_RawApiAccessModeHelpPurpose'),
+                    Piwik::translate('McpServer_RawApiAccessModeHelpReadFallback'),
                     Piwik::translate('McpServer_RawApiAccessModeHelpDataScope'),
                     Piwik::translate('McpServer_RawApiAccessModeHelpDestructive'),
                     Piwik::translate('McpServer_RawApiAccessModeHelpPolicy'),

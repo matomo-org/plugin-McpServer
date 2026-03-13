@@ -48,10 +48,11 @@
         "RawApiAccessModeHelpDataScope": "Direct Matomo API access can expose the same data available through the Matomo user interface or Reporting API, including raw or personal data when features such as the Visitor Log are enabled.",
         "RawApiAccessModeHelpDestructive": "Full API access can execute state-changing or destructive API methods, including actions that modify configuration or delete data.",
         "RawApiAccessModeHelpPolicy": "Before enabling direct API access, ensure this complies with your organization's privacy and security policies and applicable regulations. You may need approval from your data protection officer (DPO) or another compliance owner.",
-        "RawApiAccessModeHelpPurpose": "Control whether the raw Matomo API tools are hidden, limited to read-only methods, or allowed to execute direct API calls.",
+        "RawApiAccessModeHelpPurpose": "Control whether the raw Matomo API tools are hidden, use best-effort read filtering, or allow direct API calls.",
+        "RawApiAccessModeHelpReadFallback": "Best-effort read filtering is not a strict security boundary. It blocks known risky APIs and otherwise falls back to method-name filtering for discovered API methods.",
         "RawApiAccessModeOptionFull": "Full API access",
         "RawApiAccessModeOptionNone": "Disabled",
-        "RawApiAccessModeOptionRead": "Read only",
+        "RawApiAccessModeOptionRead": "Best-effort read filtering",
         "RawApiAccessModeTitle": "Raw Matomo API tool access"
     }
 }

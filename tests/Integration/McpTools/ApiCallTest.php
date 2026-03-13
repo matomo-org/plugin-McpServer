@@ -163,6 +163,106 @@ class ApiCallTest extends IntegrationTestCase
         );
     }
 
+    public function testReadModeRejectsNonHeuristicMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'UsersManager.hasSuperUserAccess'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testFullModeCallsKnownNonHeuristicMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'UsersManager.hasSuperUserAccess'],
+            __METHOD__,
+        );
+
+        $resolvedMethod = $content['resolvedMethod'] ?? null;
+        self::assertIsArray($resolvedMethod);
+        self::assertSame('UsersManager.hasSuperUserAccess', $resolvedMethod['method'] ?? null);
+        self::assertIsBool($content['result'] ?? null);
+    }
+
+    public function testReadModeRejectsBlockedProxyLikeMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'API.getBulkRequest'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testReadModeRejectsGetMetadata(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'API.getMetadata'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testReadModeRejectsGetReportMetadata(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'API.getReportMetadata'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testFullModeRejectsBlockedProxyLikeMethodBySplitSelector(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['module' => 'Insights', 'action' => 'getInsights'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
     public function testFullModeAttemptsMutatingMethodCall(): void
     {
         McpTestHelper::setRawApiAccessMode('full');

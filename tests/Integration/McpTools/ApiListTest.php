@@ -102,6 +102,99 @@ class ApiListTest extends IntegrationTestCase
         self::assertTrue($foundMutatingAction, 'Expected at least one non-read action in full mode.');
     }
 
+    public function testReadModeHidesBlockedProxyLikeMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $methods = $this->listMethodsForCurrentConfig(500);
+
+        self::assertContains('API.getSuggestedValuesForSegment', $methods);
+        self::assertNotContains('API.get', $methods);
+        self::assertNotContains('API.getBulkRequest', $methods);
+        self::assertNotContains('API.getMetadata', $methods);
+        self::assertNotContains('API.getProcessedReport', $methods);
+        self::assertNotContains('API.getReportMetadata', $methods);
+        self::assertNotContains('API.getRowEvolution', $methods);
+        self::assertNotContains('ImageGraph.get', $methods);
+        self::assertNotContains('Insights.getInsights', $methods);
+        self::assertNotContains('Insights.getMoversAndShakers', $methods);
+        self::assertNotContains('TreemapVisualization.getTreemapData', $methods);
+    }
+
+    public function testReadModeUsesHeuristicFallbackForUnknownMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $methods = $this->listMethodsForCurrentConfig(500);
+
+        self::assertContains('UsersManager.getUsers', $methods);
+        self::assertNotContains('UsersManager.hasSuperUserAccess', $methods);
+    }
+
+    public function testFullModeHidesInternalAnnotatedMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $methods = $this->listMethodsForCurrentConfig(500);
+
+        self::assertNotContains('SitesManager.getMessagesToWarnOnSiteRemoval', $methods);
+        self::assertNotContains('JsTrackerInstallCheck.wasJsTrackerInstallTestSuccessful', $methods);
+        self::assertNotContains('JsTrackerInstallCheck.initiateJsTrackerInstallTest', $methods);
+    }
+
+    public function testFullModeKeepsHideExceptForSuperUserMethodsVisibleForSuperUser(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $methods = $this->listMethodsForCurrentConfig(500);
+
+        self::assertContains('CoreAdminHome.runScheduledTasks', $methods);
+    }
+
+    public function testFullModeAllowsNonHeuristicMethodsWhenTheyAreNotDenied(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['search' => 'hassuperuseraccess', 'limit' => 50],
+            __METHOD__,
+        );
+        $methodsData = $content['methods'] ?? null;
+        self::assertIsArray($methodsData);
+
+        $methods = array_map(
+            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            $methodsData,
+        );
+
+        self::assertContains('UsersManager.hasSuperUserAccess', $methods);
+    }
+
+    public function testFullModeHidesBlockedProxyLikeMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $methods = $this->listMethodsForCurrentConfig(500);
+
+        self::assertContains('API.getSuggestedValuesForSegment', $methods);
+        self::assertNotContains('API.get', $methods);
+        self::assertNotContains('API.getBulkRequest', $methods);
+        self::assertNotContains('API.getMetadata', $methods);
+        self::assertNotContains('API.getProcessedReport', $methods);
+        self::assertNotContains('API.getReportMetadata', $methods);
+        self::assertNotContains('API.getRowEvolution', $methods);
+        self::assertNotContains('ImageGraph.get', $methods);
+        self::assertNotContains('Insights.getInsights', $methods);
+        self::assertNotContains('Insights.getMoversAndShakers', $methods);
+        self::assertNotContains('TreemapVisualization.getTreemapData', $methods);
+    }
+
     public function testReturnsPagedResultsWithCursor(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
@@ -284,5 +377,29 @@ class ApiListTest extends IntegrationTestCase
         $result = McpTestHelper::parseListTools($message);
 
         return array_values(array_map(static fn($tool) => $tool->name, $result->tools));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listMethodsForCurrentConfig(int $limit): array
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['limit' => $limit],
+            __METHOD__,
+        );
+
+        $methods = $content['methods'] ?? null;
+        self::assertIsArray($methods);
+
+        return array_values(array_map(
+            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            $methods,
+        ));
     }
 }

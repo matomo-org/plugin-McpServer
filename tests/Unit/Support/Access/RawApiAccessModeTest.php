@@ -33,14 +33,4 @@ class RawApiAccessModeTest extends TestCase
         self::assertSame(RawApiAccessMode::READ, RawApiAccessMode::normalize('Read'));
         self::assertSame(RawApiAccessMode::FULL, RawApiAccessMode::normalize('FULL'));
     }
-
-    public function testAllowsMethodActionRespectsReadAndFullModes(): void
-    {
-        self::assertTrue(RawApiAccessMode::allowsMethodAction(RawApiAccessMode::FULL, 'deleteUser'));
-
-        self::assertTrue(RawApiAccessMode::allowsMethodAction(RawApiAccessMode::READ, 'getUsers'));
-        self::assertTrue(RawApiAccessMode::allowsMethodAction(RawApiAccessMode::READ, 'isGoalEnabled'));
-        self::assertFalse(RawApiAccessMode::allowsMethodAction(RawApiAccessMode::READ, 'addUser'));
-        self::assertFalse(RawApiAccessMode::allowsMethodAction(RawApiAccessMode::NONE, 'getUsers'));
-    }
 }

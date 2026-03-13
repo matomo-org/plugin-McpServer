@@ -94,6 +94,120 @@ class ApiGetTest extends IntegrationTestCase
         );
     }
 
+    public function testReadModeRejectsNonHeuristicMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'UsersManager.hasSuperUserAccess'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testFullModeReturnsKnownNonHeuristicMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'UsersManager.hasSuperUserAccess'],
+            __METHOD__,
+        );
+
+        self::assertSame('UsersManager.hasSuperUserAccess', $content['method'] ?? null);
+    }
+
+    public function testReadModeRejectsBlockedProxyLikeMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getProcessedReport'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testFullModeRejectsBlockedProxyLikeMethodBySplitSelector(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['module' => 'TreemapVisualization', 'action' => 'getTreemapData'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testReadModeRejectsGetMetadata(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getMetadata'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testReadModeRejectsGetReportMetadata(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getReportMetadata'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testReadModeKeepsGetSuggestedValuesForSegmentAvailable(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getSuggestedValuesForSegment'],
+            __METHOD__,
+        );
+
+        self::assertSame('API.getSuggestedValuesForSegment', $content['method'] ?? null);
+    }
+
     public function testRejectsIncompleteSplitSelectorAtSchemaLevel(): void
     {
         McpTestHelper::setRawApiAccessMode('full');

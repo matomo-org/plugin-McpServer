@@ -18,7 +18,8 @@ use Piwik\API\Proxy;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
-use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
+use Piwik\Plugins\McpServer\Support\Access\RawApiMethodPolicy;
+use ReflectionClass;
 
 final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryServiceInterface
 {
@@ -57,6 +58,8 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
     public function loadApiMethodSummaries(): array
     {
         // Mirrors API docs loading semantics by forcing API class registration through DocumentationGenerator.
+        // Proxy metadata remains the source of truth for @hide-style visibility; this service only adds the
+        // extra @internal filtering that DocumentationGenerator applies after loading metadata.
         new DocumentationGenerator();
 
         $proxy = Proxy::getInstance();
@@ -72,6 +75,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
             foreach ($classInfo as $action => $methodInfo) {
                 $isDeprecated = $proxy->isDeprecatedMethod((string) $className, (string) $action);
                 $shouldInclude = $this->shouldIncludeMethodMetadataEntry(
+                    $className,
                     $action,
                     $methodInfo,
                     $isDeprecated,
@@ -103,7 +107,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
      */
     public function filterRecords(array $records, ApiMethodSummaryQueryRecord $query): array
     {
-        $records = $this->filterByAccessMode($records, $query->accessMode);
+        $records = $this->filterByAccessPolicy($records, $query->accessMode);
         $records = $this->filterByModule($records, $query->module);
         $records = $this->filterBySearch($records, $query->search);
 
@@ -218,6 +222,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
      * Public for testability and to share normalization contract across MCP tools.
      */
     public function shouldIncludeMethodMetadataEntry(
+        mixed $className,
         mixed $action,
         mixed $methodInfo,
         bool $isDeprecated,
@@ -230,23 +235,37 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
             return false;
         }
 
-        return is_array($methodInfo);
+        if (!is_array($methodInfo)) {
+            return false;
+        }
+
+        if (!is_string($className) || !class_exists($className)) {
+            return true;
+        }
+
+        $classReflection = new ReflectionClass($className);
+        if ($this->hasInternalAnnotation($classReflection->getDocComment())) {
+            return false;
+        }
+
+        if (!$classReflection->hasMethod($action)) {
+            return true;
+        }
+
+        return !$this->hasInternalAnnotation($classReflection->getMethod($action)->getDocComment());
     }
 
     /**
      * @param array<int, ApiMethodSummaryRecord> $records
      * @return array<int, ApiMethodSummaryRecord>
      */
-    private function filterByAccessMode(array $records, string $accessMode): array
+    private function filterByAccessPolicy(array $records, string $accessMode): array
     {
-        if ($accessMode === RawApiAccessMode::FULL) {
-            return $records;
-        }
-
         return array_values(array_filter(
             $records,
-            static fn(ApiMethodSummaryRecord $record): bool => RawApiAccessMode::allowsMethodAction(
+            static fn(ApiMethodSummaryRecord $record): bool => RawApiMethodPolicy::allowsMethod(
                 $accessMode,
+                $record->method,
                 $record->action,
             )
         ));
@@ -287,5 +306,10 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
     private function normalizeSelectorValue(?string $value): string
     {
         return strtolower(trim((string) $value));
+    }
+
+    private function hasInternalAnnotation(string|false $docComment): bool
+    {
+        return is_string($docComment) && str_contains($docComment, '@internal');
     }
 }

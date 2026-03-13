@@ -41,24 +41,4 @@ final class RawApiAccessMode
     {
         return $mode === self::READ || $mode === self::FULL;
     }
-
-    public static function allowsMethodAction(string $mode, string $action): bool
-    {
-        if ($mode === self::FULL) {
-            return true;
-        }
-
-        if ($mode !== self::READ) {
-            return false;
-        }
-
-        return self::isReadAction($action);
-    }
-
-    public static function isReadAction(string $action): bool
-    {
-        $normalizedAction = strtolower(trim($action));
-        return str_starts_with($normalizedAction, 'get')
-            || str_starts_with($normalizedAction, 'is');
-    }
 }
