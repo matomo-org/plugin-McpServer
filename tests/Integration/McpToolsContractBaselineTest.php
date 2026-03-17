@@ -154,6 +154,87 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $this->{$errorScenarioMethod}($server, $sessionId);
     }
 
+    public function testReportProcessedSerializesEmptyResolvedApiParametersAsObjectInBaselineResponse(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportProcessed::TOOL_NAME,
+            $this->reportProcessedSuccessArguments(),
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"resolvedReport"', $body);
+        self::assertStringContainsString('"apiParameters":{}', $body);
+    }
+
+    public function testReportMetadataSerializesEmptyParametersAsObjectInBaselineResponse(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => [],
+            ],
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"parameters":{}', $body);
+        self::assertStringContainsString('"uniqueId":"' . $this->reportUniqueId . '"', $body);
+    }
+
+    public function testReportMetadataAcceptsEmptyObjectApiParametersInBaselineResponse(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'reportUniqueId' => $this->reportUniqueId,
+                    'apiParameters' => new \stdClass(),
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"parameters":{}', $body);
+        self::assertStringContainsString('"uniqueId":"' . $this->reportUniqueId . '"', $body);
+    }
+
+    public function testReportListSerializesEmptyParametersAsObjectInBaselineResponse(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportList::TOOL_NAME,
+            $this->reportListSuccessArguments(),
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"reports"', $body);
+        self::assertStringContainsString('"parameters":{}', $body);
+    }
+
     /**
      * @return array<string, array{0: string, 1: string, 2: array<string, mixed>}>
      */

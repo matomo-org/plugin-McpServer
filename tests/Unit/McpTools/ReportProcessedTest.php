@@ -180,4 +180,105 @@ class ReportProcessedTest extends TestCase
         self::assertSame(25, $wrapper->captured['filterLimit']);
         self::assertSame(50, $wrapper->captured['filterOffset']);
     }
+
+    public function testGetAllowsUniqueIdCombinedWithEmptyListApiParameters(): void
+    {
+        $wrapper = new class () implements ReportProcessedQueryServiceInterface {
+            /** @var array<string, mixed> */
+            public array $captured = [];
+
+            /**
+             * @param list<int|string>|null $goalMetricsProcessGoals
+             */
+            public function getProcessedReport(
+                int $idSite,
+                string $period,
+                string $date,
+                ?string $reportUniqueId,
+                ?string $apiModule,
+                ?string $apiAction,
+                ?array $apiParameters,
+                ?string $goalMetricsMode,
+                ?array $goalMetricsProcessGoals,
+                ?string $segment,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable,
+                int $filterLimit,
+                int $filterOffset
+            ): ReportProcessedRecord {
+                $this->captured = [
+                    'reportUniqueId' => $reportUniqueId,
+                    'apiParameters' => $apiParameters,
+                ];
+
+                return new ReportProcessedRecord(
+                    report: [],
+                    filterLimit: $filterLimit,
+                    filterOffset: $filterOffset,
+                    returnedRows: 0,
+                    totalRows: 0,
+                    hasMore: false,
+                    uniqueId: (string) $reportUniqueId,
+                    apiModule: 'Actions',
+                    apiAction: 'getPageUrls',
+                    apiParameters: $apiParameters ?? []
+                );
+            }
+        };
+
+        (new ReportProcessed($wrapper))->get(
+            idSite: 3,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiParameters: []
+        );
+
+        self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);
+        self::assertSame([], $wrapper->captured['apiParameters']);
+    }
+
+    public function testGetRejectsNonEmptyListApiParameters(): void
+    {
+        $wrapper = new class () implements ReportProcessedQueryServiceInterface {
+            /**
+             * @param list<int|string>|null $goalMetricsProcessGoals
+             */
+            public function getProcessedReport(
+                int $idSite,
+                string $period,
+                string $date,
+                ?string $reportUniqueId,
+                ?string $apiModule,
+                ?string $apiAction,
+                ?array $apiParameters,
+                ?string $goalMetricsMode,
+                ?array $goalMetricsProcessGoals,
+                ?string $segment,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable,
+                int $filterLimit,
+                int $filterOffset
+            ): ReportProcessedRecord {
+                throw new \RuntimeException('unexpected');
+            }
+        };
+
+        $this->expectException(\Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException::class);
+        $this->expectExceptionMessage('apiParameters is invalid.');
+
+        $tool = new ReportProcessed($wrapper);
+        $method = new \ReflectionMethod($tool, 'get');
+
+        $method->invokeArgs($tool, [
+            'idSite' => 3,
+            'period' => 'day',
+            'date' => 'today',
+            'apiModule' => 'VisitsSummary',
+            'apiAction' => 'get',
+            'apiParameters' => ['flat'],
+        ]);
+    }
 }

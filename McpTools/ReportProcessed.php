@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 
 /**
@@ -85,10 +86,19 @@ class ReportProcessed
                 'description' => 'Report API action when reportUniqueId is not used.',
             ],
             'apiParameters' => [
-                'type' => 'object',
-                'additionalProperties' => true,
-                'description' => 'Optional report parameters '
-                    . '(safe generic params and report-specific selector params).',
+                'oneOf' => [
+                    [
+                        'type' => 'object',
+                        'additionalProperties' => true,
+                        'description' => 'Optional report parameters '
+                            . '(safe generic params and report-specific selector params).',
+                    ],
+                    [
+                        'type' => 'array',
+                        'maxItems' => 0,
+                        'description' => 'Empty array is accepted and normalized as no apiParameters.',
+                    ],
+                ],
             ],
             'goalMetricsMode' => [
                 'type' => 'string',
@@ -195,6 +205,10 @@ class ReportProcessed
         ?int $filter_limit = null,
         ?int $filter_offset = null
     ): array {
+        $apiParameters = $apiParameters === null
+            ? null
+            : ToolDataNormalizer::requireStringKeyedArrayOrEmptyList($apiParameters, 'apiParameters');
+
         return $this->queryService->getProcessedReport(
             idSite: $idSite,
             period: $period,

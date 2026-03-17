@@ -747,7 +747,10 @@ class ReportProcessedQueryServiceTest extends TestCase
         self::assertSame(7, $observedIdGoal);
         self::assertNull($observedGoalColumnsMode);
         self::assertNull($observedGoalColumnsProcessGoals);
-        self::assertSame('1', $record->toArray()['resolvedReport']['apiParameters']['idGoal'] ?? null);
+        $resolvedReport = $record->toArray()['resolvedReport'];
+        $resolvedApiParameters = $resolvedReport['apiParameters'];
+        self::assertIsArray($resolvedApiParameters);
+        self::assertSame('1', $resolvedApiParameters['idGoal'] ?? null);
     }
 
     public function testGoalMetricsProcessGoalsAcceptsCoreEcommerceGoalIds(): void
@@ -970,7 +973,10 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         self::assertSame(2, $wrapper->calls);
-        self::assertSame('ecommerceOrder', $record->toArray()['resolvedReport']['apiParameters']['idGoal'] ?? null);
+        $resolvedReport = $record->toArray()['resolvedReport'];
+        $resolvedApiParameters = $resolvedReport['apiParameters'];
+        self::assertIsArray($resolvedApiParameters);
+        self::assertSame('ecommerceOrder', $resolvedApiParameters['idGoal'] ?? null);
     }
 
     public function testSanitizesProcessedReportFailureMessage(): void
@@ -1162,6 +1168,72 @@ class ReportProcessedQueryServiceTest extends TestCase
         self::assertSame(2, $actual['pagination']['returned_rows']);
         self::assertSame(10, $actual['pagination']['total_rows']);
         self::assertTrue($actual['pagination']['has_more']);
+    }
+
+    public function testSerializesEmptyResolvedApiParametersAsObject(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapper(),
+            static function (): array {
+                return self::makeProcessedReportPayload();
+            }
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+
+        $resolved = $record->toArray()['resolvedReport'];
+        self::assertInstanceOf(\stdClass::class, $resolved['apiParameters']);
+
+        $json = json_encode($record->toArray(), JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('"apiParameters":{}', $json);
+    }
+
+    public function testKeepsNonEmptyResolvedApiParametersAsMap(): void
+    {
+        $service = $this->makeService(
+            $this->makeMetadataWrapperWithIdGoalParameter(),
+            static function (): array {
+                return self::makeProcessedReportPayload();
+            }
+        );
+
+        $record = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Goals_get',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0
+        );
+
+        $resolved = $record->toArray()['resolvedReport'];
+        self::assertIsArray($resolved['apiParameters']);
+        self::assertSame('1', $resolved['apiParameters']['idGoal'] ?? null);
     }
 
     public function testAllowsAdHocSegmentWhenStrictModeEnabledIfCoreRequestSucceeds(): void

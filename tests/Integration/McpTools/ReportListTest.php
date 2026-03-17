@@ -90,6 +90,23 @@ class ReportListTest extends IntegrationTestCase
         self::assertSame($totalRows, $secondPage['total_rows'] ?? null);
     }
 
+    public function testSerializesEmptyParametersAsObjectInResponseBody(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $payload = McpTestHelper::makeCallToolRequest(
+            ReportList::TOOL_NAME,
+            ['idSite' => $this->idSite, 'limit' => 25],
+            __METHOD__
+        );
+
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $body = McpTestHelper::getResponseBody($response);
+
+        self::assertStringContainsString('"reports"', $body);
+        self::assertStringContainsString('"parameters":{}', $body);
+    }
+
     public function testSupportsSortByNameDesc(): void
     {
         $server = McpTestHelper::buildServer();

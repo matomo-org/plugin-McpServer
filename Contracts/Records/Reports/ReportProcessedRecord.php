@@ -23,7 +23,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Reports;
  *     uniqueId: string,
  *     apiModule: string,
  *     apiAction: string,
- *     apiParameters: array<string, mixed>,
+ *     apiParameters: array<string, mixed>|\stdClass,
  * }
  * @phpstan-type ReportProcessedArray array{
  *     report: array<string, mixed>,
@@ -69,7 +69,8 @@ final class ReportProcessedRecord
                 'uniqueId' => $this->uniqueId,
                 'apiModule' => $this->apiModule,
                 'apiAction' => $this->apiAction,
-                'apiParameters' => $this->apiParameters,
+                // Preserve an empty parameter map as a JSON object on the MCP transport boundary.
+                'apiParameters' => $this->apiParameters === [] ? new \stdClass() : $this->apiParameters,
             ],
         ];
     }

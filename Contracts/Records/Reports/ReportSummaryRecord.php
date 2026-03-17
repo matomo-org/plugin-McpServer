@@ -18,7 +18,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Reports;
  *     action: string,
  *     name: string,
  *     category: string,
- *     parameters: array<string, mixed>,
+ *     parameters: array<string, mixed>|\stdClass,
  * }
  */
 final class ReportSummaryRecord
@@ -47,7 +47,8 @@ final class ReportSummaryRecord
             'action' => $this->action,
             'name' => $this->name,
             'category' => $this->category,
-            'parameters' => $this->parameters,
+            // Preserve JSON object encoding for empty parameter maps on the MCP transport boundary.
+            'parameters' => $this->parameters === [] ? new \stdClass() : $this->parameters,
         ];
     }
 }

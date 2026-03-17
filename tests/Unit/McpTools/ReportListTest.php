@@ -58,7 +58,7 @@ class ReportListTest extends TestCase
             sort: ReportsPagination::SORT_CATEGORY_ASC
         );
 
-        self::assertSame([
+        self::assertEquals([
             'reports' => [
                 [
                     'uniqueId' => 'Actions_getPageUrls',
@@ -74,7 +74,7 @@ class ReportListTest extends TestCase
                     'action' => 'get',
                     'name' => 'Overview',
                     'category' => 'Visits Summary',
-                    'parameters' => [],
+                    'parameters' => new \stdClass(),
                 ],
             ],
             'next_cursor' => null,

@@ -18,7 +18,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Reports;
  *     action: string,
  *     name: string,
  *     category: string,
- *     parameters: array<string, mixed>,
+ *     parameters: array<string, mixed>|\stdClass,
  *     metadata: array<string, mixed>,
  * }
  */
@@ -50,7 +50,8 @@ final class ReportMetadataRecord
             'action' => $this->action,
             'name' => $this->name,
             'category' => $this->category,
-            'parameters' => $this->parameters,
+            // Preserve an empty parameter map as a JSON object on the MCP transport boundary.
+            'parameters' => $this->parameters === [] ? new \stdClass() : $this->parameters,
             'metadata' => $this->metadata,
         ];
     }
