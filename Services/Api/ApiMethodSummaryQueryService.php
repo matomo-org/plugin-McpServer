@@ -276,6 +276,8 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
                 $accessMode,
                 $record->method,
                 $record->action,
+                $record->operationCategory,
+                $record->classificationConfidence,
             )
         ));
     }

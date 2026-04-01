@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Support\Access;
 
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 
 /**
  * @group McpServer
@@ -31,6 +32,42 @@ class RawApiAccessModeTest extends TestCase
     {
         self::assertSame(RawApiAccessMode::NONE, RawApiAccessMode::normalize(' NONE '));
         self::assertSame(RawApiAccessMode::READ, RawApiAccessMode::normalize('Read'));
+        self::assertSame(RawApiAccessMode::CREATE, RawApiAccessMode::normalize('CREATE'));
+        self::assertSame(RawApiAccessMode::UPDATE, RawApiAccessMode::normalize('update'));
+        self::assertSame(RawApiAccessMode::DELETE, RawApiAccessMode::normalize(' Delete '));
         self::assertSame(RawApiAccessMode::FULL, RawApiAccessMode::normalize('FULL'));
+    }
+
+    public function testAllowsCategoryUsesCrudModeInheritance(): void
+    {
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::FULL, ApiMethodOperationClassifier::CATEGORY_DELETE),
+        );
+
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::READ, ApiMethodOperationClassifier::CATEGORY_READ),
+        );
+        self::assertFalse(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::READ, ApiMethodOperationClassifier::CATEGORY_CREATE),
+        );
+
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::CREATE, ApiMethodOperationClassifier::CATEGORY_READ),
+        );
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::CREATE, ApiMethodOperationClassifier::CATEGORY_CREATE),
+        );
+        self::assertFalse(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::CREATE, ApiMethodOperationClassifier::CATEGORY_UPDATE),
+        );
+
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::UPDATE, ApiMethodOperationClassifier::CATEGORY_UPDATE),
+        );
+        self::assertTrue(
+            RawApiAccessMode::allowsCategory(RawApiAccessMode::DELETE, ApiMethodOperationClassifier::CATEGORY_DELETE),
+        );
+        self::assertFalse(RawApiAccessMode::allowsCategory(RawApiAccessMode::NONE, 'read'));
+        self::assertFalse(RawApiAccessMode::allowsCategory(RawApiAccessMode::READ, null));
     }
 }

@@ -411,25 +411,27 @@ class McpServerFactoryTest extends TestCase
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
     }
 
-    public function testRawApiListToolIsHiddenWhenRawAccessModeIsNoneOrInvalid(): void
-    {
-        $toolsWhenMissing = $this->listToolNamesForCurrentConfig('none');
-        self::assertNotContains('matomo_api_call', $toolsWhenMissing);
-        self::assertNotContains('matomo_api_get', $toolsWhenMissing);
-        self::assertNotContains('matomo_api_list', $toolsWhenMissing);
-
-        $toolsWhenNone = $this->listToolNamesForCurrentConfig('invalid');
-        self::assertNotContains('matomo_api_call', $toolsWhenNone);
-        self::assertNotContains('matomo_api_get', $toolsWhenNone);
-        self::assertNotContains('matomo_api_list', $toolsWhenNone);
-    }
-
-    public function testRawApiListToolIsVisibleWhenRawAccessModeIsReadOrFull(): void
+    public function testRawApiListToolIsVisibleWhenRawAccessModeAllowsDirectApiAccess(): void
     {
         $toolsWhenRead = $this->listToolNamesForCurrentConfig('read');
         self::assertContains('matomo_api_call', $toolsWhenRead);
         self::assertContains('matomo_api_get', $toolsWhenRead);
         self::assertContains('matomo_api_list', $toolsWhenRead);
+
+        $toolsWhenCreate = $this->listToolNamesForCurrentConfig('create');
+        self::assertContains('matomo_api_call', $toolsWhenCreate);
+        self::assertContains('matomo_api_get', $toolsWhenCreate);
+        self::assertContains('matomo_api_list', $toolsWhenCreate);
+
+        $toolsWhenUpdate = $this->listToolNamesForCurrentConfig('update');
+        self::assertContains('matomo_api_call', $toolsWhenUpdate);
+        self::assertContains('matomo_api_get', $toolsWhenUpdate);
+        self::assertContains('matomo_api_list', $toolsWhenUpdate);
+
+        $toolsWhenDelete = $this->listToolNamesForCurrentConfig('delete');
+        self::assertContains('matomo_api_call', $toolsWhenDelete);
+        self::assertContains('matomo_api_get', $toolsWhenDelete);
+        self::assertContains('matomo_api_list', $toolsWhenDelete);
 
         $toolsWhenFull = $this->listToolNamesForCurrentConfig('full');
         self::assertContains('matomo_api_call', $toolsWhenFull);

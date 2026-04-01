@@ -144,6 +144,15 @@ class McpServerTest extends IntegrationTestCase
             $systemSettings->rawApiAccessMode->setValue('read');
             self::assertSame('read', $systemSettings->getRawApiAccessMode());
 
+            $systemSettings->rawApiAccessMode->setValue('create');
+            self::assertSame('create', $systemSettings->getRawApiAccessMode());
+
+            $systemSettings->rawApiAccessMode->setValue('update');
+            self::assertSame('update', $systemSettings->getRawApiAccessMode());
+
+            $systemSettings->rawApiAccessMode->setValue('delete');
+            self::assertSame('delete', $systemSettings->getRawApiAccessMode());
+
             $systemSettings->rawApiAccessMode->setValue('full');
             self::assertSame('full', $systemSettings->getRawApiAccessMode());
         } finally {

@@ -66,6 +66,9 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                 $field->availableValues = [
                     RawApiAccessMode::NONE => Piwik::translate('McpServer_RawApiAccessModeOptionNone'),
                     RawApiAccessMode::READ => Piwik::translate('McpServer_RawApiAccessModeOptionRead'),
+                    RawApiAccessMode::CREATE => Piwik::translate('McpServer_RawApiAccessModeOptionCreate'),
+                    RawApiAccessMode::UPDATE => Piwik::translate('McpServer_RawApiAccessModeOptionUpdate'),
+                    RawApiAccessMode::DELETE => Piwik::translate('McpServer_RawApiAccessModeOptionDelete'),
                     RawApiAccessMode::FULL => Piwik::translate('McpServer_RawApiAccessModeOptionFull'),
                 ];
             },

@@ -100,23 +100,27 @@ class ApiGetTest extends IntegrationTestCase
         );
     }
 
-    public function testReadModeRejectsNonHeuristicMethod(): void
+    public function testReadModeAllowsMediumConfidenceReadMethod(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        McpTestHelper::callToolAndAssertError(
+        $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
             ApiGet::TOOL_NAME,
             ['method' => 'UsersManager.hasSuperUserAccess'],
-            'API method not found or unavailable.',
             __METHOD__,
         );
+
+        self::assertSame('UsersManager.hasSuperUserAccess', $content['method'] ?? null);
+        self::assertSame('read', $content['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $content);
+        self::assertArrayNotHasKey('classificationReason', $content);
     }
 
-    public function testFullModeReturnsKnownNonHeuristicMethod(): void
+    public function testFullModeReturnsKnownMediumConfidenceReadMethod(): void
     {
         McpTestHelper::setRawApiAccessMode('full');
 
@@ -131,6 +135,9 @@ class ApiGetTest extends IntegrationTestCase
         );
 
         self::assertSame('UsersManager.hasSuperUserAccess', $content['method'] ?? null);
+        self::assertSame('read', $content['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $content);
+        self::assertArrayNotHasKey('classificationReason', $content);
     }
 
     public function testReadModeRejectsBlockedProxyLikeMethod(): void
@@ -212,6 +219,44 @@ class ApiGetTest extends IntegrationTestCase
         );
 
         self::assertSame('API.getSuggestedValuesForSegment', $content['method'] ?? null);
+    }
+
+    public function testCreateModeReturnsKnownCreateMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('create');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'UsersManager.addUser'],
+            __METHOD__,
+        );
+
+        self::assertSame('UsersManager.addUser', $content['method'] ?? null);
+        self::assertSame('create', $content['operationCategory'] ?? null);
+    }
+
+    public function testDeleteModeReturnsKnownDeleteMethod(): void
+    {
+        McpTestHelper::setRawApiAccessMode('delete');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'SitesManager.deleteSite'],
+            __METHOD__,
+        );
+
+        self::assertSame('SitesManager.deleteSite', $content['method'] ?? null);
+        self::assertSame('delete', $content['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $content);
+        self::assertArrayNotHasKey('classificationReason', $content);
     }
 
     public function testRejectsIncompleteSplitSelectorAtSchemaLevel(): void

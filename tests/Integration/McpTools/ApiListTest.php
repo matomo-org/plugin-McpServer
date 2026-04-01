@@ -38,7 +38,7 @@ class ApiListTest extends IntegrationTestCase
         parent::tearDown();
     }
 
-    public function testReadModeExposesReadOnlyActionsOnly(): void
+    public function testReadModeExposesOnlyReadClassifiedMethods(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
 
@@ -56,19 +56,29 @@ class ApiListTest extends IntegrationTestCase
         self::assertIsArray($content['methods']);
         self::assertNotEmpty($content['methods']);
 
+        $methods = [];
+        $foundNonPrefixReadMethod = false;
+
         foreach ($content['methods'] as $method) {
             self::assertIsArray($method);
+            self::assertArrayHasKey('method', $method);
+            self::assertIsString($method['method']);
             self::assertArrayHasKey('action', $method);
             self::assertIsString($method['action']);
             self::assertSame('read', $method['operationCategory'] ?? null);
             self::assertArrayNotHasKey('classificationConfidence', $method);
             self::assertArrayNotHasKey('classificationReason', $method);
+
+            $methods[] = $method['method'];
+
             $normalizedAction = strtolower($method['action']);
-            self::assertTrue(
-                str_starts_with($normalizedAction, 'get') || str_starts_with($normalizedAction, 'is'),
-                'Read mode returned non-read action: ' . $method['action'],
-            );
+            if (!str_starts_with($normalizedAction, 'get') && !str_starts_with($normalizedAction, 'is')) {
+                $foundNonPrefixReadMethod = true;
+            }
         }
+
+        self::assertContains('UsersManager.hasSuperUserAccess', $methods);
+        self::assertTrue($foundNonPrefixReadMethod, 'Expected at least one read-classified non-get/is action.');
     }
 
     public function testFullModeCanReturnMutatingActions(): void
@@ -124,14 +134,14 @@ class ApiListTest extends IntegrationTestCase
         self::assertNotContains('TreemapVisualization.getTreemapData', $methods);
     }
 
-    public function testReadModeUsesHeuristicFallbackForUnknownMethods(): void
+    public function testReadModeAllowsMediumConfidenceReadMethods(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
 
         $methods = $this->listMethodsForCurrentConfig(500);
 
         self::assertContains('UsersManager.getUsers', $methods);
-        self::assertNotContains('UsersManager.hasSuperUserAccess', $methods);
+        self::assertContains('UsersManager.hasSuperUserAccess', $methods);
     }
 
     public function testFullModeHidesInternalAnnotatedMethods(): void
@@ -154,9 +164,9 @@ class ApiListTest extends IntegrationTestCase
         self::assertContains('CoreAdminHome.runScheduledTasks', $methods);
     }
 
-    public function testFullModeAllowsNonHeuristicMethodsWhenTheyAreNotDenied(): void
+    public function testUpdateModeCanReturnUpdateActions(): void
     {
-        McpTestHelper::setRawApiAccessMode('full');
+        McpTestHelper::setRawApiAccessMode('update');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -165,7 +175,7 @@ class ApiListTest extends IntegrationTestCase
             $server,
             $sessionId,
             'matomo_api_list',
-            ['search' => 'hassuperuseraccess', 'limit' => 50],
+            ['search' => 'setdefaulttimezone', 'limit' => 50],
             __METHOD__,
         );
         $methodsData = $content['methods'] ?? null;
@@ -176,7 +186,55 @@ class ApiListTest extends IntegrationTestCase
             $methodsData,
         );
 
-        self::assertContains('UsersManager.hasSuperUserAccess', $methods);
+        self::assertContains('SitesManager.setDefaultTimezone', $methods);
+    }
+
+    public function testCreateModeCanReturnCreateActions(): void
+    {
+        McpTestHelper::setRawApiAccessMode('create');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['search' => 'adduser', 'limit' => 20],
+            __METHOD__,
+        );
+
+        $methods = $content['methods'] ?? null;
+        self::assertIsArray($methods);
+        self::assertNotEmpty($methods);
+        self::assertContains('UsersManager.addUser', array_values(array_map(
+            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            $methods,
+        )));
+    }
+
+    public function testDeleteModeCanReturnDeleteActions(): void
+    {
+        McpTestHelper::setRawApiAccessMode('delete');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['search' => 'deletesite', 'limit' => 20],
+            __METHOD__,
+        );
+
+        $methods = $content['methods'] ?? null;
+        self::assertIsArray($methods);
+        self::assertNotEmpty($methods);
+        self::assertContains('SitesManager.deleteSite', array_values(array_map(
+            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            $methods,
+        )));
     }
 
     public function testFullModeHidesBlockedProxyLikeMethods(): void

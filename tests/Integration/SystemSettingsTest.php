@@ -91,6 +91,15 @@ class SystemSettingsTest extends IntegrationTestCase
             $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::READ);
             self::assertSame(RawApiAccessMode::READ, $this->settings->getRawApiAccessMode());
 
+            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::CREATE);
+            self::assertSame(RawApiAccessMode::CREATE, $this->settings->getRawApiAccessMode());
+
+            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::UPDATE);
+            self::assertSame(RawApiAccessMode::UPDATE, $this->settings->getRawApiAccessMode());
+
+            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::DELETE);
+            self::assertSame(RawApiAccessMode::DELETE, $this->settings->getRawApiAccessMode());
+
             $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::FULL);
             self::assertSame(RawApiAccessMode::FULL, $this->settings->getRawApiAccessMode());
         } finally {

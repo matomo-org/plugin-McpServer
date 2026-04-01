@@ -167,23 +167,29 @@ class ApiCallTest extends IntegrationTestCase
         );
     }
 
-    public function testReadModeRejectsNonHeuristicMethod(): void
+    public function testReadModeCallsMediumConfidenceReadMethod(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        McpTestHelper::callToolAndAssertError(
+        $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
             ApiCall::TOOL_NAME,
             ['method' => 'UsersManager.hasSuperUserAccess'],
-            'API method not found or unavailable.',
             __METHOD__,
         );
+
+        $resolvedMethod = $content['resolvedMethod'] ?? null;
+        self::assertIsArray($resolvedMethod);
+        self::assertSame('UsersManager.hasSuperUserAccess', $resolvedMethod['method'] ?? null);
+        self::assertSame('read', $resolvedMethod['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $resolvedMethod);
+        self::assertArrayNotHasKey('classificationReason', $resolvedMethod);
     }
 
-    public function testFullModeCallsKnownNonHeuristicMethod(): void
+    public function testFullModeCallsKnownMediumConfidenceReadMethod(): void
     {
         McpTestHelper::setRawApiAccessMode('full');
 
@@ -281,6 +287,50 @@ class ApiCallTest extends IntegrationTestCase
             $sessionId,
             ApiCall::TOOL_NAME,
             ['method' => 'UsersManager.addUser'],
+            __METHOD__,
+        );
+
+        McpTestHelper::assertToolError($result);
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
+        $errorText = $content->text;
+        self::assertIsString($errorText);
+        self::assertTrue(
+            $errorText === 'Matomo API request failed.'
+            || str_starts_with($errorText, 'Matomo API request failed: '),
+        );
+    }
+
+    public function testCreateModeAttemptsCreateMethodCall(): void
+    {
+        McpTestHelper::setRawApiAccessMode('create');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $result = McpTestHelper::callTool(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'UsersManager.addUser'],
+            __METHOD__,
+        );
+
+        McpTestHelper::assertToolError($result);
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
+    }
+
+    public function testDeleteModeAttemptsDeleteMethodCall(): void
+    {
+        McpTestHelper::setRawApiAccessMode('delete');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $result = McpTestHelper::callTool(
+            $server,
+            $sessionId,
+            ApiCall::TOOL_NAME,
+            ['method' => 'SitesManager.deleteSite'],
             __METHOD__,
         );
 

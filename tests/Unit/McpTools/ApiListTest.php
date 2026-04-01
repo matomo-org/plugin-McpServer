@@ -433,10 +433,13 @@ class ApiListTest extends TestCase
                 return array_values(array_filter(
                     $records,
                     static function (ApiMethodSummaryRecord $record) use ($query): bool {
+                        if ($query->accessMode === 'read' && $record->operationCategory !== 'read') {
+                            return false;
+                        }
+
                         if (
-                            $query->accessMode === 'read'
-                            && !str_starts_with(strtolower($record->action), 'get')
-                            && !str_starts_with(strtolower($record->action), 'is')
+                            $query->accessMode === 'create'
+                            && !in_array($record->operationCategory, ['read', 'create'], true)
                         ) {
                             return false;
                         }

@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Access;
 
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
+
 final class RawApiMethodPolicy
 {
     /** @var array<string, true> */
@@ -27,8 +29,13 @@ final class RawApiMethodPolicy
         'treemapvisualization.gettreemapdata' => true,
     ];
 
-    public static function allowsMethod(string $accessMode, string $method, string $action): bool
-    {
+    public static function allowsMethod(
+        string $accessMode,
+        string $method,
+        string $action,
+        ?string $operationCategory = null,
+        ?string $classificationConfidence = null,
+    ): bool {
         if (self::isDeniedMethod($method)) {
             return false;
         }
@@ -37,11 +44,15 @@ final class RawApiMethodPolicy
             return true;
         }
 
-        if ($accessMode !== RawApiAccessMode::READ) {
+        if ($accessMode === RawApiAccessMode::NONE) {
             return false;
         }
 
-        return self::isReadHeuristicAction($action);
+        if (self::normalizeConfidence($classificationConfidence) === ApiMethodOperationClassifier::CONFIDENCE_LOW) {
+            return false;
+        }
+
+        return RawApiAccessMode::allowsCategory($accessMode, $operationCategory);
     }
 
     public static function isDeniedMethod(string $method): bool
@@ -49,12 +60,18 @@ final class RawApiMethodPolicy
         return isset(self::DENIED_METHODS[self::normalizeSelectorValue($method)]);
     }
 
-    public static function isReadHeuristicAction(string $action): bool
+    private static function normalizeConfidence(?string $confidence): string
     {
-        $normalizedAction = self::normalizeSelectorValue($action);
+        $normalizedConfidence = self::normalizeSelectorValue($confidence);
 
-        return str_starts_with($normalizedAction, 'get')
-            || str_starts_with($normalizedAction, 'is');
+        if (
+            $normalizedConfidence !== ApiMethodOperationClassifier::CONFIDENCE_HIGH
+            && $normalizedConfidence !== ApiMethodOperationClassifier::CONFIDENCE_MEDIUM
+        ) {
+            return ApiMethodOperationClassifier::CONFIDENCE_LOW;
+        }
+
+        return $normalizedConfidence;
     }
 
     private static function normalizeSelectorValue(?string $value): string

@@ -170,22 +170,61 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
     }
 
-    public function testFilterRecordsUsesFullModeForNonHeuristicReadMethod(): void
+    public function testFilterRecordsUsesCrudModesForClassifiedMethods(): void
     {
         $service = new ApiMethodSummaryQueryService();
 
         $readRecords = $service->filterRecords(
-            [new ApiMethodSummaryRecord('UsersManager', 'hasSuperUserAccess', 'UsersManager.hasSuperUserAccess', [])],
+            [
+                new ApiMethodSummaryRecord(
+                    'UsersManager',
+                    'hasSuperUserAccess',
+                    'UsersManager.hasSuperUserAccess',
+                    [],
+                    ApiMethodOperationClassifier::CATEGORY_READ,
+                    ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                    'action-prefix:has',
+                ),
+            ],
             ApiMethodSummaryQueryRecord::fromInputs('read'),
         );
+        $createRecords = $service->filterRecords(
+            $this->createMethodRecords(),
+            ApiMethodSummaryQueryRecord::fromInputs('create'),
+        );
         $fullRecords = $service->filterRecords(
-            [new ApiMethodSummaryRecord('UsersManager', 'hasSuperUserAccess', 'UsersManager.hasSuperUserAccess', [])],
+            [
+                new ApiMethodSummaryRecord(
+                    'ScheduledReports',
+                    'sendReport',
+                    'ScheduledReports.sendReport',
+                    [],
+                    null,
+                    ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                    'unsupported-action-prefix:send',
+                ),
+            ],
             ApiMethodSummaryQueryRecord::fromInputs('full'),
         );
 
-        self::assertSame([], $readRecords);
         self::assertSame(
             ['UsersManager.hasSuperUserAccess'],
+            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $readRecords)),
+        );
+        self::assertSame(
+            [
+                'API.getMatomoVersion',
+                'SitesManager.isSiteNameUnique',
+                'UsersManager.addUser',
+                'UsersManager.getUsers',
+            ],
+            array_values(array_map(
+                static fn(ApiMethodSummaryRecord $record): string => $record->method,
+                $createRecords,
+            )),
+        );
+        self::assertSame(
+            ['ScheduledReports.sendReport'],
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $fullRecords)),
         );
     }

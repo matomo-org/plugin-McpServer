@@ -32,9 +32,14 @@ Configure raw Matomo API tool access in **Administration -> System -> General Se
 
 - Use the **Raw Matomo API tool access** setting to control visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
 - `Disabled`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
-- `Best-effort read filtering`: shows the raw API tools, blocks known risky proxy-like APIs, and otherwise falls back to method-name filtering (`get`/`is`) for discovered methods.
-- `Full API access`: shows the raw API tools and allows direct API calls, including state-changing or destructive methods.
-- Best-effort read filtering is not a strict security boundary for unknown plugin APIs.
+- `Read access`: allows classified read methods.
+- `Create access`: allows classified read and create methods.
+- `Update access`: allows classified read and update methods.
+- `Delete access`: allows classified read and delete methods.
+- `Full API access`: allows direct API calls for all non-restricted methods, including state-changing or destructive methods.
+- The dedicated report tools remain available independently of this setting.
+- Permanently restricted methods in `RawApiMethodPolicy` remain blocked in every mode.
+- Low-confidence or unclassified direct API methods require `Full API access`.
 - Direct API access can expose raw or personal data depending on enabled Matomo features. Review privacy and security requirements before enabling it, and consult your DPO or compliance owner when needed.
 
 ## Enabling MCP
@@ -54,8 +59,7 @@ When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp
 The plugin is focused on read-oriented analytics workflows. The exact tool surface may expand over time, but the initial release includes tools around:
 
 - sites
-- reports and report metadata
-- processed report data
+- reports, report metadata, and processed report data
 - goals
 - segments
 - dimensions

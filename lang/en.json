@@ -45,14 +45,17 @@
         "EnableMcpHelpUrl": "Your MCP URL: %1$s%2$s%3$s",
         "EnableMcpTitle": "Enable MCP Server (Model Context Protocol)",
         "PlatformMenu": "MCP Server",
-        "RawApiAccessModeHelpDataScope": "Direct Matomo API access can expose the same data available through the Matomo user interface or Reporting API, including raw or personal data when features such as the Visitor Log are enabled.",
-        "RawApiAccessModeHelpDestructive": "Full API access can execute state-changing or destructive API methods, including actions that modify configuration or delete data.",
+        "RawApiAccessModeHelpDataScope": "Direct Matomo API access can expose the same data available through the Matomo user interface or direct API endpoints, including raw or personal data when features such as the Visitor Log are enabled.",
+        "RawApiAccessModeHelpDestructive": "Create, update, delete, and full API access can execute state-changing or destructive API methods, including actions that modify configuration or delete data.",
         "RawApiAccessModeHelpPolicy": "Before enabling direct API access, ensure this complies with your organization's privacy and security policies and applicable regulations. You may need approval from your data protection officer (DPO) or another compliance owner.",
-        "RawApiAccessModeHelpPurpose": "Control whether the raw Matomo API tools are hidden, use best-effort read filtering, or allow direct API calls.",
-        "RawApiAccessModeHelpReadFallback": "Best-effort read filtering is not a strict security boundary. It blocks known risky APIs and otherwise falls back to method-name filtering for discovered API methods.",
+        "RawApiAccessModeHelpPurpose": "Control whether the direct raw Matomo API tools are hidden or exposed for classified read, create, update, delete, or full API access.",
+        "RawApiAccessModeHelpReadFallback": "Direct API access uses CRUD-style classification for discovered API methods. Dedicated report tools remain available independently, permanently restricted APIs stay blocked in every mode, and low-confidence methods require full access.",
+        "RawApiAccessModeOptionCreate": "Create access",
+        "RawApiAccessModeOptionDelete": "Delete access",
         "RawApiAccessModeOptionFull": "Full API access",
         "RawApiAccessModeOptionNone": "Disabled",
-        "RawApiAccessModeOptionRead": "Best-effort read filtering",
+        "RawApiAccessModeOptionRead": "Read access",
+        "RawApiAccessModeOptionUpdate": "Update access",
         "RawApiAccessModeTitle": "Raw Matomo API tool access"
     }
 }

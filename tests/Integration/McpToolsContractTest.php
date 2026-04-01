@@ -301,6 +301,45 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertFalse($callTool->annotations->openWorldHint);
     }
 
+    public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsCreate(): void
+    {
+        McpTestHelper::setRawApiAccessMode('create');
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsByName);
+        self::assertArrayHasKey('matomo_api_list', $toolsByName);
+        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
+
+        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertNotNull($callTool->annotations);
+        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertFalse($callTool->annotations->openWorldHint);
+    }
+
+    public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsDelete(): void
+    {
+        McpTestHelper::setRawApiAccessMode('delete');
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsByName);
+        $getTool = $toolsByName['matomo_api_get'];
+        self::assertNotNull($getTool->annotations);
+        self::assertTrue($getTool->annotations->readOnlyHint);
+        self::assertFalse($getTool->annotations->openWorldHint);
+
+        self::assertArrayHasKey('matomo_api_list', $toolsByName);
+        $tool = $toolsByName['matomo_api_list'];
+        self::assertNotNull($tool->annotations);
+        self::assertTrue($tool->annotations->readOnlyHint);
+        self::assertFalse($tool->annotations->openWorldHint);
+
+        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertNotNull($callTool->annotations);
+        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertFalse($callTool->annotations->openWorldHint);
+    }
+
     public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsFull(): void
     {
         McpTestHelper::setRawApiAccessMode('full');

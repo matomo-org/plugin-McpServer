@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Support\Access;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Access\RawApiMethodPolicy;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 
 /**
  * @group McpServer
@@ -21,27 +22,70 @@ use Piwik\Plugins\McpServer\Support\Access\RawApiMethodPolicy;
  */
 class RawApiMethodPolicyTest extends TestCase
 {
-    public function testAllowsMethodUsesReadFallbackForUnknownMethods(): void
+    public function testAllowsMethodUsesCrudClassificationForNonFullModes(): void
     {
         self::assertTrue(
-            RawApiMethodPolicy::allowsMethod(RawApiAccessMode::READ, 'UsersManager.getUsers', 'getUsers'),
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::READ,
+                'UsersManager.getUsers',
+                'getUsers',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
         );
         self::assertTrue(
             RawApiMethodPolicy::allowsMethod(
                 RawApiAccessMode::READ,
                 'SitesManager.isSiteNameUnique',
                 'isSiteNameUnique',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+        self::assertTrue(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::READ,
+                'UsersManager.hasSuperUserAccess',
+                'hasSuperUserAccess',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
             ),
         );
         self::assertFalse(
             RawApiMethodPolicy::allowsMethod(
                 RawApiAccessMode::READ,
-                'UsersManager.hasSuperUserAccess',
-                'hasSuperUserAccess',
+                'UsersManager.addUser',
+                'addUser',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+        self::assertTrue(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::CREATE,
+                'UsersManager.addUser',
+                'addUser',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+        self::assertTrue(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::UPDATE,
+                'SitesManager.setDefaultTimezone',
+                'setDefaultTimezone',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
             ),
         );
         self::assertFalse(
-            RawApiMethodPolicy::allowsMethod(RawApiAccessMode::READ, 'UsersManager.addUser', 'addUser'),
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::UPDATE,
+                'UsersManager.addUser',
+                'addUser',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
         );
     }
 
@@ -52,17 +96,31 @@ class RawApiMethodPolicyTest extends TestCase
                 RawApiAccessMode::FULL,
                 'UsersManager.hasSuperUserAccess',
                 'hasSuperUserAccess',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
             ),
         );
         self::assertTrue(
-            RawApiMethodPolicy::allowsMethod(RawApiAccessMode::FULL, 'UsersManager.addUser', 'addUser'),
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::FULL,
+                'UsersManager.addUser',
+                'addUser',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
         );
     }
 
     public function testAllowsMethodRejectsDeniedMethodsInReadAndFullModes(): void
     {
         self::assertFalse(
-            RawApiMethodPolicy::allowsMethod(RawApiAccessMode::READ, 'API.getProcessedReport', 'getProcessedReport'),
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::READ,
+                'API.getProcessedReport',
+                'getProcessedReport',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
         );
         self::assertFalse(
             RawApiMethodPolicy::allowsMethod(RawApiAccessMode::READ, 'API.getReportMetadata', 'getReportMetadata'),
@@ -75,6 +133,21 @@ class RawApiMethodPolicyTest extends TestCase
                 RawApiAccessMode::FULL,
                 'TreemapVisualization.getTreemapData',
                 'getTreemapData',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+    }
+
+    public function testAllowsMethodRejectsLowConfidenceMethodsOutsideFull(): void
+    {
+        self::assertFalse(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::READ,
+                'ScheduledReports.sendReport',
+                'sendReport',
+                null,
+                ApiMethodOperationClassifier::CONFIDENCE_LOW,
             ),
         );
         self::assertFalse(
