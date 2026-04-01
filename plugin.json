@@ -27,7 +27,12 @@
         "ai",
         "assistant",
         "analytics",
-        "integration"
+        "integration",
+        "claude",
+        "chatgpt",
+        "openai",
+        "gemini",
+        "copilot"
     ],
     "category": "integration"
 }
