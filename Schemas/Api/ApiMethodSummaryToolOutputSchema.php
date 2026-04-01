@@ -11,6 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Api;
 
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
+
 final class ApiMethodSummaryToolOutputSchema
 {
     public const PARAMETER = [
@@ -37,8 +39,24 @@ final class ApiMethodSummaryToolOutputSchema
                 'type' => 'array',
                 'items' => self::PARAMETER,
             ],
+            'operationCategory' => [
+                'type' => ['string', 'null'],
+                'enum' => [
+                    ApiMethodOperationClassifier::CATEGORY_READ,
+                    ApiMethodOperationClassifier::CATEGORY_CREATE,
+                    ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                    ApiMethodOperationClassifier::CATEGORY_DELETE,
+                    null,
+                ],
+            ],
         ],
-        'required' => ['module', 'action', 'method', 'parameters'],
+        'required' => [
+            'module',
+            'action',
+            'method',
+            'parameters',
+            'operationCategory',
+        ],
         'additionalProperties' => false,
     ];
 

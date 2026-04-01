@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInte
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\RawApiMethodPolicy;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use ReflectionClass;
 
 final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryServiceInterface
@@ -86,12 +87,19 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
                 /** @var array<string, mixed> $methodInfo */
 
                 $parameters = $this->normalizeParameterMetadata($methodInfo['parameters'] ?? null);
+                $classification = ApiMethodOperationClassifier::classify(
+                    $module . '.' . (string) $action,
+                    (string) $action,
+                );
 
                 $records[] = new ApiMethodSummaryRecord(
                     module: $module,
                     action: (string) $action,
                     method: $module . '.' . $action,
                     parameters: $parameters,
+                    operationCategory: $classification['operationCategory'],
+                    classificationConfidence: $classification['classificationConfidence'],
+                    classificationReason: $classification['classificationReason'],
                 );
             }
         }
@@ -110,6 +118,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
         $records = $this->filterByAccessPolicy($records, $query->accessMode);
         $records = $this->filterByModule($records, $query->module);
         $records = $this->filterBySearch($records, $query->search);
+        $records = $this->filterByOperationCategory($records, $query->operationCategory);
 
         return $records;
     }
@@ -300,6 +309,29 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
         return array_values(array_filter(
             $records,
             static fn(ApiMethodSummaryRecord $record): bool => str_contains(strtolower($record->method), $searchTerm)
+        ));
+    }
+
+    /**
+     * @param array<int, ApiMethodSummaryRecord> $records
+     * @return array<int, ApiMethodSummaryRecord>
+     */
+    private function filterByOperationCategory(array $records, string $operationCategory): array
+    {
+        if ($operationCategory === '') {
+            return $records;
+        }
+
+        if ($operationCategory === ApiMethodOperationClassifier::CATEGORY_UNCATEGORIZED) {
+            return array_values(array_filter(
+                $records,
+                static fn(ApiMethodSummaryRecord $record): bool => $record->operationCategory === null,
+            ));
+        }
+
+        return array_values(array_filter(
+            $records,
+            static fn(ApiMethodSummaryRecord $record): bool => $record->operationCategory === $operationCategory,
         ));
     }
 

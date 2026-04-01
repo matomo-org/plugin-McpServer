@@ -17,6 +17,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInte
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiList;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -33,7 +34,15 @@ class ApiListTest extends TestCase
         $tool = new ApiList(
             $this->createQueryServiceStub(
                 static fn(ApiMethodSummaryQueryRecord $query): array => [
-                    new ApiMethodSummaryRecord('UsersManager', 'getUsers', 'UsersManager.getUsers', []),
+                    new ApiMethodSummaryRecord(
+                        'UsersManager',
+                        'getUsers',
+                        'UsersManager.getUsers',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:get',
+                    ),
                 ]
             ),
             new PaginatedCollectionResponder(new CursorPaginator()),
@@ -49,6 +58,7 @@ class ApiListTest extends TestCase
                     'action' => 'getUsers',
                     'method' => 'UsersManager.getUsers',
                     'parameters' => [],
+                    'operationCategory' => 'read',
                 ],
             ],
             'next_cursor' => null,
@@ -64,18 +74,26 @@ class ApiListTest extends TestCase
         $tool = new ApiList(
             $this->createQueryServiceStub(
                 static function (ApiMethodSummaryQueryRecord $query) use (&$capturedQuery): array {
-                    $capturedQuery = $query;
+                        $capturedQuery = $query;
 
-                    return [
-                        new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-                    ];
+                        return [
+                            new ApiMethodSummaryRecord(
+                                'UsersManager',
+                                'addUser',
+                                'UsersManager.addUser',
+                                [],
+                                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                                'action-prefix:add',
+                            ),
+                        ];
                 },
             ),
             new PaginatedCollectionResponder(new CursorPaginator()),
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->list(module: 'usersmanager', search: 'add', limit: 10);
+        $actual = $tool->list(module: 'usersmanager', search: 'add', category: 'create', limit: 10);
 
         self::assertSame([
             'methods' => [
@@ -84,6 +102,7 @@ class ApiListTest extends TestCase
                     'action' => 'addUser',
                     'method' => 'UsersManager.addUser',
                     'parameters' => [],
+                    'operationCategory' => 'create',
                 ],
             ],
             'next_cursor' => null,
@@ -94,6 +113,53 @@ class ApiListTest extends TestCase
         self::assertSame('full', $capturedQuery->accessMode);
         self::assertSame('usersmanager', $capturedQuery->module);
         self::assertSame('add', $capturedQuery->search);
+        self::assertSame('create', $capturedQuery->operationCategory);
+    }
+
+    public function testListSupportsUncategorizedCategoryFilter(): void
+    {
+        $capturedQuery = null;
+
+        $tool = new ApiList(
+            $this->createQueryServiceStub(
+                static function (ApiMethodSummaryQueryRecord $query) use (&$capturedQuery): array {
+                    $capturedQuery = $query;
+
+                    return [
+                        new ApiMethodSummaryRecord(
+                            'ScheduledReports',
+                            'sendReport',
+                            'ScheduledReports.sendReport',
+                            [],
+                            null,
+                            ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                            'unsupported-action-prefix:send',
+                        ),
+                    ];
+                },
+            ),
+            new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
+        );
+
+        $actual = $tool->list(category: 'uncategorized', limit: 10);
+
+        self::assertSame([
+            'methods' => [
+                [
+                    'module' => 'ScheduledReports',
+                    'action' => 'sendReport',
+                    'method' => 'ScheduledReports.sendReport',
+                    'parameters' => [],
+                    'operationCategory' => null,
+                ],
+            ],
+            'next_cursor' => null,
+            'has_more' => false,
+            'total_rows' => 1,
+        ], $actual);
+        self::assertInstanceOf(ApiMethodSummaryQueryRecord::class, $capturedQuery);
+        self::assertSame('uncategorized', $capturedQuery->operationCategory);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -122,7 +188,7 @@ class ApiListTest extends TestCase
         self::assertCount(2, $firstPage['methods']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
-        self::assertSame(5, $firstPage['total_rows']);
+        self::assertSame(6, $firstPage['total_rows']);
 
         $secondPage = $tool->list(
             limit: 2,
@@ -132,7 +198,7 @@ class ApiListTest extends TestCase
         self::assertCount(2, $secondPage['methods']);
         self::assertTrue($secondPage['has_more']);
         self::assertIsString($secondPage['next_cursor']);
-        self::assertSame(5, $secondPage['total_rows']);
+        self::assertSame(6, $secondPage['total_rows']);
 
         $firstPageMethods = array_map(
             static fn(array $row): string => $row['method'],
@@ -188,6 +254,23 @@ class ApiListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'add');
+    }
+
+    public function testListRejectsCursorWhenCategoryChanges(): void
+    {
+        $tool = new ApiList(
+            $this->createExpandedQueryServiceStub(),
+            new PaginatedCollectionResponder(new CursorPaginator()),
+            $this->createSystemSettingsStub('full'),
+        );
+
+        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'read');
+        $cursor = $firstPage['next_cursor'] ?? null;
+        self::assertIsString($cursor);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+        $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'create');
     }
 
     public function testListRejectsCursorWhenModuleChanges(): void
@@ -291,11 +374,60 @@ class ApiListTest extends TestCase
             public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
             {
                 $records = [
-                    new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
-                    new ApiMethodSummaryRecord('SitesManager', 'deleteSite', 'SitesManager.deleteSite', []),
-                    new ApiMethodSummaryRecord('SitesManager', 'isSiteNameUnique', 'SitesManager.isSiteNameUnique', []),
-                    new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-                    new ApiMethodSummaryRecord('UsersManager', 'getUsers', 'UsersManager.getUsers', []),
+                    new ApiMethodSummaryRecord(
+                        'API',
+                        'getMatomoVersion',
+                        'API.getMatomoVersion',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:get',
+                    ),
+                    new ApiMethodSummaryRecord(
+                        'SitesManager',
+                        'deleteSite',
+                        'SitesManager.deleteSite',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_DELETE,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:delete',
+                    ),
+                    new ApiMethodSummaryRecord(
+                        'SitesManager',
+                        'isSiteNameUnique',
+                        'SitesManager.isSiteNameUnique',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:is',
+                    ),
+                    new ApiMethodSummaryRecord(
+                        'UsersManager',
+                        'addUser',
+                        'UsersManager.addUser',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_CREATE,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:add',
+                    ),
+                    new ApiMethodSummaryRecord(
+                        'UsersManager',
+                        'getUsers',
+                        'UsersManager.getUsers',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:get',
+                    ),
+                    new ApiMethodSummaryRecord(
+                        'ScheduledReports',
+                        'sendReport',
+                        'ScheduledReports.sendReport',
+                        [],
+                        null,
+                        ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                        'unsupported-action-prefix:send',
+                    ),
                 ];
 
                 return array_values(array_filter(
@@ -314,12 +446,29 @@ class ApiListTest extends TestCase
                         }
 
                         if ($query->search === '') {
+                            if ($query->operationCategory === '') {
+                                return true;
+                            }
+
+                            return $record->operationCategory === $query->operationCategory;
+                        }
+
+                        $matchesSearch = str_contains(strtolower($record->method), $query->search)
+                            || str_contains(strtolower($record->module), $query->search)
+                            || str_contains(strtolower($record->action), $query->search);
+                        if (!$matchesSearch) {
+                            return false;
+                        }
+
+                        if ($query->operationCategory === '') {
                             return true;
                         }
 
-                        return str_contains(strtolower($record->method), $query->search)
-                            || str_contains(strtolower($record->module), $query->search)
-                            || str_contains(strtolower($record->action), $query->search);
+                        if ($query->operationCategory === ApiMethodOperationClassifier::CATEGORY_UNCATEGORIZED) {
+                            return $record->operationCategory === null;
+                        }
+
+                        return $record->operationCategory === $query->operationCategory;
                     },
                 ));
             }

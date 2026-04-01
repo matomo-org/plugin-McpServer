@@ -56,6 +56,9 @@ class ApiGetTest extends IntegrationTestCase
         self::assertSame('getMatomoVersion', $content['action'] ?? null);
         self::assertSame('API.getMatomoVersion', $content['method'] ?? null);
         self::assertIsArray($content['parameters'] ?? null);
+        self::assertSame('read', $content['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $content);
+        self::assertArrayNotHasKey('classificationReason', $content);
     }
 
     public function testFullModeReturnsKnownMutatingMethodByModuleAndActionSelectors(): void
@@ -76,6 +79,9 @@ class ApiGetTest extends IntegrationTestCase
         self::assertSame('addUser', $content['action'] ?? null);
         self::assertSame('UsersManager.addUser', $content['method'] ?? null);
         self::assertIsArray($content['parameters'] ?? null);
+        self::assertSame('create', $content['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $content);
+        self::assertArrayNotHasKey('classificationReason', $content);
     }
 
     public function testReadModeRejectsWriteOnlyMethod(): void

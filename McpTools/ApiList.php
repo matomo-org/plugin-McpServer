@@ -47,16 +47,19 @@ class ApiList
         ?string $sort = null,
         ?string $module = null,
         ?string $search = null,
+        ?string $category = null,
     ): array {
         $query = ApiMethodSummaryQueryRecord::fromInputs(
             $this->systemSettings->getRawApiAccessMode(),
             $module,
             $search,
+            $category,
         );
 
         $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, [
             'module' => $query->module,
             'search' => $query->search,
+            'category' => $query->operationCategory,
             'mode' => $query->accessMode,
         ]);
 

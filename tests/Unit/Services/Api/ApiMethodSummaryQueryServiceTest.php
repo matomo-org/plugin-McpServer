@@ -16,6 +16,7 @@ use Piwik\API\NoDefaultValue;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Services\Api\ApiMethodSummaryQueryService;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 
 /**
  * @group McpServer
@@ -261,8 +262,49 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             ApiMethodSummaryQueryRecord::fromInputs('full', null, 'sitesmanager'),
         );
         self::assertSame(
-            ['SitesManager.deleteSite', 'SitesManager.isSiteNameUnique'],
+            ['SitesManager.deleteSite', 'SitesManager.isSiteNameUnique', 'SitesManager.setDefaultTimezone'],
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $byModule)),
+        );
+    }
+
+    public function testFilterRecordsAppliesOperationCategoryFilter(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $records = $service->filterRecords(
+            $this->createMethodRecords(),
+            ApiMethodSummaryQueryRecord::fromInputs('full', null, null, 'update'),
+        );
+
+        self::assertSame(
+            ['SitesManager.setDefaultTimezone'],
+            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
+        );
+    }
+
+    public function testFilterRecordsAppliesUncategorizedOperationCategoryFilter(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        $records = $service->filterRecords(
+            [
+                ...$this->createMethodRecords(),
+                new ApiMethodSummaryRecord(
+                    'ScheduledReports',
+                    'sendReport',
+                    'ScheduledReports.sendReport',
+                    [],
+                    null,
+                    ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                    'unsupported-action-prefix:send',
+                ),
+            ],
+            ApiMethodSummaryQueryRecord::fromInputs('full', null, null, 'uncategorized'),
+        );
+
+        self::assertSame(
+            ['ScheduledReports.sendReport'],
+            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
         );
     }
 
@@ -312,11 +354,60 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
     private function createMethodRecords(): array
     {
         return [
-            new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
-            new ApiMethodSummaryRecord('SitesManager', 'deleteSite', 'SitesManager.deleteSite', []),
-            new ApiMethodSummaryRecord('SitesManager', 'isSiteNameUnique', 'SitesManager.isSiteNameUnique', []),
-            new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-            new ApiMethodSummaryRecord('UsersManager', 'getUsers', 'UsersManager.getUsers', []),
+            new ApiMethodSummaryRecord(
+                'API',
+                'getMatomoVersion',
+                'API.getMatomoVersion',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:get',
+            ),
+            new ApiMethodSummaryRecord(
+                'SitesManager',
+                'deleteSite',
+                'SitesManager.deleteSite',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_DELETE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:delete',
+            ),
+            new ApiMethodSummaryRecord(
+                'SitesManager',
+                'isSiteNameUnique',
+                'SitesManager.isSiteNameUnique',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:is',
+            ),
+            new ApiMethodSummaryRecord(
+                'UsersManager',
+                'addUser',
+                'UsersManager.addUser',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:add',
+            ),
+            new ApiMethodSummaryRecord(
+                'UsersManager',
+                'getUsers',
+                'UsersManager.getUsers',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:get',
+            ),
+            new ApiMethodSummaryRecord(
+                'SitesManager',
+                'setDefaultTimezone',
+                'SitesManager.setDefaultTimezone',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:set',
+            ),
         ];
     }
 }

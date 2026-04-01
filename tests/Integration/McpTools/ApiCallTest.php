@@ -86,6 +86,9 @@ class ApiCallTest extends IntegrationTestCase
         self::assertSame('API', $resolvedMethod['module'] ?? null);
         self::assertSame('getMatomoVersion', $resolvedMethod['action'] ?? null);
         self::assertSame('API.getMatomoVersion', $resolvedMethod['method'] ?? null);
+        self::assertSame('read', $resolvedMethod['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $resolvedMethod);
+        self::assertArrayNotHasKey('classificationReason', $resolvedMethod);
         self::assertArrayHasKey('result', $content);
         self::assertIsString($content['result']);
         self::assertNotSame('', $content['result']);
@@ -108,6 +111,7 @@ class ApiCallTest extends IntegrationTestCase
         $resolvedMethod = $content['resolvedMethod'] ?? null;
         self::assertIsArray($resolvedMethod);
         self::assertSame('API.getMatomoVersion', $resolvedMethod['method'] ?? null);
+        self::assertSame('read', $resolvedMethod['operationCategory'] ?? null);
         self::assertArrayHasKey('result', $content);
         self::assertIsString($content['result']);
     }
@@ -196,6 +200,9 @@ class ApiCallTest extends IntegrationTestCase
         $resolvedMethod = $content['resolvedMethod'] ?? null;
         self::assertIsArray($resolvedMethod);
         self::assertSame('UsersManager.hasSuperUserAccess', $resolvedMethod['method'] ?? null);
+        self::assertSame('read', $resolvedMethod['operationCategory'] ?? null);
+        self::assertArrayNotHasKey('classificationConfidence', $resolvedMethod);
+        self::assertArrayNotHasKey('classificationReason', $resolvedMethod);
         self::assertIsBool($content['result'] ?? null);
     }
 

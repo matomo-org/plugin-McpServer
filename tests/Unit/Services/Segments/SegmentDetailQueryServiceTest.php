@@ -13,9 +13,11 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -109,6 +111,41 @@ class SegmentDetailQueryServiceTest extends TestCase
             'Segment detail data is invalid.',
             'Segment detail item',
         );
+    }
+
+    /**
+     * @dataProvider provideInstanceBasedAccessExceptions
+     */
+    public function testGetSegmentDetailsForSiteMapsInstanceBasedAccessFailureToNotFound(\Throwable $exception): void
+    {
+        $gateway = $this->createMock(CoreSegmentEditorGatewayInterface::class);
+        $gateway->expects(self::once())
+            ->method('getAll')
+            ->with(9)
+            ->willThrowException($exception);
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('SegmentEditor')
+            ->willReturn(true);
+
+        $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Segment not found.');
+        $service->getSegmentDetailsForSite(9);
+    }
+
+    /**
+     * @return array<string, array{0: \Throwable}>
+     */
+    public static function provideInstanceBasedAccessExceptions(): array
+    {
+        return [
+            'NoAccessException with empty message' => [new NoAccessException('')],
+            'AccessDeniedLikeException with empty message' => [new AccessDeniedLikeException('')],
+        ];
     }
 
     public function testGetSegmentDetailsForSiteMapsMessageBasedAccessFailureToNotFound(): void

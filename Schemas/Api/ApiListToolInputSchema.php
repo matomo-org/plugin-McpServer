@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Api;
 
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 
 final class ApiListToolInputSchema
@@ -48,6 +49,17 @@ final class ApiListToolInputSchema
                 'minLength' => 1,
                 'description' => 'Optional case-insensitive substring filter on the '
                     . 'composite Module.action method name.',
+            ],
+            'category' => [
+                'type' => 'string',
+                'enum' => [
+                    ApiMethodOperationClassifier::CATEGORY_READ,
+                    ApiMethodOperationClassifier::CATEGORY_CREATE,
+                    ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                    ApiMethodOperationClassifier::CATEGORY_DELETE,
+                    ApiMethodOperationClassifier::CATEGORY_UNCATEGORIZED,
+                ],
+                'description' => 'Optional CRUD-style or uncategorized filter for heuristically classified methods.',
             ],
         ],
         'additionalProperties' => false,

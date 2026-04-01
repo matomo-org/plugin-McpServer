@@ -60,6 +60,9 @@ class ApiListTest extends IntegrationTestCase
             self::assertIsArray($method);
             self::assertArrayHasKey('action', $method);
             self::assertIsString($method['action']);
+            self::assertSame('read', $method['operationCategory'] ?? null);
+            self::assertArrayNotHasKey('classificationConfidence', $method);
+            self::assertArrayNotHasKey('classificationReason', $method);
             $normalizedAction = strtolower($method['action']);
             self::assertTrue(
                 str_starts_with($normalizedAction, 'get') || str_starts_with($normalizedAction, 'is'),
@@ -243,6 +246,73 @@ class ApiListTest extends IntegrationTestCase
         self::assertSame([], array_values(array_intersect($firstPageMethods, $secondPageMethods)));
     }
 
+    public function testCategoryFilterReturnsOnlyClassifiedCrudMatches(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['category' => 'create', 'limit' => 100],
+            __METHOD__,
+        );
+
+        $methods = $content['methods'] ?? null;
+        self::assertIsArray($methods);
+        self::assertNotEmpty($methods);
+
+        foreach ($methods as $method) {
+            self::assertSame('create', $method['operationCategory'] ?? null);
+            self::assertArrayNotHasKey('classificationConfidence', $method);
+            self::assertArrayNotHasKey('classificationReason', $method);
+        }
+    }
+
+    public function testCategoryFilterCanExcludeLowConfidenceMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['category' => 'update', 'search' => 'sendreport', 'limit' => 10],
+            __METHOD__,
+        );
+
+        self::assertSame([], $content['methods'] ?? null);
+    }
+
+    public function testUncategorizedCategoryFilterReturnsOnlyUnclassifiedMethods(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['category' => 'uncategorized', 'search' => 'sendreport', 'limit' => 10],
+            __METHOD__,
+        );
+
+        $methods = $content['methods'] ?? null;
+        self::assertIsArray($methods);
+        self::assertNotEmpty($methods);
+
+        foreach ($methods as $method) {
+            self::assertNull($method['operationCategory'] ?? null);
+            self::assertArrayNotHasKey('classificationConfidence', $method);
+            self::assertArrayNotHasKey('classificationReason', $method);
+        }
+    }
+
     public function testRejectsInvalidLimit(): void
     {
         McpTestHelper::setRawApiAccessMode('read');
@@ -277,6 +347,42 @@ class ApiListTest extends IntegrationTestCase
 
         self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
         self::assertStringContainsString('sort', $message->message ?? '');
+    }
+
+    public function testRejectsInvalidCategory(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['category' => 'unsupported'],
+            __METHOD__,
+        );
+
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
+        self::assertStringContainsString('category', $message->message ?? '');
+    }
+
+    public function testRejectsReportsCategory(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['category' => 'reports'],
+            __METHOD__,
+        );
+
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
+        self::assertStringContainsString('category', $message->message ?? '');
     }
 
     public function testRejectsInvalidCursor(): void
@@ -344,6 +450,33 @@ class ApiListTest extends IntegrationTestCase
             $sessionId,
             'matomo_api_list',
             ['cursor' => $nextCursor, 'sort' => ApiMethodsPagination::SORT_METHOD_ASC, 'search' => 'add'],
+            'Invalid cursor.',
+            __METHOD__ . '#2',
+        );
+    }
+
+    public function testRejectsCursorFromDifferentCategoryContext(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $firstPage = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['limit' => 1, 'sort' => ApiMethodsPagination::SORT_METHOD_ASC, 'category' => 'read'],
+            __METHOD__ . '#1',
+        );
+        $nextCursor = $firstPage['next_cursor'] ?? null;
+        self::assertIsString($nextCursor);
+
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['cursor' => $nextCursor, 'sort' => ApiMethodsPagination::SORT_METHOD_ASC, 'category' => 'create'],
             'Invalid cursor.',
             __METHOD__ . '#2',
         );

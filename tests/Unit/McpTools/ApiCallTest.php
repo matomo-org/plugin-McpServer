@@ -16,6 +16,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\SystemSettings;
 use stdClass;
 
@@ -53,7 +54,15 @@ class ApiCallTest extends TestCase
 
                     return new ApiCallRecord(
                         '6.0.0',
-                        new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
+                        new ApiMethodSummaryRecord(
+                            'API',
+                            'getMatomoVersion',
+                            'API.getMatomoVersion',
+                            [],
+                            ApiMethodOperationClassifier::CATEGORY_READ,
+                            ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                            'action-prefix:get',
+                        ),
                     );
                 }
             },
@@ -69,6 +78,7 @@ class ApiCallTest extends TestCase
                 'action' => 'getMatomoVersion',
                 'method' => 'API.getMatomoVersion',
                 'parameters' => [],
+                'operationCategory' => 'read',
             ],
         ], $actual);
         /** @var array<string, mixed> $capturedValues */
@@ -108,7 +118,15 @@ class ApiCallTest extends TestCase
 
                     return new ApiCallRecord(
                         ['success' => true],
-                        new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
+                        new ApiMethodSummaryRecord(
+                            'UsersManager',
+                            'addUser',
+                            'UsersManager.addUser',
+                            [],
+                            ApiMethodOperationClassifier::CATEGORY_CREATE,
+                            ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                            'action-prefix:add',
+                        ),
                     );
                 }
             },

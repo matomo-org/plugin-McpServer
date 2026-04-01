@@ -11,21 +11,29 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Contracts\Records\Api;
 
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
+
 final class ApiMethodSummaryQueryRecord
 {
     public function __construct(
         public readonly string $accessMode,
         public readonly string $module,
         public readonly string $search,
+        public readonly string $operationCategory,
     ) {
     }
 
-    public static function fromInputs(string $accessMode, ?string $module = null, ?string $search = null): self
-    {
+    public static function fromInputs(
+        string $accessMode,
+        ?string $module = null,
+        ?string $search = null,
+        ?string $operationCategory = null,
+    ): self {
         return new self(
             accessMode: trim($accessMode),
             module: strtolower(trim((string) $module)),
             search: strtolower(trim((string) $search)),
+            operationCategory: ApiMethodOperationClassifier::normalizeCategory($operationCategory),
         );
     }
 }

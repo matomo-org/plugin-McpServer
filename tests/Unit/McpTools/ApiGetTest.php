@@ -16,6 +16,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInte
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
+use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\SystemSettings;
 use stdClass;
 
@@ -59,6 +60,9 @@ class ApiGetTest extends TestCase
                         action: 'getMatomoVersion',
                         method: 'API.getMatomoVersion',
                         parameters: [],
+                        operationCategory: ApiMethodOperationClassifier::CATEGORY_READ,
+                        classificationConfidence: ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        classificationReason: 'action-prefix:get',
                     );
                 }
             },
@@ -72,6 +76,7 @@ class ApiGetTest extends TestCase
             'action' => 'getMatomoVersion',
             'method' => 'API.getMatomoVersion',
             'parameters' => [],
+            'operationCategory' => 'read',
         ], $actual);
         /** @var array<string, mixed> $capturedValues */
         $capturedValues = $captured->values;
@@ -115,6 +120,9 @@ class ApiGetTest extends TestCase
                         action: 'addUser',
                         method: 'UsersManager.addUser',
                         parameters: [],
+                        operationCategory: ApiMethodOperationClassifier::CATEGORY_CREATE,
+                        classificationConfidence: ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        classificationReason: 'action-prefix:add',
                     );
                 }
             },
@@ -128,6 +136,7 @@ class ApiGetTest extends TestCase
             'action' => 'addUser',
             'method' => 'UsersManager.addUser',
             'parameters' => [],
+            'operationCategory' => 'create',
         ], $actual);
         /** @var array<string, mixed> $capturedValues */
         $capturedValues = $captured->values;

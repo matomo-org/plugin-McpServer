@@ -25,6 +25,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Api;
  *     action: string,
  *     method: string,
  *     parameters: list<ApiMethodParameterArray>,
+ *     operationCategory: string|null,
  * }
  */
 final class ApiMethodSummaryRecord
@@ -35,6 +36,11 @@ final class ApiMethodSummaryRecord
         public readonly string $action,
         public readonly string $method,
         public readonly array $parameters,
+        public readonly ?string $operationCategory = null,
+        // Internal-only metadata for access-policy decisions and debugging.
+        // Not intended to be exposed through public MCP tool responses.
+        public readonly string $classificationConfidence = 'low',
+        public readonly string $classificationReason = 'not-classified',
     ) {
     }
 
@@ -48,6 +54,7 @@ final class ApiMethodSummaryRecord
             'action' => $this->action,
             'method' => $this->method,
             'parameters' => $this->parameters,
+            'operationCategory' => $this->operationCategory,
         ];
     }
 }
