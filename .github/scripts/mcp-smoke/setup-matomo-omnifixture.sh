@@ -76,9 +76,18 @@ start_php_server() {
   return 1
 }
 
-api_get_json() {
-  local url="$1"
-  curl -sS "$url" | sed 's/^\xEF\xBB\xBF//'
+api_post_json() {
+  local token="$1"
+  local method="$2"
+  shift 2
+
+  curl -sS -X POST "$BASE_URL/index.php" \
+    --data-urlencode "module=API" \
+    --data-urlencode "method=${method}" \
+    --data-urlencode "format=JSON" \
+    --data-urlencode "token_auth=${token}" \
+    "$@" \
+    | sed 's/^\xEF\xBB\xBF//'
 }
 
 require_non_empty() {
@@ -159,12 +168,12 @@ main() {
 
   local token
   if ! echo "$token_response" | jq -e 'type == "string" or (type == "object" and ((.value // .token_auth // .token // null) | type == "string"))' >/dev/null 2>&1; then
-    echo "Unexpected token response schema from UsersManager.createAppSpecificTokenAuth: $token_response" >&2
+    echo "Unexpected token response schema from UsersManager.createAppSpecificTokenAuth." >&2
     exit 1
   fi
   token=$(echo "$token_response" | jq -r 'if type == "string" then . else (.value // .token_auth // .token // empty) end')
   if [ -z "$token" ] || [ "$token" = "null" ] || [ "$token" = "false" ]; then
-    echo "Failed to create app token via API. Response: $token_response" >&2
+    echo "Failed to create app token via API." >&2
     exit 1
   fi
 
@@ -172,11 +181,11 @@ main() {
   local id_site report_unique_id
   local -a skip_cases
 
-  sites_json=$(api_get_json "$BASE_URL/index.php?module=API&method=SitesManager.getSitesWithAtLeastViewAccess&format=JSON&token_auth=${token}")
+  sites_json=$(api_post_json "$token" "SitesManager.getSitesWithAtLeastViewAccess")
   id_site=$(echo "$sites_json" | jq -r '.[0].idsite // empty')
   require_non_empty "idSite" "$id_site"
 
-  metadata_json=$(api_get_json "$BASE_URL/index.php?module=API&method=API.getReportMetadata&idSite=${id_site}&format=JSON&token_auth=${token}")
+  metadata_json=$(api_post_json "$token" "API.getReportMetadata" --data-urlencode "idSite=${id_site}")
   report_unique_id=$(echo "$metadata_json" | jq -r '.[] | select(.module=="Actions" and .action=="getPageUrls") | .uniqueId' | head -n1)
   if [ -z "$report_unique_id" ]; then
     report_unique_id=$(echo "$metadata_json" | jq -r '.[] | .uniqueId // empty' | head -n1)

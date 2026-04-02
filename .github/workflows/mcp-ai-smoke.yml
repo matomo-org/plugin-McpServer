@@ -133,6 +133,7 @@ jobs:
           PROMPTS_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/prompts
           ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
           MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
+          PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
 
       - name: Finalize Codex smoke job
         if: always()

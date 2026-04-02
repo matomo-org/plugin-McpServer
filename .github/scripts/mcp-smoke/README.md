@@ -33,6 +33,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 - `.state.json`: runtime discovery state from setup, including optional `skip_cases`.
 - `prompts/*.txt`: prompt templates used by configured cases.
 - `artifacts/<provider>/`: generated at runtime inside each provider job (`transcripts`, `logs`, `results`, `results.json`).
+- `artifacts/<provider>/logs/php-server.log`: PHP built-in server log snapshot for the provider run.
 
 ## Notes
 

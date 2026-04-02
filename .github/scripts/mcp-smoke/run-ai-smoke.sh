@@ -8,6 +8,7 @@ CASES_FILE=${CASES_FILE:?CASES_FILE is required}
 PROMPTS_DIR=${PROMPTS_DIR:?PROMPTS_DIR is required}
 ARTIFACT_DIR=${ARTIFACT_DIR:?ARTIFACT_DIR is required}
 MATOMO_LOG_FILE=${MATOMO_LOG_FILE:?MATOMO_LOG_FILE is required}
+PHP_SERVER_LOG_FILE=${PHP_SERVER_LOG_FILE:?PHP_SERVER_LOG_FILE is required}
 
 if [ "$SMOKE_PROVIDER" != "codex" ] && [ "$SMOKE_PROVIDER" != "claude" ]; then
   echo "Unsupported SMOKE_PROVIDER: $SMOKE_PROVIDER" >&2
@@ -23,6 +24,7 @@ provider_artifact_dir="$ARTIFACT_DIR/$SMOKE_PROVIDER"
 provider_transcripts_dir="$provider_artifact_dir/transcripts"
 provider_logs_dir="$provider_artifact_dir/logs"
 provider_results_dir="$provider_artifact_dir/results"
+provider_php_log_file="$provider_logs_dir/php-server.log"
 provider_state_root="${RUNNER_TEMP:-}"
 
 if [ -z "$provider_state_root" ]; then
@@ -62,6 +64,36 @@ fi
 
 escape_sed_replacement() {
   printf '%s' "$1" | sed -e 's/[\\&|]/\\&/g'
+}
+
+# Scrub the Matomo API token from a log stream (stdin -> stdout) before it is
+# uploaded as an artifact. Token_auth is not expected to reach these logs, but
+# we redact defensively: both the query-string form and the literal token value
+# are removed so the secret is scrubbed regardless of how it was logged.
+redact_secrets() {
+  local token="$1"
+
+  # Pass 1: the query-string form (?token_auth=... / &token_auth=...).
+  sed -E 's/([?&]token_auth=)[^&[:space:]]+/\1[REDACTED]/g' \
+    | awk -v tok="$token" '
+      # Pass 2: the literal token value wherever else it might be logged
+      # (header or parameter dumps). Done with index()/substr() so the token
+      # is matched literally without any regex escaping.
+      {
+        if (tok != "") {
+          out = ""
+          line = $0
+          p = index(line, tok)
+          while (p > 0) {
+            out = out substr(line, 1, p - 1) "[REDACTED]"
+            line = substr(line, p + length(tok))
+            p = index(line, tok)
+          }
+          $0 = out line
+        }
+        print
+      }
+    '
 }
 
 render_prompt() {
@@ -221,13 +253,23 @@ while IFS= read -r case_json; do
   cmd_exit=$?
   set -e
 
+  # Scrub the provider transcript before it is uploaded as an artifact. Applied
+  # uniformly to every provider so no transcript stream (e.g. a provider that
+  # captures full stdout/stderr) can bypass the same redaction used for the log
+  # slices below. Token_auth is not expected to reach transcripts, but we redact
+  # defensively for the same reason as the log slices.
+  if [ -f "$transcript_file" ]; then
+    redact_secrets "$TOKEN_AUTH" < "$transcript_file" > "${transcript_file}.redacted"
+    mv "${transcript_file}.redacted" "$transcript_file"
+  fi
+
   if [ -f "$MATOMO_LOG_FILE" ]; then
     printf '%s\n' "$case_end_marker" >> "$MATOMO_LOG_FILE"
     awk -v s="$case_start_marker" -v e="$case_end_marker" '
       $0 ~ s {in_range=1; next}
       $0 ~ e {in_range=0}
       in_range
-    ' "$MATOMO_LOG_FILE" > "$log_slice_file"
+    ' "$MATOMO_LOG_FILE" | redact_secrets "$TOKEN_AUTH" > "$log_slice_file"
   else
     : > "$log_slice_file"
   fi
@@ -257,6 +299,12 @@ while IFS= read -r case_json; do
     pass_count=$((pass_count + 1))
   fi
 done < <(jq -c '.[]' "$CASES_FILE")
+
+if [ -f "$PHP_SERVER_LOG_FILE" ]; then
+  redact_secrets "$TOKEN_AUTH" < "$PHP_SERVER_LOG_FILE" > "$provider_php_log_file"
+else
+  : > "$provider_php_log_file"
+fi
 
 if find "$provider_results_dir" -maxdepth 1 -type f -name '*.json' | grep -q .; then
   jq -s '.' "$provider_results_dir"/*.json > "$provider_artifact_dir/results.json"
