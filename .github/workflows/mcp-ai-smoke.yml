@@ -78,11 +78,11 @@ jobs:
             echo "- reason: ${{ steps.check.outputs.reason }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  smoke:
-    name: AI smoke
+  smoke_codex:
+    name: Codex smoke
     runs-on: ubuntu-24.04
     needs: preflight
-    if: needs.preflight.outputs.should_run == 'true'
+    if: needs.preflight.outputs.has_codex == 'true'
     continue-on-error: true
     timeout-minutes: 30
     services:
@@ -150,11 +150,9 @@ jobs:
 
       # Intentionally install the latest release: this smoke job monitors CLI/MCP compatibility.
       - name: Install Codex CLI
-        if: needs.preflight.outputs.has_codex == 'true'
         run: npm install -g @openai/codex
 
       - name: Codex MCP smoke suite
-        if: needs.preflight.outputs.has_codex == 'true'
         run: ./.github/scripts/mcp-smoke/run-codex-smoke.sh
         env:
           OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
@@ -166,71 +164,56 @@ jobs:
           ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
           MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
 
-      - name: Build smoke summary
+      - name: Build Codex summary
         if: always()
         run: |
           set -euo pipefail
           ARTIFACT_DIR="${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts"
+          RESULTS_FILE="$ARTIFACT_DIR/codex/results.json"
           {
-            echo "## MCP AI Smoke"
+            echo "## Codex Smoke"
             echo
-            echo "- should_run: ${{ needs.preflight.outputs.should_run }}"
-            echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
-            echo "- reason: ${{ needs.preflight.outputs.reason }}"
-            echo "- smoke job result: ${{ job.status }}"
+            echo "- job result: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          summarize_provider() {
-            local provider="$1"
-            local results_file="$ARTIFACT_DIR/$provider/results.json"
-
-            if [ ! -f "$results_file" ]; then
-              {
-                echo
-                echo "## ${provider^} Results"
-                echo
-                echo "No results.json was produced."
-              } >> "$GITHUB_STEP_SUMMARY"
-              return
-            fi
-
-            total=$(jq 'length' "$results_file")
-            passed=$(jq '[.[] | select(.status == "pass")] | length' "$results_file")
-            skipped=$(jq '[.[] | select(.status == "skip")] | length' "$results_file")
-            failed=$(jq '[.[] | select(.status == "fail")] | length' "$results_file")
-
+          if [ ! -f "$RESULTS_FILE" ]; then
             {
               echo
-              echo "## ${provider^} Results"
-              echo
-              echo "| Case | Expected Tool | Status | Reason |"
-              echo "|---|---|---|---|"
-              jq -r '.[] | "| \(.case_id) | \(.expected_tool) | \(.status) | \(.reason) |"' "$results_file"
-              echo
-              echo "- Total checks: ${total}"
-              echo "- Passed: ${passed}"
-              echo "- Skipped: ${skipped}"
-              echo "- Failed: ${failed}"
+              echo "No results.json was produced."
             } >> "$GITHUB_STEP_SUMMARY"
-          }
-
-          if [ "${{ needs.preflight.outputs.has_codex }}" = "true" ]; then
-            summarize_provider codex
+            exit 0
           fi
 
-      - name: Upload smoke artifacts
+          total=$(jq 'length' "$RESULTS_FILE")
+          passed=$(jq '[.[] | select(.status == "pass")] | length' "$RESULTS_FILE")
+          skipped=$(jq '[.[] | select(.status == "skip")] | length' "$RESULTS_FILE")
+          failed=$(jq '[.[] | select(.status == "fail")] | length' "$RESULTS_FILE")
+
+          {
+            echo
+            echo "| Case | Expected Tool | Status | Reason |"
+            echo "|---|---|---|---|"
+            jq -r '.[] | "| \(.case_id) | \(.expected_tool) | \(.status) | \(.reason) |"' "$RESULTS_FILE"
+            echo
+            echo "- Total checks: ${total}"
+            echo "- Passed: ${passed}"
+            echo "- Skipped: ${skipped}"
+            echo "- Failed: ${failed}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Codex artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: mcp-ai-smoke-artifacts
-          path: .github/scripts/mcp-smoke/artifacts
+          name: mcp-ai-smoke-codex
+          path: .github/scripts/mcp-smoke/artifacts/codex
           if-no-files-found: warn
           retention-days: 7
 
   summary:
     name: Final status
     runs-on: ubuntu-24.04
-    needs: [preflight, smoke]
+    needs: [preflight, smoke_codex]
     if: always()
     steps:
       - name: Final status summary
@@ -241,7 +224,7 @@ jobs:
             echo "- preflight: ${{ needs.preflight.outputs.should_run }}"
             echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
             echo "- reason: ${{ needs.preflight.outputs.reason }}"
-            echo "- smoke result: ${{ needs.smoke.result || 'skipped' }}"
+            echo "- Codex job result: ${{ needs.smoke_codex.result || 'skipped' }}"
             echo
             echo "Prototype smoke is intentionally non-blocking."
           } >> "$GITHUB_STEP_SUMMARY"
