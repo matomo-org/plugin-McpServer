@@ -23,6 +23,10 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 3. `run-codex-smoke.sh`
 - Thin wrappers that select the provider-specific runtime setup before invoking the shared harness.
 
+4. `.github/actions/setup-mcp-smoke-env`
+- Composite action that performs the shared CI bootstrap used by each provider job.
+- Sets up PHP/Node, checks out `github-action-tests`, checks out Matomo, installs Composer deps, and runs OmniFixture setup.
+
 ## Files
 
 - `cases.json`: prototype smoke cases (`site_get`, `site_list`, `report_processed`).
@@ -36,5 +40,6 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 - Provider login state and runtime configuration stay outside uploaded artifacts.
 - The workflow can run providers independently based on secret availability (`OPENAI_APIKEY`).
 - Codex runs in a separate CI job with isolated Matomo environments and log files.
+- Provider jobs share a local composite action for the common Matomo/bootstrap sequence.
 - The workflow is intentionally report-first/non-blocking for internal prototype usage.
 - The workflow uploads one artifact per provider job and builds a combined summary from the downloaded per-provider `results.json` files.
