@@ -39,7 +39,12 @@ class SiteGet
             . "Purpose: fetch authoritative details for exactly one Matomo site.\n"
             . "Do not use: if you only have URL/domain/name—use"
             . " " . SiteList::TOOL_NAME . " or " . SiteSearch::TOOL_NAME . " first.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: SiteDetailToolOutputSchema::ITEM
     )]
     #[Schema(

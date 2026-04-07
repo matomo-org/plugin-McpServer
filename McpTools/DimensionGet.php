@@ -37,7 +37,12 @@ class DimensionGet
         description: "Use when: idSite and idDimension are known.\n"
             . "Purpose: fetch authoritative details for exactly one configured custom dimension.\n"
             . "Do not use: if dimension id is unknown—discover candidates first.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: DimensionDetailToolOutputSchema::ITEM
     )]
     #[Schema(

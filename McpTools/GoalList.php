@@ -47,7 +47,12 @@ class GoalList
         description: "Use when: you need reusable configured goals for a specific site.\n"
             . "Purpose: return paginated goal definitions available for idSite.\n"
             . "Next: use the chosen idgoal in goal-specific analytics/report API calls.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(
