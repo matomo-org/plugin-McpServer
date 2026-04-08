@@ -98,6 +98,8 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.has_codex == 'true'
     continue-on-error: true
+    outputs:
+      provider_outcome: ${{ steps.confirm_provider_outcome.outputs.provider_outcome }}
     timeout-minutes: 30
     services:
       mysql:
@@ -137,6 +139,8 @@ jobs:
         run: npm install -g @openai/codex
 
       - name: Codex MCP smoke suite
+        id: smoke_suite
+        continue-on-error: true
         run: ./.github/scripts/mcp-smoke/run-codex-smoke.sh
         env:
           OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
@@ -149,6 +153,20 @@ jobs:
           MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
           PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
 
+      - name: Set Codex provider outcome
+        id: set_provider_outcome
+        if: always()
+        run: |
+          provider_outcome="success"
+
+          if [ "${{ job.status }}" != "success" ] || [ "${{ steps.smoke_suite.outcome }}" = "failure" ]; then
+            provider_outcome="failure"
+          elif [ "${{ steps.smoke_suite.outcome }}" = "cancelled" ]; then
+            provider_outcome="cancelled"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
       - name: Finalize Codex smoke job
         if: always()
         uses: ./.github/actions/finalize-mcp-smoke-job
@@ -156,7 +174,22 @@ jobs:
           provider_label: Codex
           artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/codex
           artifact_name: mcp-ai-smoke-codex
-          job_status: ${{ job.status }}
+          job_status: ${{ steps.set_provider_outcome.outputs.provider_outcome }}
+
+      - name: Confirm Codex provider outcome
+        id: confirm_provider_outcome
+        if: always()
+        run: |
+          # Runs after finalization so a failing summary/artifact-upload step is
+          # not masked by continue-on-error: downgrade a "success" outcome when
+          # the job status is no longer success.
+          provider_outcome="${{ steps.set_provider_outcome.outputs.provider_outcome }}"
+
+          if [ "$provider_outcome" = "success" ] && [ "${{ job.status }}" != "success" ]; then
+            provider_outcome="failure"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
 
   smoke_claude:
     name: Claude smoke
@@ -164,6 +197,8 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.has_claude == 'true'
     continue-on-error: true
+    outputs:
+      provider_outcome: ${{ steps.confirm_provider_outcome.outputs.provider_outcome }}
     timeout-minutes: 30
     services:
       mysql:
@@ -203,6 +238,8 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Claude MCP smoke suite
+        id: smoke_suite
+        continue-on-error: true
         run: ./.github/scripts/mcp-smoke/run-claude-smoke.sh
         env:
           ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_APIKEY }}
@@ -215,6 +252,20 @@ jobs:
           MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
           PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
 
+      - name: Set Claude provider outcome
+        id: set_provider_outcome
+        if: always()
+        run: |
+          provider_outcome="success"
+
+          if [ "${{ job.status }}" != "success" ] || [ "${{ steps.smoke_suite.outcome }}" = "failure" ]; then
+            provider_outcome="failure"
+          elif [ "${{ steps.smoke_suite.outcome }}" = "cancelled" ]; then
+            provider_outcome="cancelled"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
       - name: Finalize Claude smoke job
         if: always()
         uses: ./.github/actions/finalize-mcp-smoke-job
@@ -222,14 +273,68 @@ jobs:
           provider_label: Claude
           artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/claude
           artifact_name: mcp-ai-smoke-claude
-          job_status: ${{ job.status }}
+          job_status: ${{ steps.set_provider_outcome.outputs.provider_outcome }}
+
+      - name: Confirm Claude provider outcome
+        id: confirm_provider_outcome
+        if: always()
+        run: |
+          # Runs after finalization so a failing summary/artifact-upload step is
+          # not masked by continue-on-error: downgrade a "success" outcome when
+          # the job status is no longer success.
+          provider_outcome="${{ steps.set_provider_outcome.outputs.provider_outcome }}"
+
+          if [ "$provider_outcome" = "success" ] && [ "${{ job.status }}" != "success" ]; then
+            provider_outcome="failure"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
 
   summary:
     name: Final status
     runs-on: ubuntu-24.04
     needs: [preflight, smoke_codex, smoke_claude]
-    if: always()
+    # Must use always(): an if without a status function has an implicit
+    # success(), which is false whenever a provider job is skipped (only one
+    # secret configured). Without this the gate below is skipped and a failing
+    # single-provider run would leave the workflow green.
+    if: ${{ always() && needs.preflight.outputs.should_run == 'true' }}
     steps:
+      - name: Normalize provider outcomes
+        id: normalize_provider_outcomes
+        env:
+          CODEX_AVAILABLE: ${{ needs.preflight.outputs.has_codex }}
+          CODEX_OUTCOME: ${{ needs.smoke_codex.outputs.provider_outcome }}
+          CLAUDE_AVAILABLE: ${{ needs.preflight.outputs.has_claude }}
+          CLAUDE_OUTCOME: ${{ needs.smoke_claude.outputs.provider_outcome }}
+        run: |
+          set -euo pipefail
+
+          normalize_provider_outcome() {
+            local available="$1"
+            local outcome="$2"
+
+            if [ "$available" != "true" ]; then
+              echo "skipped"
+              return
+            fi
+
+            case "$outcome" in
+              success|failure|cancelled)
+                echo "$outcome"
+                ;;
+              *)
+                echo "failure"
+                ;;
+            esac
+          }
+
+          codex_result=$(normalize_provider_outcome "$CODEX_AVAILABLE" "$CODEX_OUTCOME")
+          claude_result=$(normalize_provider_outcome "$CLAUDE_AVAILABLE" "$CLAUDE_OUTCOME")
+
+          echo "codex_result=${codex_result}" >> "$GITHUB_OUTPUT"
+          echo "claude_result=${claude_result}" >> "$GITHUB_OUTPUT"
+
       - name: Final status summary
         run: |
           {
@@ -239,8 +344,40 @@ jobs:
             echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
             echo "- Claude available: ${{ needs.preflight.outputs.has_claude }}"
             echo "- reason: ${{ needs.preflight.outputs.reason }}"
-            echo "- Codex job result: ${{ needs.smoke_codex.result || 'skipped' }}"
-            echo "- Claude job result: ${{ needs.smoke_claude.result || 'skipped' }}"
+            echo "- Codex provider outcome: ${{ steps.normalize_provider_outcomes.outputs.codex_result }}"
+            echo "- Claude provider outcome: ${{ steps.normalize_provider_outcomes.outputs.claude_result }}"
             echo
-            echo "Prototype smoke is intentionally non-blocking."
+            echo "Detailed per-case results remain in the individual provider jobs and uploaded artifacts."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Evaluate overall result
+        run: |
+          set -euo pipefail
+
+          codex_result="${{ steps.normalize_provider_outcomes.outputs.codex_result }}"
+          claude_result="${{ steps.normalize_provider_outcomes.outputs.claude_result }}"
+
+          ran_providers=0
+          failed_providers=0
+
+          for result in "$codex_result" "$claude_result"; do
+            if [ "$result" != "skipped" ]; then
+              ran_providers=$((ran_providers + 1))
+            fi
+
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              failed_providers=$((failed_providers + 1))
+            fi
+          done
+
+          if [ "$ran_providers" -eq 0 ]; then
+            echo "No provider jobs ran."
+            exit 0
+          fi
+
+          if [ "$failed_providers" -gt 0 ]; then
+            echo "$failed_providers provider job(s) failed."
+            exit 1
+          fi
+
+          echo "All provider jobs succeeded."

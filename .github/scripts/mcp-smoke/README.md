@@ -46,5 +46,6 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 - Claude defaults to the generic `sonnet` alias, with `claude_model` still available in `workflow_dispatch` for pinned-model overrides.
 - Codex and Claude run in separate CI jobs with isolated Matomo environments and log files.
 - Provider jobs share a local composite action for the common Matomo/bootstrap sequence.
-- The workflow is intentionally report-first/non-blocking for internal prototype usage.
-- The workflow uploads one artifact per provider job and builds a combined summary from the downloaded per-provider `results.json` files.
+- The workflow is intentionally report-first: provider jobs continue far enough to upload artifacts and append per-provider summaries even when an individual smoke run fails.
+- The final workflow status is driven by explicit per-provider outcomes emitted by the workflow jobs, not by GitHub's masked `needs.<job>.result` values for `continue-on-error` jobs.
+- The workflow uploads one artifact per provider job, and detailed case-level diagnostics remain in each provider's `results.json` artifact bundle.
