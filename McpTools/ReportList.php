@@ -47,7 +47,12 @@ class ReportList
         description: "Use when: you need a compact discovery list of available reports for a site.\n"
             . "Purpose: return paginated report metadata for idSite.\n"
             . "Next: choose module/action/parameters and call Matomo reporting APIs.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

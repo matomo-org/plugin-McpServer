@@ -47,7 +47,12 @@ class SegmentList
         description: "Use when: you need reusable saved segments for a specific site.\n"
             . "Purpose: return paginated saved segment definitions available for idSite.\n"
             . "Next: use the chosen segment definition in analytics/report API calls.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: SegmentSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

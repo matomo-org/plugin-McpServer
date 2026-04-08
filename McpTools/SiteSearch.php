@@ -49,7 +49,12 @@ class SiteSearch
             . "Purpose: find matching Matomo sites and return candidate idSite values.\n"
             . "Notes: may return multiple matches; results are ordered by sort (default name_asc).\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

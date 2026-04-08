@@ -38,7 +38,12 @@ class GoalGet
             . " (from the user or " . GoalList::TOOL_NAME . ").\n"
             . "Purpose: fetch authoritative details for exactly one configured goal.\n"
             . "Do not use: if goal id is unknown—use " . GoalList::TOOL_NAME . " first.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: GoalDetailToolOutputSchema::ITEM
     )]
     #[Schema(

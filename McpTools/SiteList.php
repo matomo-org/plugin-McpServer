@@ -47,7 +47,12 @@ class SiteList
         description: "Use when: you need to list accessible Matomo sites without a search hint.\n"
             . "Purpose: return paginated site summaries for all sites the user can view.\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) for full details of one site.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(

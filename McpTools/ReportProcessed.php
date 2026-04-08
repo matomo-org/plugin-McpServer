@@ -45,11 +45,19 @@ class ReportProcessed
             . "Purpose: resolve report selector, fetch processed report payload, "
             . "and return stable pagination metadata.\n"
             . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.",
-        // Keep readOnlyHint=false as the safe default:
-        // depending on dynamic Matomo archiving configuration, fetching processed reports
-        // can trigger report generation/archiving side effects. The true read-only value
-        // must be derived at runtime from current configuration.
-        annotations: new ToolAnnotations(readOnlyHint: false, openWorldHint: false),
+        // Keep these conservative defaults for processed reports:
+        // - readOnlyHint=false because fetching a processed report can trigger
+        //   report generation / archiving side effects depending on runtime config.
+        // - destructiveHint=false because those effects are additive/cache-generation,
+        //   not destructive mutations.
+        // - idempotentHint=false because repeated identical calls cannot be guaranteed
+        //   to have no additional environmental effect across archive configurations.
+        annotations: new ToolAnnotations(
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+            openWorldHint: false
+        ),
         outputSchema: ReportProcessedToolOutputSchema::ITEM
     )]
     #[Schema(definition: [

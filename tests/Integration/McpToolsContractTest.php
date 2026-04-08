@@ -49,18 +49,78 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertContains('matomo_report_processed', $toolNames);
 
         $expectedHintsByTool = [
-            'matomo_site_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_site_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_site_search' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_segment_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_segment_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_dimension_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_dimension_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_goal_get' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_goal_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_report_list' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_report_metadata' => ['readOnlyHint' => true, 'openWorldHint' => false],
-            'matomo_report_processed' => ['readOnlyHint' => false, 'openWorldHint' => false],
+            'matomo_site_get' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_site_list' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_site_search' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_segment_get' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_segment_list' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_dimension_list' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_dimension_get' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_goal_get' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_goal_list' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_report_list' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_report_metadata' => [
+                'readOnlyHint' => true,
+                'destructiveHint' => false,
+                'idempotentHint' => true,
+                'openWorldHint' => false,
+            ],
+            'matomo_report_processed' => [
+                'readOnlyHint' => false,
+                'destructiveHint' => false,
+                'idempotentHint' => false,
+                'openWorldHint' => false,
+            ],
         ];
 
         $toolsByName = [];
@@ -73,6 +133,8 @@ class McpToolsContractTest extends IntegrationTestCase
             $tool = $toolsByName[$toolName];
             self::assertNotNull($tool->annotations);
             self::assertSame($expectedHints['readOnlyHint'], $tool->annotations->readOnlyHint);
+            self::assertSame($expectedHints['destructiveHint'], $tool->annotations->destructiveHint);
+            self::assertSame($expectedHints['idempotentHint'], $tool->annotations->idempotentHint);
             self::assertSame($expectedHints['openWorldHint'], $tool->annotations->openWorldHint);
         }
     }

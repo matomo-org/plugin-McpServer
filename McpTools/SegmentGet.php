@@ -37,7 +37,12 @@ class SegmentGet
         description: "Use when: you need details for one saved segment.\n"
             . "Purpose: resolve a segment by idSegment, exact name, or exact definition within idSite scope.\n"
             . "Next: use the returned definition in analytics/report API calls.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: SegmentDetailToolOutputSchema::ITEM
     )]
     #[Schema(definition: [

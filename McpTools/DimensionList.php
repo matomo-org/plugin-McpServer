@@ -47,7 +47,12 @@ class DimensionList
         description: "Use when: you need idDimension values for processed report retrieval.\n"
             . "Purpose: return paginated active custom dimensions configured for a specific site.\n"
             . "Next: use the chosen iddimension in analytics/report API calls.",
-        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
+        annotations: new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false
+        ),
         outputSchema: DimensionSummaryToolOutputSchema::PAGINATED_LIST
     )]
     #[Schema(
