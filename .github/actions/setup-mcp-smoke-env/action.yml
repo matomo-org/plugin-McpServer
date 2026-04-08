@@ -35,7 +35,7 @@ runs:
   using: composite
   steps:
     - name: Set up PHP
-      uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
       with:
         php-version: '8.1'
         extensions: mbstring, mysqli
@@ -46,7 +46,7 @@ runs:
         node-version: '22'
 
     - name: Check out github-action-tests repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         repository: matomo-org/github-action-tests
         ref: main

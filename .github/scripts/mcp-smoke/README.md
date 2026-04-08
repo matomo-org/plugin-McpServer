@@ -20,7 +20,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 - Handles empty `cases.json` safely and emits an empty `results.json`.
 - Fails the provider run when a configured case fails or is skipped.
 
-3. `run-codex-smoke.sh`
+3. `run-codex-smoke.sh` / `run-claude-smoke.sh`
 - Thin wrappers that select the provider-specific runtime setup before invoking the shared harness.
 
 4. `.github/actions/setup-mcp-smoke-env`
@@ -29,7 +29,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 
 ## Files
 
-- `cases.json`: prototype smoke cases (`site_get`, `site_list`, `report_processed`).
+- `cases.json`: prototype smoke cases (`site_get`, `site_list`, `report_processed`), their expected log evidence, and the source for Claude's allowed MCP tool list.
 - `.state.json`: runtime discovery state from setup, including optional `skip_cases`.
 - `prompts/*.txt`: prompt templates used by configured cases.
 - `artifacts/<provider>/`: generated at runtime inside each provider job (`transcripts`, `logs`, `results`, `results.json`).
@@ -38,9 +38,12 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 ## Notes
 
 - Codex uses a temporary CI-local home/config outside the uploaded artifact tree and registers the Matomo MCP endpoint there at runtime.
+- Claude uses a temporary CI-local home/config outside the uploaded artifact tree and loads the Matomo MCP endpoint via a generated HTTP MCP config file at runtime.
 - Provider login state and runtime configuration stay outside uploaded artifacts.
-- The workflow can run providers independently based on secret availability (`OPENAI_APIKEY`).
-- Codex runs in a separate CI job with isolated Matomo environments and log files.
+- The workflow can run providers independently based on secret availability (`OPENAI_APIKEY`, `CLAUDE_APIKEY`).
+- Provider CLI packages are intentionally installed without version pins so the smoke checks monitor compatibility with the latest released tooling, including changes to MCP schema interpretation and tool invocation. A provider CLI regression is therefore expected to fail this workflow.
+- Claude defaults to the generic `sonnet` alias, with `claude_model` still available in `workflow_dispatch` for pinned-model overrides.
+- Codex and Claude run in separate CI jobs with isolated Matomo environments and log files.
 - Provider jobs share a local composite action for the common Matomo/bootstrap sequence.
 - The workflow is intentionally report-first/non-blocking for internal prototype usage.
 - The workflow uploads one artifact per provider job and builds a combined summary from the downloaded per-provider `results.json` files.

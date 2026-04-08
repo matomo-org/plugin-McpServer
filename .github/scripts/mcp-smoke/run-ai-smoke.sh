@@ -42,7 +42,7 @@ mkdir -p \
   "$provider_state_dir"
 
 cleanup() {
-  unset OPENAI_APIKEY MCP_AUTH_TOKEN
+  unset OPENAI_APIKEY MCP_AUTH_TOKEN ANTHROPIC_API_KEY
 
   if [ -n "${provider_state_dir:-}" ] && [ -d "$provider_state_dir" ]; then
     rm -rf "$provider_state_dir"
@@ -144,6 +144,43 @@ setup_provider() {
         --bearer-token-env-var MCP_AUTH_TOKEN \
         >/dev/null 2>&1
       ;;
+    claude)
+      ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+      CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
+      CLAUDE_CLI_CMD=${CLAUDE_CLI_CMD:-claude}
+      CLAUDE_HOME_DIR="$provider_state_dir/home"
+      CLAUDE_MCP_CONFIG_FILE="$provider_state_dir/mcp.json"
+      CLAUDE_ALLOWED_TOOL_ARGS=()
+      local -a claude_allowed_tools
+
+      mapfile -t claude_allowed_tools < <(
+        jq -r '.[] | .tool | select(type == "string" and length > 0) | "mcp__matomo__" + .' "$CASES_FILE"
+      )
+      if [ "${#claude_allowed_tools[@]}" -gt 0 ]; then
+        CLAUDE_ALLOWED_TOOL_ARGS=(--allowedTools "${claude_allowed_tools[@]}")
+      fi
+
+      if ! command -v "$CLAUDE_CLI_CMD" >/dev/null 2>&1; then
+        echo "Claude CLI command not found: $CLAUDE_CLI_CMD" >&2
+        exit 1
+      fi
+
+      mkdir -p "$CLAUDE_HOME_DIR"
+      jq -n \
+        --arg mcp_url "$MCP_URL" \
+        --arg auth_header "Bearer $TOKEN_AUTH" \
+        '{
+          "mcpServers": {
+            "matomo": {
+              "type": "http",
+              "url": $mcp_url,
+              "headers": {
+                "Authorization": $auth_header
+              }
+            }
+          }
+        }' > "$CLAUDE_MCP_CONFIG_FILE"
+      ;;
     *)
       echo "Unsupported SMOKE_PROVIDER: $SMOKE_PROVIDER" >&2
       exit 1
@@ -184,6 +221,27 @@ run_provider() {
           --output-last-message "$transcript_file" \
           - \
           > /dev/null 2>&1 < "$prompt_file"
+      fi
+      ;;
+    claude)
+      if [ "$CASE_TIMEOUT_SECONDS" -gt 0 ]; then
+        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
+        timeout "${CASE_TIMEOUT_SECONDS}s" "$CLAUDE_CLI_CMD" \
+          --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
+          --strict-mcp-config \
+          "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
+          -p \
+          --model "$CLAUDE_MODEL" \
+          > "$transcript_file" 2>&1 < "$prompt_file"
+      else
+        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
+        "$CLAUDE_CLI_CMD" \
+          --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
+          --strict-mcp-config \
+          "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
+          -p \
+          --model "$CLAUDE_MODEL" \
+          > "$transcript_file" 2>&1 < "$prompt_file"
       fi
       ;;
   esac

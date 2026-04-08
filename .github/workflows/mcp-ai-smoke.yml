@@ -9,6 +9,10 @@ on:
         description: Codex model
         required: false
         default: gpt-5-mini
+      claude_model:
+        description: Claude model
+        required: false
+        default: sonnet
 
 permissions:
   actions: read
@@ -36,6 +40,7 @@ env:
   MYSQL_PASSWORD: root
   MYSQL_DATABASE: matomo
   CODEX_MODEL: ${{ github.event.inputs.codex_model || 'gpt-5-mini' }}
+  CLAUDE_MODEL: ${{ github.event.inputs.claude_model || 'sonnet' }}
 
 jobs:
   preflight:
@@ -44,23 +49,31 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
       has_codex: ${{ steps.check.outputs.has_codex }}
+      has_claude: ${{ steps.check.outputs.has_claude }}
       reason: ${{ steps.check.outputs.reason }}
     steps:
       - id: check
         name: Check secret availability
         env:
           OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
+          CLAUDE_APIKEY: ${{ secrets.CLAUDE_APIKEY }}
         run: |
           set -euo pipefail
           has_codex=false
+          has_claude=false
 
           if [ -n "${OPENAI_APIKEY:-}" ]; then
             has_codex=true
           fi
 
-          echo "has_codex=${has_codex}" >> "$GITHUB_OUTPUT"
+          if [ -n "${CLAUDE_APIKEY:-}" ]; then
+            has_claude=true
+          fi
 
-          if [ "$has_codex" = false ]; then
+          echo "has_codex=${has_codex}" >> "$GITHUB_OUTPUT"
+          echo "has_claude=${has_claude}" >> "$GITHUB_OUTPUT"
+
+          if [ "$has_codex" = false ] && [ "$has_claude" = false ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
             echo "reason=No provider secret is available in this context (likely fork PR)." >> "$GITHUB_OUTPUT"
           else
@@ -75,6 +88,7 @@ jobs:
             echo
             echo "- should_run: ${{ steps.check.outputs.should_run }}"
             echo "- Codex available: ${{ steps.check.outputs.has_codex }}"
+            echo "- Claude available: ${{ steps.check.outputs.has_claude }}"
             echo "- reason: ${{ steps.check.outputs.reason }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -99,7 +113,7 @@ jobs:
           --health-timeout=5s
           --health-retries=30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           lfs: false
@@ -144,10 +158,76 @@ jobs:
           artifact_name: mcp-ai-smoke-codex
           job_status: ${{ job.status }}
 
+  smoke_claude:
+    name: Claude smoke
+    runs-on: ubuntu-24.04
+    needs: preflight
+    if: needs.preflight.outputs.has_claude == 'true'
+    continue-on-error: true
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: matomo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          lfs: false
+          persist-credentials: false
+
+      - name: Setup shared smoke environment
+        uses: ./.github/actions/setup-mcp-smoke-env
+        with:
+          plugin_name: ${{ env.PLUGIN_NAME }}
+          matomo_dir: ${{ env.MATOMO_DIR }}
+          base_url: ${{ env.BASE_URL }}
+          mysql_host: ${{ env.MYSQL_HOST }}
+          mysql_port: ${{ env.MYSQL_PORT }}
+          mysql_user: ${{ env.MYSQL_USER }}
+          mysql_password: ${{ env.MYSQL_PASSWORD }}
+          mysql_database: ${{ env.MYSQL_DATABASE }}
+          matomo_test_target: maximum_supported_matomo
+
+      # Intentionally install the latest release: this smoke job monitors CLI/MCP compatibility.
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Claude MCP smoke suite
+        run: ./.github/scripts/mcp-smoke/run-claude-smoke.sh
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_APIKEY }}
+          CLAUDE_MODEL: ${{ env.CLAUDE_MODEL }}
+          BASE_URL: ${{ env.BASE_URL }}
+          STATE_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/.state.json
+          CASES_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/cases.json
+          PROMPTS_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/prompts
+          ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
+          MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
+          PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
+
+      - name: Finalize Claude smoke job
+        if: always()
+        uses: ./.github/actions/finalize-mcp-smoke-job
+        with:
+          provider_label: Claude
+          artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/claude
+          artifact_name: mcp-ai-smoke-claude
+          job_status: ${{ job.status }}
+
   summary:
     name: Final status
     runs-on: ubuntu-24.04
-    needs: [preflight, smoke_codex]
+    needs: [preflight, smoke_codex, smoke_claude]
     if: always()
     steps:
       - name: Final status summary
@@ -157,8 +237,10 @@ jobs:
             echo
             echo "- preflight: ${{ needs.preflight.outputs.should_run }}"
             echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
+            echo "- Claude available: ${{ needs.preflight.outputs.has_claude }}"
             echo "- reason: ${{ needs.preflight.outputs.reason }}"
             echo "- Codex job result: ${{ needs.smoke_codex.result || 'skipped' }}"
+            echo "- Claude job result: ${{ needs.smoke_claude.result || 'skipped' }}"
             echo
             echo "Prototype smoke is intentionally non-blocking."
           } >> "$GITHUB_STEP_SUMMARY"
