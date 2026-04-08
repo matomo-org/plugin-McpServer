@@ -134,51 +134,14 @@ jobs:
           ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
           MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
 
-      - name: Build Codex summary
+      - name: Finalize Codex smoke job
         if: always()
-        run: |
-          set -euo pipefail
-          ARTIFACT_DIR="${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts"
-          RESULTS_FILE="$ARTIFACT_DIR/codex/results.json"
-          {
-            echo "## Codex Smoke"
-            echo
-            echo "- job result: ${{ job.status }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ ! -f "$RESULTS_FILE" ]; then
-            {
-              echo
-              echo "No results.json was produced."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          total=$(jq 'length' "$RESULTS_FILE")
-          passed=$(jq '[.[] | select(.status == "pass")] | length' "$RESULTS_FILE")
-          skipped=$(jq '[.[] | select(.status == "skip")] | length' "$RESULTS_FILE")
-          failed=$(jq '[.[] | select(.status == "fail")] | length' "$RESULTS_FILE")
-
-          {
-            echo
-            echo "| Case | Expected Tool | Status | Reason |"
-            echo "|---|---|---|---|"
-            jq -r '.[] | "| \(.case_id) | \(.expected_tool) | \(.status) | \(.reason) |"' "$RESULTS_FILE"
-            echo
-            echo "- Total checks: ${total}"
-            echo "- Passed: ${passed}"
-            echo "- Skipped: ${skipped}"
-            echo "- Failed: ${failed}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload Codex artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/finalize-mcp-smoke-job
         with:
-          name: mcp-ai-smoke-codex
-          path: .github/scripts/mcp-smoke/artifacts/codex
-          if-no-files-found: warn
-          retention-days: 7
+          provider_label: Codex
+          artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/codex
+          artifact_name: mcp-ai-smoke-codex
+          job_status: ${{ job.status }}
 
   summary:
     name: Final status
