@@ -20,6 +20,10 @@ CASE_TIMEOUT_SECONDS=${CASE_TIMEOUT_SECONDS:-120}
 MCP_URL="${BASE_URL}/index.php?module=API&method=McpServer.mcp&format=mcp"
 TOKEN_AUTH=$(jq -r '.token_auth' "$STATE_FILE")
 
+# The active provider credential, captured by setup_provider so it can be
+# scrubbed from artifacts alongside token_auth. Empty until a provider is set up.
+PROVIDER_SECRET=""
+
 provider_artifact_dir="$ARTIFACT_DIR/$SMOKE_PROVIDER"
 provider_transcripts_dir="$provider_artifact_dir/transcripts"
 provider_logs_dir="$provider_artifact_dir/logs"
@@ -34,12 +38,14 @@ else
 fi
 
 provider_state_dir="$provider_state_root/$SMOKE_PROVIDER"
+provider_work_dir="$provider_state_dir/workdir"
 
 mkdir -p \
   "$provider_transcripts_dir" \
   "$provider_logs_dir" \
   "$provider_results_dir" \
-  "$provider_state_dir"
+  "$provider_state_dir" \
+  "$provider_work_dir"
 
 cleanup() {
   unset OPENAI_APIKEY MCP_AUTH_TOKEN ANTHROPIC_API_KEY
@@ -66,32 +72,38 @@ escape_sed_replacement() {
   printf '%s' "$1" | sed -e 's/[\\&|]/\\&/g'
 }
 
-# Scrub the Matomo API token from a log stream (stdin -> stdout) before it is
-# uploaded as an artifact. Token_auth is not expected to reach these logs, but
-# we redact defensively: both the query-string form and the literal token value
-# are removed so the secret is scrubbed regardless of how it was logged.
+# Scrub secrets from a stream (stdin -> stdout) before it is uploaded as an
+# artifact: the Matomo API token and, when set, the active provider credential
+# (e.g. the Claude/Codex API key). These secrets are not expected to reach these
+# files, but we redact defensively so a CLI diagnostic or parameter dump cannot
+# publish a secret in an artifact.
 redact_secrets() {
   local token="$1"
+  local provider_secret="${2:-}"
 
-  # Pass 1: the query-string form (?token_auth=... / &token_auth=...).
+  # Pass 1: the token_auth query-string form (?token_auth=... / &token_auth=...).
   sed -E 's/([?&]token_auth=)[^&[:space:]]+/\1[REDACTED]/g' \
-    | awk -v tok="$token" '
-      # Pass 2: the literal token value wherever else it might be logged
-      # (header or parameter dumps). Done with index()/substr() so the token
-      # is matched literally without any regex escaping.
-      {
-        if (tok != "") {
-          out = ""
-          line = $0
-          p = index(line, tok)
-          while (p > 0) {
-            out = out substr(line, 1, p - 1) "[REDACTED]"
-            line = substr(line, p + length(tok))
-            p = index(line, tok)
-          }
-          $0 = out line
+    | awk -v tok="$token" -v psecret="$provider_secret" '
+      # Pass 2: each literal secret value wherever else it might be logged
+      # (header or parameter dumps). Done with index()/substr() so secrets are
+      # matched literally without any regex escaping.
+      function scrub(line, secret,   out, p) {
+        if (secret == "") {
+          return line
         }
-        print
+        out = ""
+        p = index(line, secret)
+        while (p > 0) {
+          out = out substr(line, 1, p - 1) "[REDACTED]"
+          line = substr(line, p + length(secret))
+          p = index(line, secret)
+        }
+        return out line
+      }
+      {
+        line = scrub($0, tok)
+        line = scrub(line, psecret)
+        print line
       }
     '
 }
@@ -102,16 +114,20 @@ render_prompt() {
   local escaped_value
   cp "$input_file" "$output_file"
 
+  # Substitute only the non-sensitive placeholders that prompts actually use.
+  # Restricting the key set keeps secrets such as token_auth out of rendered
+  # prompt files, which are uploaded as artifacts.
   while IFS='=' read -r key value; do
     escaped_value=$(escape_sed_replacement "$value")
     sed -i "s|{{${key}}}|${escaped_value}|g" "$output_file"
-  done < <(jq -r 'to_entries[] | "\(.key)=\(.value)"' "$STATE_FILE")
+  done < <(jq -r 'to_entries[] | select(.key | IN("idSite", "reportUniqueId")) | "\(.key)=\(.value)"' "$STATE_FILE")
 }
 
 setup_provider() {
   case "$SMOKE_PROVIDER" in
     codex)
       OPENAI_APIKEY=${OPENAI_APIKEY:?OPENAI_APIKEY is required}
+      PROVIDER_SECRET="$OPENAI_APIKEY"
       CODEX_MODEL=${CODEX_MODEL:-gpt-5-mini}
       CODEX_CLI_CMD=${CODEX_CLI_CMD:-codex}
       CODEX_HOME_DIR="$provider_state_dir/home"
@@ -146,6 +162,7 @@ setup_provider() {
       ;;
     claude)
       ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+      PROVIDER_SECRET="$ANTHROPIC_API_KEY"
       CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
       CLAUDE_CLI_CMD=${CLAUDE_CLI_CMD:-claude}
       CLAUDE_HOME_DIR="$provider_state_dir/home"
@@ -196,52 +213,64 @@ run_provider() {
   case "$SMOKE_PROVIDER" in
     codex)
       if [ "$CASE_TIMEOUT_SECONDS" -gt 0 ]; then
-        MCP_AUTH_TOKEN="$TOKEN_AUTH" HOME="$CODEX_HOME_DIR" \
-        timeout "${CASE_TIMEOUT_SECONDS}s" "$CODEX_CLI_CMD" \
-          --config forced_login_method='"api"' \
-          --ask-for-approval never \
-          exec \
-          --model "$CODEX_MODEL" \
-          --skip-git-repo-check \
-          --sandbox workspace-write \
-          --color never \
-          --output-last-message "$transcript_file" \
-          - \
-          > /dev/null 2>&1 < "$prompt_file"
+        (
+          cd "$provider_work_dir"
+          MCP_AUTH_TOKEN="$TOKEN_AUTH" HOME="$CODEX_HOME_DIR" \
+          timeout "${CASE_TIMEOUT_SECONDS}s" "$CODEX_CLI_CMD" \
+            --config forced_login_method='"api"' \
+            --ask-for-approval never \
+            exec \
+            --model "$CODEX_MODEL" \
+            --skip-git-repo-check \
+            --sandbox workspace-write \
+            --color never \
+            --output-last-message "$transcript_file" \
+            - \
+            > /dev/null 2>&1 < "$prompt_file"
+        )
       else
-        MCP_AUTH_TOKEN="$TOKEN_AUTH" HOME="$CODEX_HOME_DIR" \
-        "$CODEX_CLI_CMD" \
-          --config forced_login_method='"api"' \
-          --ask-for-approval never \
-          exec \
-          --model "$CODEX_MODEL" \
-          --skip-git-repo-check \
-          --sandbox workspace-write \
-          --color never \
-          --output-last-message "$transcript_file" \
-          - \
-          > /dev/null 2>&1 < "$prompt_file"
+        (
+          cd "$provider_work_dir"
+          MCP_AUTH_TOKEN="$TOKEN_AUTH" HOME="$CODEX_HOME_DIR" \
+          "$CODEX_CLI_CMD" \
+            --config forced_login_method='"api"' \
+            --ask-for-approval never \
+            exec \
+            --model "$CODEX_MODEL" \
+            --skip-git-repo-check \
+            --sandbox workspace-write \
+            --color never \
+            --output-last-message "$transcript_file" \
+            - \
+            > /dev/null 2>&1 < "$prompt_file"
+        )
       fi
       ;;
     claude)
       if [ "$CASE_TIMEOUT_SECONDS" -gt 0 ]; then
-        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
-        timeout "${CASE_TIMEOUT_SECONDS}s" "$CLAUDE_CLI_CMD" \
-          --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
-          --strict-mcp-config \
-          "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
-          -p \
-          --model "$CLAUDE_MODEL" \
-          > "$transcript_file" 2>&1 < "$prompt_file"
+        (
+          cd "$provider_work_dir"
+          ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
+          timeout "${CASE_TIMEOUT_SECONDS}s" "$CLAUDE_CLI_CMD" \
+            --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
+            --strict-mcp-config \
+            "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
+            -p \
+            --model "$CLAUDE_MODEL" \
+            > "$transcript_file" 2>&1 < "$prompt_file"
+        )
       else
-        ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
-        "$CLAUDE_CLI_CMD" \
-          --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
-          --strict-mcp-config \
-          "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
-          -p \
-          --model "$CLAUDE_MODEL" \
-          > "$transcript_file" 2>&1 < "$prompt_file"
+        (
+          cd "$provider_work_dir"
+          ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" HOME="$CLAUDE_HOME_DIR" \
+          "$CLAUDE_CLI_CMD" \
+            --mcp-config "$CLAUDE_MCP_CONFIG_FILE" \
+            --strict-mcp-config \
+            "${CLAUDE_ALLOWED_TOOL_ARGS[@]}" \
+            -p \
+            --model "$CLAUDE_MODEL" \
+            > "$transcript_file" 2>&1 < "$prompt_file"
+        )
       fi
       ;;
   esac
@@ -314,10 +343,11 @@ while IFS= read -r case_json; do
   # Scrub the provider transcript before it is uploaded as an artifact. Applied
   # uniformly to every provider so no transcript stream (e.g. a provider that
   # captures full stdout/stderr) can bypass the same redaction used for the log
-  # slices below. Token_auth is not expected to reach transcripts, but we redact
-  # defensively for the same reason as the log slices.
+  # slices below. Neither token_auth nor the provider credential is expected to
+  # reach transcripts, but we redact both defensively for the same reason as the
+  # log slices.
   if [ -f "$transcript_file" ]; then
-    redact_secrets "$TOKEN_AUTH" < "$transcript_file" > "${transcript_file}.redacted"
+    redact_secrets "$TOKEN_AUTH" "$PROVIDER_SECRET" < "$transcript_file" > "${transcript_file}.redacted"
     mv "${transcript_file}.redacted" "$transcript_file"
   fi
 
@@ -327,7 +357,7 @@ while IFS= read -r case_json; do
       $0 ~ s {in_range=1; next}
       $0 ~ e {in_range=0}
       in_range
-    ' "$MATOMO_LOG_FILE" | redact_secrets "$TOKEN_AUTH" > "$log_slice_file"
+    ' "$MATOMO_LOG_FILE" | redact_secrets "$TOKEN_AUTH" "$PROVIDER_SECRET" > "$log_slice_file"
   else
     : > "$log_slice_file"
   fi
@@ -359,7 +389,7 @@ while IFS= read -r case_json; do
 done < <(jq -c '.[]' "$CASES_FILE")
 
 if [ -f "$PHP_SERVER_LOG_FILE" ]; then
-  redact_secrets "$TOKEN_AUTH" < "$PHP_SERVER_LOG_FILE" > "$provider_php_log_file"
+  redact_secrets "$TOKEN_AUTH" "$PROVIDER_SECRET" < "$PHP_SERVER_LOG_FILE" > "$provider_php_log_file"
 else
   : > "$provider_php_log_file"
 fi
@@ -368,6 +398,25 @@ if find "$provider_results_dir" -maxdepth 1 -type f -name '*.json' | grep -q .; 
   jq -s '.' "$provider_results_dir"/*.json > "$provider_artifact_dir/results.json"
 else
   echo '[]' > "$provider_artifact_dir/results.json"
+fi
+
+# Defense-in-depth: never upload a secret. The workflow's upload step runs with
+# always(), so aborting here is not enough; if any configured secret survived
+# redaction in the artifact tree, quarantine the offending files (replace their
+# contents) so they cannot be published, then fail the run.
+secret_leak=0
+for secret in "$TOKEN_AUTH" "$PROVIDER_SECRET"; do
+  [ -z "$secret" ] && continue
+  while IFS= read -r leaked_file; do
+    [ -z "$leaked_file" ] && continue
+    secret_leak=1
+    printf '[REDACTED: file quarantined because it still contained a secret after redaction]\n' > "$leaked_file"
+  done < <(grep -rIlF -- "$secret" "$provider_artifact_dir" 2>/dev/null || true)
+done
+
+if [ "$secret_leak" -ne 0 ]; then
+  echo "A configured secret was found in provider artifacts after redaction; quarantined offending files and failing the run." >&2
+  exit 1
 fi
 
 failure_count=$((result_count - pass_count - skip_count))

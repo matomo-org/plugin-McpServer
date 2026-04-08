@@ -39,6 +39,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 
 - Codex uses a temporary CI-local home/config outside the uploaded artifact tree and registers the Matomo MCP endpoint there at runtime.
 - Claude uses a temporary CI-local home/config outside the uploaded artifact tree and loads the Matomo MCP endpoint via a generated HTTP MCP config file at runtime.
+- All provider CLIs execute from an empty provider-local temp workdir instead of the repository checkout.
 - Provider login state and runtime configuration stay outside uploaded artifacts.
 - The workflow can run providers independently based on secret availability (`OPENAI_APIKEY`, `CLAUDE_APIKEY`).
 - Provider CLI packages are intentionally installed without version pins so the smoke checks monitor compatibility with the latest released tooling, including changes to MCP schema interpretation and tool invocation. A provider CLI regression is therefore expected to fail this workflow.
