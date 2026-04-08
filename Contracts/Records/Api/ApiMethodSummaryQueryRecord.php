@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Contracts\Records\Api;
 
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 
 final class ApiMethodSummaryQueryRecord
@@ -30,7 +31,7 @@ final class ApiMethodSummaryQueryRecord
         ?string $operationCategory = null,
     ): self {
         return new self(
-            accessMode: trim($accessMode),
+            accessMode: RawApiAccessMode::normalize($accessMode),
             module: strtolower(trim((string) $module)),
             search: strtolower(trim((string) $search)),
             operationCategory: ApiMethodOperationClassifier::normalizeCategory($operationCategory),

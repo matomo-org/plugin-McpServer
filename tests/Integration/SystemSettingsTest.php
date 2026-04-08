@@ -45,7 +45,7 @@ class SystemSettingsTest extends IntegrationTestCase
 
         try {
             $this->settings->enableMcp->setValue($this->originalEnableMcp);
-            $this->settings->rawApiAccessMode->setValue($this->originalRawApiAccessMode);
+            $this->applyRawApiAccessMode($this->originalRawApiAccessMode);
         } finally {
             Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
         }
@@ -83,27 +83,55 @@ class SystemSettingsTest extends IntegrationTestCase
     public function testCanChangeRawApiAccessMode(): void
     {
         self::assertInstanceOf(SystemSettings::class, $this->settings);
+        $settings = $this->settings;
         $access = Access::getInstance();
         $hadSuperUserAccess = $access->hasSuperUserAccess();
         $access->setSuperUserAccess(true);
 
         try {
-            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::READ);
-            self::assertSame(RawApiAccessMode::READ, $this->settings->getRawApiAccessMode());
+            $this->applyRawApiAccessMode(RawApiAccessMode::READ);
+            self::assertSame(RawApiAccessMode::READ, $settings->getRawApiAccessMode());
 
-            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::CREATE);
-            self::assertSame(RawApiAccessMode::CREATE, $this->settings->getRawApiAccessMode());
+            $this->applyRawApiAccessMode(RawApiAccessMode::CREATE);
+            self::assertSame(RawApiAccessMode::CREATE, $settings->getRawApiAccessMode());
 
-            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::UPDATE);
-            self::assertSame(RawApiAccessMode::UPDATE, $this->settings->getRawApiAccessMode());
+            $this->applyRawApiAccessMode(RawApiAccessMode::UPDATE);
+            self::assertSame(RawApiAccessMode::UPDATE, $settings->getRawApiAccessMode());
 
-            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::DELETE);
-            self::assertSame(RawApiAccessMode::DELETE, $this->settings->getRawApiAccessMode());
+            $this->applyRawApiAccessMode(RawApiAccessMode::DELETE);
+            self::assertSame(RawApiAccessMode::DELETE, $settings->getRawApiAccessMode());
 
-            $this->settings->rawApiAccessMode->setValue(RawApiAccessMode::FULL);
-            self::assertSame(RawApiAccessMode::FULL, $this->settings->getRawApiAccessMode());
+            $this->applyRawApiAccessMode(RawApiAccessMode::FULL);
+            self::assertSame(RawApiAccessMode::FULL, $settings->getRawApiAccessMode());
+
+            $this->applyRawApiAccessMode(RawApiAccessMode::READ . ',' . RawApiAccessMode::UPDATE);
+            self::assertSame(RawApiAccessMode::READ . ',' . RawApiAccessMode::UPDATE, $settings->getRawApiAccessMode());
         } finally {
             $access->setSuperUserAccess($hadSuperUserAccess);
         }
+    }
+
+    private function applyRawApiAccessMode(string $mode): void
+    {
+        self::assertInstanceOf(SystemSettings::class, $this->settings);
+        $normalizedMode = RawApiAccessMode::normalize($mode);
+
+        $this->settings->rawApiAccessRead->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::READ),
+        );
+        $this->settings->rawApiAccessCreate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::CREATE),
+        );
+        $this->settings->rawApiAccessUpdate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::UPDATE),
+        );
+        $this->settings->rawApiAccessDelete->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::DELETE),
+        );
+        $this->settings->rawApiAccessScope->setValue(match ($normalizedMode) {
+            RawApiAccessMode::FULL => 'full',
+            RawApiAccessMode::NONE => 'none',
+            default => 'partial',
+        });
     }
 }

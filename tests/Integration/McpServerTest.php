@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -141,24 +142,47 @@ class McpServerTest extends IntegrationTestCase
             $systemSettings->enableMcp->setValue(true);
             self::assertTrue($systemSettings->isMcpEnabled());
 
-            $systemSettings->rawApiAccessMode->setValue('read');
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::READ);
             self::assertSame('read', $systemSettings->getRawApiAccessMode());
 
-            $systemSettings->rawApiAccessMode->setValue('create');
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::CREATE);
             self::assertSame('create', $systemSettings->getRawApiAccessMode());
 
-            $systemSettings->rawApiAccessMode->setValue('update');
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::UPDATE);
             self::assertSame('update', $systemSettings->getRawApiAccessMode());
 
-            $systemSettings->rawApiAccessMode->setValue('delete');
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::DELETE);
             self::assertSame('delete', $systemSettings->getRawApiAccessMode());
 
-            $systemSettings->rawApiAccessMode->setValue('full');
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::FULL);
             self::assertSame('full', $systemSettings->getRawApiAccessMode());
         } finally {
             $systemSettings->enableMcp->setValue($originalEnableMcpValue);
-            $systemSettings->rawApiAccessMode->setValue($originalRawApiAccessMode);
+            $this->applyRawApiAccessMode($systemSettings, $originalRawApiAccessMode);
             Access::getInstance()->setSuperUserAccess(false);
         }
+    }
+
+    private function applyRawApiAccessMode(SystemSettings $systemSettings, string $mode): void
+    {
+        $normalizedMode = RawApiAccessMode::normalize($mode);
+
+        $systemSettings->rawApiAccessRead->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::READ),
+        );
+        $systemSettings->rawApiAccessCreate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::CREATE),
+        );
+        $systemSettings->rawApiAccessUpdate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::UPDATE),
+        );
+        $systemSettings->rawApiAccessDelete->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::DELETE),
+        );
+        $systemSettings->rawApiAccessScope->setValue(match ($normalizedMode) {
+            RawApiAccessMode::FULL => 'full',
+            RawApiAccessMode::NONE => 'none',
+            default => 'partial',
+        });
     }
 }

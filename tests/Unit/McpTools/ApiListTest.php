@@ -17,6 +17,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInte
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ApiList;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
@@ -433,14 +434,7 @@ class ApiListTest extends TestCase
                 return array_values(array_filter(
                     $records,
                     static function (ApiMethodSummaryRecord $record) use ($query): bool {
-                        if ($query->accessMode === 'read' && $record->operationCategory !== 'read') {
-                            return false;
-                        }
-
-                        if (
-                            $query->accessMode === 'create'
-                            && !in_array($record->operationCategory, ['read', 'create'], true)
-                        ) {
+                        if (!RawApiAccessMode::allowsCategory($query->accessMode, $record->operationCategory)) {
                             return false;
                         }
 

@@ -30,13 +30,10 @@ log_tool_call_parameters_full = 0
 
 Configure raw Matomo API tool access in **Administration -> System -> General Settings -> McpServer**:
 
-- Use the **Raw Matomo API tool access** setting to control visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
-- `Disabled`: hides `matomo_api_list`, `matomo_api_get`, and `matomo_api_call` (default).
-- `Read access`: allows classified read methods.
-- `Create access`: allows classified read and create methods.
-- `Update access`: allows classified read and update methods.
-- `Delete access`: allows classified read and delete methods.
-- `Full API access`: allows direct API calls for all non-restricted methods, including state-changing or destructive methods.
+- Use the **Raw Matomo API tool access** drop-down to control visibility for `matomo_api_list`, `matomo_api_get`, and `matomo_api_call`.
+- `No API access` (default): hides all three raw API tools.
+- `Partial API access`: shows all three tools. Use the **Read methods**, **Create methods**, **Update methods**, and **Delete methods** checkboxes to choose which CRUD categories are callable. Each checkbox is independent — selecting Create does not automatically include Read; check both if you want both.
+- `Full API access`: shows all three tools and allows direct API calls for all non-restricted methods, including state-changing or destructive methods.
 - The dedicated report tools remain available independently of this setting.
 - Permanently restricted methods in `RawApiMethodPolicy` remain blocked in every mode.
 - Low-confidence or unclassified direct API methods require `Full API access`.

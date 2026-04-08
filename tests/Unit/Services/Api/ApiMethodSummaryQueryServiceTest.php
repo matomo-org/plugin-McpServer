@@ -170,7 +170,7 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
     }
 
-    public function testFilterRecordsUsesCrudModesForClassifiedMethods(): void
+    public function testFilterRecordsUsesExplicitCrudModesForClassifiedMethods(): void
     {
         $service = new ApiMethodSummaryQueryService();
 
@@ -192,6 +192,10 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             $this->createMethodRecords(),
             ApiMethodSummaryQueryRecord::fromInputs('create'),
         );
+        $readCreateRecords = $service->filterRecords(
+            $this->createMethodRecords(),
+            ApiMethodSummaryQueryRecord::fromInputs('read,create'),
+        );
         $fullRecords = $service->filterRecords(
             [
                 new ApiMethodSummaryRecord(
@@ -212,6 +216,13 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $readRecords)),
         );
         self::assertSame(
+            ['UsersManager.addUser'],
+            array_values(array_map(
+                static fn(ApiMethodSummaryRecord $record): string => $record->method,
+                $createRecords,
+            )),
+        );
+        self::assertSame(
             [
                 'API.getMatomoVersion',
                 'SitesManager.isSiteNameUnique',
@@ -220,7 +231,7 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             ],
             array_values(array_map(
                 static fn(ApiMethodSummaryRecord $record): string => $record->method,
-                $createRecords,
+                $readCreateRecords,
             )),
         );
         self::assertSame(

@@ -14,7 +14,7 @@ describe('McpServer', function () {
     const connectUrl = '?module=McpServer&action=connect&idSite=1&period=day&date=yesterday';
     const settingsSelector = '#McpServerPluginSettings';
     const enabledCheckboxSelector = 'input[name="enable_mcp"]';
-    const rawApiAccessModeSelector = 'select[name="raw_api_access_mode"]';
+    const rawApiAccessScopeSelector = 'select[name="raw_api_access_scope"]';
     const settingsSaveButtonSelector = `${settingsSelector} .pluginsSettingsSubmit`;
     const connectSelector = '.mcpServerConnect';
 
@@ -56,7 +56,7 @@ describe('McpServer', function () {
         await page.waitForNetworkIdle();
     }
 
-    async function isRawApiAccessModeVisible()
+    async function isRawApiAccessScopeVisible()
     {
         return page.evaluate((selector) => {
             const element = document.querySelector(selector);
@@ -66,10 +66,10 @@ describe('McpServer', function () {
             }
 
             return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
-        }, rawApiAccessModeSelector);
+        }, rawApiAccessScopeSelector);
     }
 
-    async function configureMcp(enabled, rawApiAccessMode = 'string:read')
+    async function configureMcp(enabled, rawApiAccessScope = 'string:partial', rawApiAccessLevels = [])
     {
         resetUserToSuperUser();
         await page.goto(settingsUrl);
@@ -87,13 +87,29 @@ describe('McpServer', function () {
         }
 
         if (enabled) {
-            await page.waitForSelector(rawApiAccessModeSelector, { visible: true });
-            const currentRawApiAccessMode = await page.$eval(rawApiAccessModeSelector, (el) => el.value);
+            await page.waitForSelector(rawApiAccessScopeSelector, { visible: true });
+            const currentRawApiAccessScope = await page.$eval(rawApiAccessScopeSelector, (el) => el.value);
 
-            if (currentRawApiAccessMode !== rawApiAccessMode) {
-                await page.select(rawApiAccessModeSelector, rawApiAccessMode);
+            if (currentRawApiAccessScope !== rawApiAccessScope) {
+                await page.select(rawApiAccessScopeSelector, rawApiAccessScope);
                 await page.waitForTimeout(250);
                 await saveSettings();
+            }
+
+            if (rawApiAccessScope === 'string:partial') {
+                for (const level of ['read', 'create', 'update', 'delete']) {
+                    const selector = `input[name="raw_api_access_${level}"]`;
+                    const shouldBeEnabled = rawApiAccessLevels.includes(level);
+
+                    await page.waitForSelector(selector, { visible: true });
+                    const isEnabled = await page.$eval(selector, (el) => !!el.checked);
+
+                    if (isEnabled !== shouldBeEnabled) {
+                        await page.click(`${selector} + span`);
+                        await page.waitForTimeout(250);
+                        await saveSettings();
+                    }
+                }
             }
         }
 
@@ -125,14 +141,15 @@ describe('McpServer', function () {
         await configureMcp(false);
 
         expect(await page.$eval(enabledCheckboxSelector, (el) => !!el.checked)).to.equal(false);
-        expect(await isRawApiAccessModeVisible()).to.equal(false);
+        expect(await isRawApiAccessScopeVisible()).to.equal(false);
     });
 
-    it('should display the plugin settings when MCP is enabled with read-only API access', async function () {
-        await configureMcp(true, 'string:read');
+    it('should display the plugin settings when MCP is enabled with partial API access', async function () {
+        await configureMcp(true, 'string:partial', ['read']);
 
-        expect(await isRawApiAccessModeVisible()).to.equal(true);
-        expect(await page.$eval(rawApiAccessModeSelector, (el) => el.value)).to.equal('string:read');
+        expect(await isRawApiAccessScopeVisible()).to.equal(true);
+        expect(await page.$eval(rawApiAccessScopeSelector, (el) => el.value)).to.equal('string:partial');
+        expect(await page.$eval('input[name="raw_api_access_read"]', (el) => !!el.checked)).to.equal(true);
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');
     });
 

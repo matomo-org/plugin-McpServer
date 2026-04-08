@@ -22,7 +22,7 @@ use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
  */
 class RawApiMethodPolicyTest extends TestCase
 {
-    public function testAllowsMethodUsesCrudClassificationForNonFullModes(): void
+    public function testAllowsMethodUsesExplicitCrudClassificationForNonFullModes(): void
     {
         self::assertTrue(
             RawApiMethodPolicy::allowsMethod(
@@ -81,9 +81,27 @@ class RawApiMethodPolicyTest extends TestCase
         self::assertFalse(
             RawApiMethodPolicy::allowsMethod(
                 RawApiAccessMode::UPDATE,
+                'UsersManager.getUsers',
+                'getUsers',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+        self::assertFalse(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::UPDATE,
                 'UsersManager.addUser',
                 'addUser',
                 ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            ),
+        );
+        self::assertTrue(
+            RawApiMethodPolicy::allowsMethod(
+                RawApiAccessMode::READ . ',' . RawApiAccessMode::UPDATE,
+                'UsersManager.getUsers',
+                'getUsers',
+                ApiMethodOperationClassifier::CATEGORY_READ,
                 ApiMethodOperationClassifier::CONFIDENCE_HIGH,
             ),
         );

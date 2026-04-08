@@ -20,11 +20,27 @@ use Piwik\SettingsPiwik;
 
 class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
+    private const RAW_API_ACCESS_SCOPE_NONE = 'none';
+    private const RAW_API_ACCESS_SCOPE_PARTIAL = 'partial';
+    private const RAW_API_ACCESS_SCOPE_FULL = 'full';
+
     /** @var Setting */
     public $enableMcp;
 
     /** @var Setting */
-    public $rawApiAccessMode;
+    public $rawApiAccessScope;
+
+    /** @var Setting */
+    public $rawApiAccessRead;
+
+    /** @var Setting */
+    public $rawApiAccessCreate;
+
+    /** @var Setting */
+    public $rawApiAccessUpdate;
+
+    /** @var Setting */
+    public $rawApiAccessDelete;
 
     protected function init(): void
     {
@@ -48,29 +64,72 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
             },
         );
 
-        $this->rawApiAccessMode = $this->makeSetting(
-            'raw_api_access_mode',
-            RawApiAccessMode::NONE,
+        $sharedRawApiInlineHelp = implode('<br><br>', [
+            Piwik::translate('McpServer_RawApiAccessHelpPurpose'),
+            Piwik::translate('McpServer_RawApiAccessHelpReadFallback'),
+            Piwik::translate('McpServer_RawApiAccessHelpDataScope'),
+            Piwik::translate('McpServer_RawApiAccessHelpDestructive'),
+            Piwik::translate('McpServer_RawApiAccessHelpPolicy'),
+        ]);
+
+        $this->rawApiAccessScope = $this->makeSetting(
+            'raw_api_access_scope',
+            self::RAW_API_ACCESS_SCOPE_NONE,
             FieldConfig::TYPE_STRING,
-            function (FieldConfig $field) {
-                $field->title = Piwik::translate('McpServer_RawApiAccessModeTitle');
-                $field->inlineHelp = implode('<br><br>', [
-                    Piwik::translate('McpServer_RawApiAccessModeHelpPurpose'),
-                    Piwik::translate('McpServer_RawApiAccessModeHelpReadFallback'),
-                    Piwik::translate('McpServer_RawApiAccessModeHelpDataScope'),
-                    Piwik::translate('McpServer_RawApiAccessModeHelpDestructive'),
-                    Piwik::translate('McpServer_RawApiAccessModeHelpPolicy'),
-                ]);
+            function (FieldConfig $field) use ($sharedRawApiInlineHelp) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessScopeTitle');
+                $field->inlineHelp = $sharedRawApiInlineHelp;
                 $field->uiControl = FieldConfig::UI_CONTROL_SINGLE_SELECT;
                 $field->condition = 'enable_mcp==1';
                 $field->availableValues = [
-                    RawApiAccessMode::NONE => Piwik::translate('McpServer_RawApiAccessModeOptionNone'),
-                    RawApiAccessMode::READ => Piwik::translate('McpServer_RawApiAccessModeOptionRead'),
-                    RawApiAccessMode::CREATE => Piwik::translate('McpServer_RawApiAccessModeOptionCreate'),
-                    RawApiAccessMode::UPDATE => Piwik::translate('McpServer_RawApiAccessModeOptionUpdate'),
-                    RawApiAccessMode::DELETE => Piwik::translate('McpServer_RawApiAccessModeOptionDelete'),
-                    RawApiAccessMode::FULL => Piwik::translate('McpServer_RawApiAccessModeOptionFull'),
+                    self::RAW_API_ACCESS_SCOPE_NONE => Piwik::translate('McpServer_RawApiAccessScopeNone'),
+                    self::RAW_API_ACCESS_SCOPE_PARTIAL => Piwik::translate('McpServer_RawApiAccessScopePartial'),
+                    self::RAW_API_ACCESS_SCOPE_FULL => Piwik::translate('McpServer_RawApiAccessScopeFull'),
                 ];
+            },
+        );
+
+        $this->rawApiAccessRead = $this->makeSetting(
+            'raw_api_access_read',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessReadTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessCreate = $this->makeSetting(
+            'raw_api_access_create',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessCreateTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessUpdate = $this->makeSetting(
+            'raw_api_access_update',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessUpdateTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessDelete = $this->makeSetting(
+            'raw_api_access_delete',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessDeleteTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
             },
         );
     }
@@ -82,7 +141,40 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     public function getRawApiAccessMode(): string
     {
-        return RawApiAccessMode::normalize($this->rawApiAccessMode->getValue());
+        $scope = $this->normalizeRawApiAccessScope($this->rawApiAccessScope->getValue());
+        if ($scope === self::RAW_API_ACCESS_SCOPE_FULL) {
+            return RawApiAccessMode::FULL;
+        }
+
+        if ($scope !== self::RAW_API_ACCESS_SCOPE_PARTIAL) {
+            return RawApiAccessMode::NONE;
+        }
+
+        return RawApiAccessMode::fromBooleans(
+            (bool) $this->rawApiAccessRead->getValue(),
+            (bool) $this->rawApiAccessCreate->getValue(),
+            (bool) $this->rawApiAccessUpdate->getValue(),
+            (bool) $this->rawApiAccessDelete->getValue(),
+            false,
+        );
+    }
+
+    private function normalizeRawApiAccessScope(mixed $scope): string
+    {
+        if (!is_scalar($scope)) {
+            return self::RAW_API_ACCESS_SCOPE_NONE;
+        }
+
+        $normalizedScope = strtolower(trim((string) $scope));
+        if (
+            $normalizedScope !== self::RAW_API_ACCESS_SCOPE_NONE
+            && $normalizedScope !== self::RAW_API_ACCESS_SCOPE_PARTIAL
+            && $normalizedScope !== self::RAW_API_ACCESS_SCOPE_FULL
+        ) {
+            return self::RAW_API_ACCESS_SCOPE_NONE;
+        }
+
+        return $normalizedScope;
     }
 
     private function getMcpEndpointUrl(): string

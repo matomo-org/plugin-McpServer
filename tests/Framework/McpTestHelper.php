@@ -35,6 +35,7 @@ use PHPUnit\Framework\Assert;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
@@ -82,7 +83,25 @@ final class McpTestHelper
         $access->setSuperUserAccess(true);
 
         try {
-            StaticContainer::get(SystemSettings::class)->rawApiAccessMode->setValue($rawApiAccessMode);
+            $normalizedMode = RawApiAccessMode::normalize($rawApiAccessMode);
+            $systemSettings = StaticContainer::get(SystemSettings::class);
+            $systemSettings->rawApiAccessScope->setValue(match ($normalizedMode) {
+                RawApiAccessMode::FULL => 'full',
+                RawApiAccessMode::NONE => 'none',
+                default => 'partial',
+            });
+            $systemSettings->rawApiAccessRead->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::READ),
+            );
+            $systemSettings->rawApiAccessCreate->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::CREATE),
+            );
+            $systemSettings->rawApiAccessUpdate->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::UPDATE),
+            );
+            $systemSettings->rawApiAccessDelete->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::DELETE),
+            );
         } finally {
             $access->setSuperUserAccess($hadSuperUserAccess);
         }
