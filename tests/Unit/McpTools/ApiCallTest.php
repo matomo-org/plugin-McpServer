@@ -11,11 +11,14 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
-use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
 use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 use Piwik\Plugins\McpServer\SystemSettings;
 use stdClass;
@@ -31,41 +34,48 @@ class ApiCallTest extends TestCase
         $captured = new stdClass();
         $captured->values = [];
 
-        $tool = new ApiCall(
+        $record = new ApiMethodSummaryRecord(
+            'API',
+            'getMatomoVersion',
+            'API.getMatomoVersion',
+            [],
+            ApiMethodOperationClassifier::CATEGORY_READ,
+            ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            'action-prefix:get',
+        );
+
+        $tool = new ApiCallRead(
             new class ($captured) implements ApiCallQueryServiceInterface {
                 public function __construct(private stdClass $captured)
                 {
                 }
 
                 public function callApi(
-                    string $accessMode,
-                    ?string $method = null,
-                    ?string $module = null,
-                    ?string $action = null,
+                    ApiMethodSummaryRecord $resolvedMethod,
                     ?array $parameters = null,
                 ): ApiCallRecord {
                     $this->captured->values = [
-                        'accessMode' => $accessMode,
-                        'method' => $method,
-                        'module' => $module,
-                        'action' => $action,
+                        'resolvedMethod' => $resolvedMethod,
                         'parameters' => $parameters,
                     ];
 
-                    return new ApiCallRecord(
-                        '6.0.0',
-                        new ApiMethodSummaryRecord(
-                            'API',
-                            'getMatomoVersion',
-                            'API.getMatomoVersion',
-                            [],
-                            ApiMethodOperationClassifier::CATEGORY_READ,
-                            ApiMethodOperationClassifier::CONFIDENCE_HIGH,
-                            'action-prefix:get',
-                        ),
+                    return new ApiCallRecord('6.0.0', $this->createRecord());
+                }
+
+                private function createRecord(): ApiMethodSummaryRecord
+                {
+                    return new ApiMethodSummaryRecord(
+                        'API',
+                        'getMatomoVersion',
+                        'API.getMatomoVersion',
+                        [],
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                        'action-prefix:get',
                     );
                 }
             },
+            $this->createMethodSummaryQueryServiceStub($record),
             $this->createSystemSettingsStub('read'),
         );
 
@@ -83,10 +93,8 @@ class ApiCallTest extends TestCase
         ], $actual);
         /** @var array<string, mixed> $capturedValues */
         $capturedValues = $captured->values;
-        self::assertSame('read', $capturedValues['accessMode']);
-        self::assertSame(' API.getMatomoVersion ', $capturedValues['method']);
-        self::assertNull($capturedValues['module']);
-        self::assertNull($capturedValues['action']);
+        self::assertInstanceOf(ApiMethodSummaryRecord::class, $capturedValues['resolvedMethod']);
+        self::assertSame('API.getMatomoVersion', $capturedValues['resolvedMethod']->method);
         self::assertNull($capturedValues['parameters']);
     }
 
@@ -95,24 +103,28 @@ class ApiCallTest extends TestCase
         $captured = new stdClass();
         $captured->values = [];
 
-        $tool = new ApiCall(
+        $record = new ApiMethodSummaryRecord(
+            'UsersManager',
+            'addUser',
+            'UsersManager.addUser',
+            [],
+            ApiMethodOperationClassifier::CATEGORY_CREATE,
+            ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+            'action-prefix:add',
+        );
+
+        $tool = new ApiCallFull(
             new class ($captured) implements ApiCallQueryServiceInterface {
                 public function __construct(private stdClass $captured)
                 {
                 }
 
                 public function callApi(
-                    string $accessMode,
-                    ?string $method = null,
-                    ?string $module = null,
-                    ?string $action = null,
+                    ApiMethodSummaryRecord $resolvedMethod,
                     ?array $parameters = null,
                 ): ApiCallRecord {
                     $this->captured->values = [
-                        'accessMode' => $accessMode,
-                        'method' => $method,
-                        'module' => $module,
-                        'action' => $action,
+                        'resolvedMethod' => $resolvedMethod,
                         'parameters' => $parameters,
                     ];
 
@@ -130,6 +142,7 @@ class ApiCallTest extends TestCase
                     );
                 }
             },
+            $this->createMethodSummaryQueryServiceStub($record),
             $this->createSystemSettingsStub('full'),
         );
 
@@ -142,11 +155,41 @@ class ApiCallTest extends TestCase
         self::assertSame(['success' => true], $actual['result']);
         /** @var array<string, mixed> $capturedValues */
         $capturedValues = $captured->values;
-        self::assertSame('full', $capturedValues['accessMode']);
-        self::assertNull($capturedValues['method']);
-        self::assertSame(' UsersManager ', $capturedValues['module']);
-        self::assertSame(' addUser ', $capturedValues['action']);
+        self::assertInstanceOf(ApiMethodSummaryRecord::class, $capturedValues['resolvedMethod']);
+        self::assertSame('UsersManager.addUser', $capturedValues['resolvedMethod']->method);
         self::assertSame(['userLogin' => 'alice'], $capturedValues['parameters']);
+    }
+
+    public function testScopedToolRejectsMethodOutsideExpectedOperationCategory(): void
+    {
+        $tool = new ApiCallRead(
+            $this->createMock(ApiCallQueryServiceInterface::class),
+            $this->createMethodSummaryQueryServiceStub(new ApiMethodSummaryRecord(
+                'UsersManager',
+                'addUser',
+                'UsersManager.addUser',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_HIGH,
+                'action-prefix:add',
+            )),
+            $this->createSystemSettingsStub('full'),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('API method not found or unavailable.');
+
+        $tool->call(method: 'UsersManager.addUser');
+    }
+
+    private function createMethodSummaryQueryServiceStub(
+        ApiMethodSummaryRecord $record,
+    ): ApiMethodSummaryQueryServiceInterface {
+        $service = $this->createMock(ApiMethodSummaryQueryServiceInterface::class);
+        $service->method('getApiMethodSummaryBySelector')
+            ->willReturn($record);
+
+        return $service;
     }
 
     private function createSystemSettingsStub(string $rawApiAccessMode): SystemSettings

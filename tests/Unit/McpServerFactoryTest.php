@@ -19,6 +19,11 @@ use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
+use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
+use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
+use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -414,27 +419,32 @@ class McpServerFactoryTest extends TestCase
     public function testRawApiListToolIsVisibleWhenRawAccessModeAllowsDirectApiAccess(): void
     {
         $toolsWhenRead = $this->listToolNamesForCurrentConfig('read');
-        self::assertContains('matomo_api_call', $toolsWhenRead);
+        self::assertContains(ApiCallRead::TOOL_NAME, $toolsWhenRead);
         self::assertContains('matomo_api_get', $toolsWhenRead);
         self::assertContains('matomo_api_list', $toolsWhenRead);
+        self::assertNotContains(ApiCallFull::TOOL_NAME, $toolsWhenRead);
 
         $toolsWhenCreate = $this->listToolNamesForCurrentConfig('create');
-        self::assertContains('matomo_api_call', $toolsWhenCreate);
+        self::assertContains(ApiCallCreate::TOOL_NAME, $toolsWhenCreate);
         self::assertContains('matomo_api_get', $toolsWhenCreate);
         self::assertContains('matomo_api_list', $toolsWhenCreate);
 
         $toolsWhenUpdate = $this->listToolNamesForCurrentConfig('update');
-        self::assertContains('matomo_api_call', $toolsWhenUpdate);
+        self::assertContains(ApiCallUpdate::TOOL_NAME, $toolsWhenUpdate);
         self::assertContains('matomo_api_get', $toolsWhenUpdate);
         self::assertContains('matomo_api_list', $toolsWhenUpdate);
 
         $toolsWhenDelete = $this->listToolNamesForCurrentConfig('delete');
-        self::assertContains('matomo_api_call', $toolsWhenDelete);
+        self::assertContains(ApiCallDelete::TOOL_NAME, $toolsWhenDelete);
         self::assertContains('matomo_api_get', $toolsWhenDelete);
         self::assertContains('matomo_api_list', $toolsWhenDelete);
 
         $toolsWhenFull = $this->listToolNamesForCurrentConfig('full');
-        self::assertContains('matomo_api_call', $toolsWhenFull);
+        self::assertContains(ApiCallRead::TOOL_NAME, $toolsWhenFull);
+        self::assertContains(ApiCallCreate::TOOL_NAME, $toolsWhenFull);
+        self::assertContains(ApiCallUpdate::TOOL_NAME, $toolsWhenFull);
+        self::assertContains(ApiCallDelete::TOOL_NAME, $toolsWhenFull);
+        self::assertContains(ApiCallFull::TOOL_NAME, $toolsWhenFull);
         self::assertContains('matomo_api_get', $toolsWhenFull);
         self::assertContains('matomo_api_list', $toolsWhenFull);
     }
@@ -462,22 +472,37 @@ class McpServerFactoryTest extends TestCase
         self::assertFalse($toolWhenFull->annotations->openWorldHint);
     }
 
-    public function testRawApiCallToolHasFullAnnotationsWhenVisible(): void
+    public function testRawApiCallToolsHaveExpectedAnnotationsWhenVisible(): void
     {
         $toolsWhenRead = $this->listToolsByNameForCurrentConfig('read');
 
-        self::assertArrayHasKey('matomo_api_call', $toolsWhenRead);
-        $toolWhenRead = $toolsWhenRead['matomo_api_call'];
+        self::assertArrayHasKey(ApiCallRead::TOOL_NAME, $toolsWhenRead);
+        $toolWhenRead = $toolsWhenRead[ApiCallRead::TOOL_NAME];
         self::assertNotNull($toolWhenRead->annotations);
-        self::assertFalse($toolWhenRead->annotations->readOnlyHint);
+        self::assertTrue($toolWhenRead->annotations->readOnlyHint);
         self::assertFalse($toolWhenRead->annotations->destructiveHint);
-        self::assertFalse($toolWhenRead->annotations->idempotentHint);
+        self::assertTrue($toolWhenRead->annotations->idempotentHint);
         self::assertFalse($toolWhenRead->annotations->openWorldHint);
 
         $toolsWhenFull = $this->listToolsByNameForCurrentConfig('full');
 
-        self::assertArrayHasKey('matomo_api_call', $toolsWhenFull);
-        $toolWhenFull = $toolsWhenFull['matomo_api_call'];
+        self::assertArrayHasKey(ApiCallCreate::TOOL_NAME, $toolsWhenFull);
+        self::assertNotNull($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations);
+        self::assertFalse($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations->readOnlyHint);
+        self::assertFalse($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations->destructiveHint);
+
+        self::assertArrayHasKey(ApiCallUpdate::TOOL_NAME, $toolsWhenFull);
+        self::assertNotNull($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations);
+        self::assertFalse($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations->readOnlyHint);
+        self::assertFalse($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations->destructiveHint);
+
+        self::assertArrayHasKey(ApiCallDelete::TOOL_NAME, $toolsWhenFull);
+        self::assertNotNull($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations);
+        self::assertFalse($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations->readOnlyHint);
+        self::assertTrue($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations->destructiveHint);
+
+        self::assertArrayHasKey(ApiCallFull::TOOL_NAME, $toolsWhenFull);
+        $toolWhenFull = $toolsWhenFull[ApiCallFull::TOOL_NAME];
         self::assertNotNull($toolWhenFull->annotations);
         self::assertFalse($toolWhenFull->annotations->readOnlyHint);
         self::assertTrue($toolWhenFull->annotations->destructiveHint);

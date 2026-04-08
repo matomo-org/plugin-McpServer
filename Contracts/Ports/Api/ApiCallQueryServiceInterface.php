@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Contracts\Ports\Api;
 
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 
 interface ApiCallQueryServiceInterface
 {
@@ -19,10 +20,7 @@ interface ApiCallQueryServiceInterface
      * @param array<string, mixed>|null $parameters
      */
     public function callApi(
-        string $accessMode,
-        ?string $method = null,
-        ?string $module = null,
-        ?string $action = null,
+        ApiMethodSummaryRecord $resolvedMethod,
         ?array $parameters = null,
     ): ApiCallRecord;
 }

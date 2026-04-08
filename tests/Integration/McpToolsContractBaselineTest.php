@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
-use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
@@ -293,7 +293,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'API.getMatomoVersion'],
             __METHOD__,
         );

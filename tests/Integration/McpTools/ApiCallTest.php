@@ -15,7 +15,11 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\API\Request;
 use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
-use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
+use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
+use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
+use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -76,7 +80,7 @@ class ApiCallTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => ' API.getMatomoVersion '],
             __METHOD__,
         );
@@ -103,7 +107,7 @@ class ApiCallTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['module' => ' API ', 'action' => ' getMatomoVersion '],
             __METHOD__,
         );
@@ -136,7 +140,7 @@ class ApiCallTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             [
                 'method' => 'Actions.getPageUrls',
                 'parameters' => [
@@ -160,7 +164,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'UsersManager.addUser'],
             'API method not found or unavailable.',
             __METHOD__,
@@ -176,7 +180,7 @@ class ApiCallTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'UsersManager.hasSuperUserAccess'],
             __METHOD__,
         );
@@ -198,7 +202,7 @@ class ApiCallTest extends IntegrationTestCase
         $content = McpTestHelper::callToolAndAssertSuccess(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallFull::TOOL_NAME,
             ['method' => 'UsersManager.hasSuperUserAccess'],
             __METHOD__,
         );
@@ -221,7 +225,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'API.getBulkRequest'],
             'API method not found or unavailable.',
             __METHOD__,
@@ -237,7 +241,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'API.getMetadata'],
             'API method not found or unavailable.',
             __METHOD__,
@@ -253,7 +257,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'API.getReportMetadata'],
             'API method not found or unavailable.',
             __METHOD__,
@@ -269,7 +273,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallFull::TOOL_NAME,
             ['module' => 'Insights', 'action' => 'getInsights'],
             'API method not found or unavailable.',
             __METHOD__,
@@ -285,7 +289,7 @@ class ApiCallTest extends IntegrationTestCase
         $result = McpTestHelper::callTool(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallFull::TOOL_NAME,
             ['method' => 'UsersManager.addUser'],
             __METHOD__,
         );
@@ -310,7 +314,7 @@ class ApiCallTest extends IntegrationTestCase
         $result = McpTestHelper::callTool(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallCreate::TOOL_NAME,
             ['method' => 'UsersManager.addUser'],
             __METHOD__,
         );
@@ -329,8 +333,33 @@ class ApiCallTest extends IntegrationTestCase
         $result = McpTestHelper::callTool(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallDelete::TOOL_NAME,
             ['method' => 'SitesManager.deleteSite'],
+            __METHOD__,
+        );
+
+        McpTestHelper::assertToolError($result);
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
+        $errorText = $content->text;
+        self::assertIsString($errorText);
+        self::assertTrue(
+            $errorText === 'Matomo API request failed.'
+            || str_starts_with($errorText, 'Matomo API request failed: '),
+        );
+    }
+
+    public function testUpdateModeAttemptsUpdateMethodCall(): void
+    {
+        McpTestHelper::setRawApiAccessMode('update');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $result = McpTestHelper::callTool(
+            $server,
+            $sessionId,
+            ApiCallUpdate::TOOL_NAME,
+            ['method' => 'UsersManager.updateUser'],
             __METHOD__,
         );
 
@@ -354,7 +383,7 @@ class ApiCallTest extends IntegrationTestCase
         McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             [
                 'method' => 'API.getMatomoVersion',
                 'parameters' => ['format' => 'json'],
@@ -373,13 +402,13 @@ class ApiCallTest extends IntegrationTestCase
         $message = McpTestHelper::callToolExpectInvalidParams(
             $server,
             $sessionId,
-            ApiCall::TOOL_NAME,
+            ApiCallFull::TOOL_NAME,
             [],
             __METHOD__,
         );
 
         self::assertStringContainsString(
-            "Invalid parameters for tool '" . ApiCall::TOOL_NAME . "':",
+            "Invalid parameters for tool '" . ApiCallFull::TOOL_NAME . "':",
             $message->message,
         );
     }
@@ -391,7 +420,7 @@ class ApiCallTest extends IntegrationTestCase
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
         $payload = McpTestHelper::makeCallToolRequest(
-            ApiCall::TOOL_NAME,
+            ApiCallFull::TOOL_NAME,
             ['method' => 'API.getMatomoVersion', 'module' => 'API'],
             __METHOD__,
         );
@@ -401,7 +430,7 @@ class ApiCallTest extends IntegrationTestCase
 
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
-            "Invalid parameters for tool '" . ApiCall::TOOL_NAME . "':",
+            "Invalid parameters for tool '" . ApiCallFull::TOOL_NAME . "':",
             $message->message ?? '',
         );
     }
@@ -420,7 +449,7 @@ class ApiCallTest extends IntegrationTestCase
 
         $apiCallTool = null;
         foreach ($result->tools as $tool) {
-            if ($tool->name === ApiCall::TOOL_NAME) {
+            if ($tool->name === ApiCallFull::TOOL_NAME) {
                 $apiCallTool = $tool;
                 break;
             }
@@ -439,12 +468,12 @@ class ApiCallTest extends IntegrationTestCase
     public function testNoneModeHidesAndRejectsToolCall(): void
     {
         McpTestHelper::setRawApiAccessMode('none');
-        self::assertNotContains(ApiCall::TOOL_NAME, $this->listToolNamesForCurrentConfig());
+        self::assertNotContains(ApiCallRead::TOOL_NAME, $this->listToolNamesForCurrentConfig());
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
         $payload = McpTestHelper::makeCallToolRequest(
-            ApiCall::TOOL_NAME,
+            ApiCallRead::TOOL_NAME,
             ['method' => 'API.getMatomoVersion'],
             __METHOD__,
         );
@@ -452,6 +481,38 @@ class ApiCallTest extends IntegrationTestCase
         $message = McpTestHelper::decodeError($response);
 
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testDeleteToolRejectsReadMethodInFullMode(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCallDelete::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
+    }
+
+    public function testUpdateToolRejectsReadMethodInFullMode(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCallUpdate::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            'API method not found or unavailable.',
+            __METHOD__,
+        );
     }
 
     /**

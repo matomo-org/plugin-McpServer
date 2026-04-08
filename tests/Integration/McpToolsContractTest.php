@@ -15,7 +15,11 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Cache;
 use Piwik\Config;
-use Piwik\Plugins\McpServer\McpTools\ApiCall;
+use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
+use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
+use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
+use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -266,7 +270,11 @@ class McpToolsContractTest extends IntegrationTestCase
         McpTestHelper::setRawApiAccessMode('none');
         $toolsByName = $this->listToolsByNameForCurrentConfig();
 
-        self::assertArrayNotHasKey(ApiCall::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallRead::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallCreate::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallUpdate::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallDelete::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
         self::assertArrayNotHasKey('matomo_api_get', $toolsByName);
         self::assertArrayNotHasKey('matomo_api_list', $toolsByName);
     }
@@ -292,12 +300,13 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertTrue($tool->annotations->idempotentHint);
         self::assertFalse($tool->annotations->openWorldHint);
 
-        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
-        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertArrayHasKey(ApiCallRead::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCallRead::TOOL_NAME];
         self::assertNotNull($callTool->annotations);
-        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertTrue($callTool->annotations->readOnlyHint);
         self::assertFalse($callTool->annotations->destructiveHint);
-        self::assertFalse($callTool->annotations->idempotentHint);
+        self::assertTrue($callTool->annotations->idempotentHint);
         self::assertFalse($callTool->annotations->openWorldHint);
     }
 
@@ -308,11 +317,32 @@ class McpToolsContractTest extends IntegrationTestCase
 
         self::assertArrayHasKey('matomo_api_get', $toolsByName);
         self::assertArrayHasKey('matomo_api_list', $toolsByName);
-        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
+        self::assertArrayHasKey(ApiCallCreate::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
 
-        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        $callTool = $toolsByName[ApiCallCreate::TOOL_NAME];
         self::assertNotNull($callTool->annotations);
         self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertFalse($callTool->annotations->destructiveHint);
+        self::assertFalse($callTool->annotations->idempotentHint);
+        self::assertFalse($callTool->annotations->openWorldHint);
+    }
+
+    public function testRawApiListToolIsVisibleWithExpectedAnnotationsWhenRawAccessModeIsUpdate(): void
+    {
+        McpTestHelper::setRawApiAccessMode('update');
+        $toolsByName = $this->listToolsByNameForCurrentConfig();
+
+        self::assertArrayHasKey('matomo_api_get', $toolsByName);
+        self::assertArrayHasKey('matomo_api_list', $toolsByName);
+        self::assertArrayHasKey(ApiCallUpdate::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
+
+        $callTool = $toolsByName[ApiCallUpdate::TOOL_NAME];
+        self::assertNotNull($callTool->annotations);
+        self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertFalse($callTool->annotations->destructiveHint);
+        self::assertFalse($callTool->annotations->idempotentHint);
         self::assertFalse($callTool->annotations->openWorldHint);
     }
 
@@ -333,10 +363,13 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertTrue($tool->annotations->readOnlyHint);
         self::assertFalse($tool->annotations->openWorldHint);
 
-        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
-        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertArrayHasKey(ApiCallDelete::TOOL_NAME, $toolsByName);
+        self::assertArrayNotHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCallDelete::TOOL_NAME];
         self::assertNotNull($callTool->annotations);
         self::assertFalse($callTool->annotations->readOnlyHint);
+        self::assertTrue($callTool->annotations->destructiveHint);
+        self::assertFalse($callTool->annotations->idempotentHint);
         self::assertFalse($callTool->annotations->openWorldHint);
     }
 
@@ -361,8 +394,12 @@ class McpToolsContractTest extends IntegrationTestCase
         self::assertTrue($tool->annotations->idempotentHint);
         self::assertFalse($tool->annotations->openWorldHint);
 
-        self::assertArrayHasKey(ApiCall::TOOL_NAME, $toolsByName);
-        $callTool = $toolsByName[ApiCall::TOOL_NAME];
+        self::assertArrayHasKey(ApiCallRead::TOOL_NAME, $toolsByName);
+        self::assertArrayHasKey(ApiCallCreate::TOOL_NAME, $toolsByName);
+        self::assertArrayHasKey(ApiCallUpdate::TOOL_NAME, $toolsByName);
+        self::assertArrayHasKey(ApiCallDelete::TOOL_NAME, $toolsByName);
+        self::assertArrayHasKey(ApiCallFull::TOOL_NAME, $toolsByName);
+        $callTool = $toolsByName[ApiCallFull::TOOL_NAME];
         self::assertNotNull($callTool->annotations);
         self::assertFalse($callTool->annotations->readOnlyHint);
         self::assertTrue($callTool->annotations->destructiveHint);

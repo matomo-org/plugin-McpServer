@@ -15,9 +15,9 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
-use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\CoreApiCallGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
+use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 
@@ -37,25 +37,14 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
         'force_api_session' => true,
     ];
 
-    public function __construct(
-        private ApiMethodSummaryQueryServiceInterface $apiMethodSummaryQueryService,
-        private CoreApiCallGatewayInterface $coreApiCallGateway,
-    ) {
+    public function __construct(private CoreApiCallGatewayInterface $coreApiCallGateway)
+    {
     }
 
     public function callApi(
-        string $accessMode,
-        ?string $method = null,
-        ?string $module = null,
-        ?string $action = null,
+        ApiMethodSummaryRecord $resolvedMethod,
         ?array $parameters = null,
     ): ApiCallRecord {
-        $resolvedMethod = $this->apiMethodSummaryQueryService->getApiMethodSummaryBySelector(
-            $accessMode,
-            $method,
-            $module,
-            $action,
-        );
         $sanitizedParameters = $this->sanitizeParameters($parameters);
 
         try {

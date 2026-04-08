@@ -16,14 +16,11 @@ use PHPUnit\Framework\TestCase;
 use Piwik\DataTable;
 use Piwik\DataTable\Map;
 use Piwik\DataTable\Row;
-use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\CoreApiCallGatewayInterface;
-use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Services\Api\ApiCallQueryService;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
-use stdClass;
 
 /**
  * @group McpServer
@@ -31,38 +28,11 @@ use stdClass;
  */
 class ApiCallQueryServiceTest extends TestCase
 {
-    public function testCallApiResolvesSelectorAndReturnsEnvelope(): void
+    public function testCallApiUsesResolvedMethodAndReturnsEnvelope(): void
     {
-        $captured = new stdClass();
-        $captured->values = [];
+        $resolvedMethod = new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []);
 
         $service = new ApiCallQueryService(
-            new class ($captured) implements ApiMethodSummaryQueryServiceInterface {
-                public function __construct(private stdClass $captured)
-                {
-                }
-
-                public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
-                {
-                    return [];
-                }
-
-                public function getApiMethodSummaryBySelector(
-                    string $accessMode,
-                    ?string $method = null,
-                    ?string $module = null,
-                    ?string $action = null,
-                ): ApiMethodSummaryRecord {
-                    $this->captured->values = [
-                        'accessMode' => $accessMode,
-                        'method' => $method,
-                        'module' => $module,
-                        'action' => $action,
-                    ];
-
-                    return new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []);
-                }
-            },
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -74,24 +44,16 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $record = $service->callApi('read', 'API.getMatomoVersion');
+        $record = $service->callApi($resolvedMethod);
 
         self::assertSame('6.0.0', $record->result);
         self::assertSame('API.getMatomoVersion', $record->resolvedMethod->method);
-        /** @var array<string, mixed> $capturedValues */
-        $capturedValues = $captured->values;
-        self::assertSame([
-            'accessMode' => 'read',
-            'method' => 'API.getMatomoVersion',
-            'module' => null,
-            'action' => null,
-        ], $capturedValues);
     }
 
     public function testCallApiPassesParametersAndNormalizesObjects(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('API', 'getSettings', 'API.getSettings', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(new ApiMethodSummaryRecord('API', 'getSettings', 'API.getSettings', [])),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -102,13 +64,14 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $record = $service->callApi('read', 'API.getSettings', parameters: ['idSite' => 3]);
+        $record = $service->callApi($resolvedMethod, parameters: ['idSite' => 3]);
 
         self::assertSame(['site' => ['id' => 3, 'name' => 'Demo']], $record->result);
     }
 
     public function testCallApiNormalizesDataTableResultsViaJsonRenderer(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('Actions', 'getPageUrls', 'Actions.getPageUrls', []);
         $table = new DataTable();
         $table->addRow(new Row([
             Row::COLUMNS => [
@@ -118,9 +81,6 @@ class ApiCallQueryServiceTest extends TestCase
         ]));
 
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('Actions', 'getPageUrls', 'Actions.getPageUrls', []),
-            ),
             new class ($table) implements CoreApiCallGatewayInterface {
                 public function __construct(private DataTable $table)
                 {
@@ -133,7 +93,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $record = $service->callApi('read', 'Actions.getPageUrls');
+        $record = $service->callApi($resolvedMethod);
 
         self::assertSame([
             [
@@ -145,6 +105,7 @@ class ApiCallQueryServiceTest extends TestCase
 
     public function testCallApiNormalizesNestedDataTableMapResultsViaJsonRenderer(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('Live', 'getLastVisitDetails', 'Live.getLastVisitDetails', []);
         $first = new DataTable();
         $first->addRow(new Row([
             Row::COLUMNS => [
@@ -166,9 +127,6 @@ class ApiCallQueryServiceTest extends TestCase
         $map->addTable($second, '2024-01-02');
 
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('Live', 'getLastVisitDetails', 'Live.getLastVisitDetails', []),
-            ),
             new class ($map) implements CoreApiCallGatewayInterface {
                 public function __construct(private Map $map)
                 {
@@ -181,7 +139,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $record = $service->callApi('read', 'Live.getLastVisitDetails');
+        $record = $service->callApi($resolvedMethod);
 
         self::assertSame([
             'report' => [
@@ -203,10 +161,8 @@ class ApiCallQueryServiceTest extends TestCase
 
     public function testCallApiRejectsReservedParameterKeys(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -218,15 +174,13 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Unsupported parameters key 'format'.");
 
-        $service->callApi('read', 'API.getMatomoVersion', parameters: ['format' => 'json']);
+        $service->callApi($resolvedMethod, parameters: ['format' => 'json']);
     }
 
     public function testCallApiMapsAccessDeniedFailures(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -238,15 +192,13 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('No access to API method.');
 
-        $service->callApi('read', 'API.getMatomoVersion');
+        $service->callApi($resolvedMethod);
     }
 
     public function testCallApiMapsUpstreamFailures(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -258,15 +210,13 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
-        $service->callApi('full', 'UsersManager.addUser');
+        $service->callApi($resolvedMethod);
     }
 
     public function testCallApiSurfacesSanitizedValidationFailureDetail(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -282,15 +232,13 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Matomo API request failed: Parameter 'userLogin' missing or invalid.");
 
-        $service->callApi('full', 'UsersManager.addUser');
+        $service->callApi($resolvedMethod);
     }
 
     public function testCallApiKeepsGenericFailureForUnsafeUpstreamDetail(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -306,15 +254,13 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
-        $service->callApi('full', 'UsersManager.addUser');
+        $service->callApi($resolvedMethod);
     }
 
     public function testCallApiKeepsGenericFailureWhenNoSafeDetailExists(): void
     {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            $this->createQueryServiceStub(
-                new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []),
-            ),
             new class () implements CoreApiCallGatewayInterface {
                 public function call(string $method, array $parameters): mixed
                 {
@@ -326,19 +272,17 @@ class ApiCallQueryServiceTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
-        $service->callApi('full', 'UsersManager.addUser');
+        $service->callApi($resolvedMethod);
     }
 
     public function testCallApiRejectsInvalidResponse(): void
     {
         $resource = fopen('php://memory', 'rb');
         self::assertIsResource($resource);
+        $resolvedMethod = new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []);
 
         try {
             $service = new ApiCallQueryService(
-                $this->createQueryServiceStub(
-                    new ApiMethodSummaryRecord('API', 'getMatomoVersion', 'API.getMatomoVersion', []),
-                ),
                 new class ($resource) implements CoreApiCallGatewayInterface {
                     private mixed $resource;
 
@@ -357,32 +301,9 @@ class ApiCallQueryServiceTest extends TestCase
             $this->expectException(ToolCallException::class);
             $this->expectExceptionMessage('API response is invalid.');
 
-            $service->callApi('read', 'API.getMatomoVersion');
+            $service->callApi($resolvedMethod);
         } finally {
             fclose($resource);
         }
-    }
-
-    private function createQueryServiceStub(ApiMethodSummaryRecord $record): ApiMethodSummaryQueryServiceInterface
-    {
-        return new class ($record) implements ApiMethodSummaryQueryServiceInterface {
-            public function __construct(private ApiMethodSummaryRecord $record)
-            {
-            }
-
-            public function getApiMethodSummaries(ApiMethodSummaryQueryRecord $query): array
-            {
-                return [];
-            }
-
-            public function getApiMethodSummaryBySelector(
-                string $accessMode,
-                ?string $method = null,
-                ?string $module = null,
-                ?string $action = null,
-            ): ApiMethodSummaryRecord {
-                return $this->record;
-            }
-        };
     }
 }
