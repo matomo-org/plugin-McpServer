@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
+use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
 use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
@@ -42,7 +43,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
             if (
                 ToolErrorMapper::shouldReturnEmptyListFor(
                     $e,
-                    fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                    static fn(\Throwable $error): bool => NoAccessLikeErrorDetector::isDetected($error)
                 )
             ) {
                 return [];
@@ -138,17 +139,5 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         }
 
         return $value;
-    }
-
-    private function isNoAccessLikeFailure(\Throwable $e): bool
-    {
-        $message = strtolower(trim((string) $e->getMessage()));
-        if ($message === '') {
-            return false;
-        }
-
-        return str_contains($message, 'no access')
-            || str_contains($message, 'checkuserhasviewaccess')
-            || str_contains($message, 'view access');
     }
 }

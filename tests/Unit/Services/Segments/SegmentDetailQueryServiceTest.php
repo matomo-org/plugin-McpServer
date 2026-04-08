@@ -111,6 +111,27 @@ class SegmentDetailQueryServiceTest extends TestCase
         );
     }
 
+    public function testGetSegmentDetailsForSiteMapsMessageBasedAccessFailureToNotFound(): void
+    {
+        $gateway = $this->createMock(CoreSegmentEditorGatewayInterface::class);
+        $gateway->expects(self::once())
+            ->method('getAll')
+            ->with(9)
+            ->willThrowException(new \RuntimeException('CheckUserHasViewAccess failed'));
+
+        $capabilityGateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $capabilityGateway->expects(self::once())
+            ->method('isPluginActivated')
+            ->with('SegmentEditor')
+            ->willReturn(true);
+
+        $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Segment not found.');
+        $service->getSegmentDetailsForSite(9);
+    }
+
     /**
      * @return array<string, mixed>
      */

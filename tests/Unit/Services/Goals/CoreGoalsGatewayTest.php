@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Goals\CoreGoalsGateway;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -97,6 +98,19 @@ class CoreGoalsGatewayTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Goal data is invalid.');
+        $gateway->getGoal(5, 3);
+    }
+
+    public function testGetGoalMapsMessageBasedAccessFailure(): void
+    {
+        $gateway = new CoreGoalsGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): mixed {
+                throw new \RuntimeException('Missing view access permission');
+            },
+        );
+
+        $this->expectException(AccessDeniedLikeException::class);
+        $this->expectExceptionMessage('No access to this resource.');
         $gateway->getGoal(5, 3);
     }
 }

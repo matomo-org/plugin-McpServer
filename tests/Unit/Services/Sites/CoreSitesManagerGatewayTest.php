@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -97,6 +98,19 @@ class CoreSitesManagerGatewayTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Site data is invalid.');
+        $gateway->getSiteFromId(4);
+    }
+
+    public function testGetSiteFromIdMapsMessageBasedAccessFailure(): void
+    {
+        $gateway = new CoreSitesManagerGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): mixed {
+                throw new \RuntimeException('CheckUserHasViewAccess failed');
+            },
+        );
+
+        $this->expectException(AccessDeniedLikeException::class);
+        $this->expectExceptionMessage('No access to this resource.');
         $gateway->getSiteFromId(4);
     }
 }

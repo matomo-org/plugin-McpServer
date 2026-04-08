@@ -52,6 +52,20 @@ class CoreApiCallGatewayTest extends TestCase
         $gateway->call('API.getMatomoVersion', []);
     }
 
+    public function testCallMapsMessageBasedNoAccessLikeFailure(): void
+    {
+        $gateway = new CoreApiCallGateway(
+            static function (string $method, array $parameters, array $extra): mixed {
+                throw new \RuntimeException('CheckUserHasViewAccess failed');
+            },
+        );
+
+        $this->expectException(AccessDeniedLikeException::class);
+        $this->expectExceptionMessage('No access to API method.');
+
+        $gateway->call('API.getMatomoVersion', []);
+    }
+
     public function testCallMapsUnexpectedFailures(): void
     {
         $gateway = new CoreApiCallGateway(
