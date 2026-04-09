@@ -146,12 +146,38 @@ class APITest extends TestCase
 
     public function testMcpReturnsUnauthorizedChallengeWhenNoViewAccess(): void
     {
-        Config::getInstance()->McpServer = ['log_tool_calls' => 1];
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
-        $api = $this->createApiWithRequest($this->createRequest());
+        $factory = $this->createFactory();
+
+        $api = $this
+            ->getMockBuilder(API::class)
+            ->setConstructorArgs([
+                $factory,
+                new McpEndpointGuard(),
+                new JsonRpcErrorResponseFactory(),
+                new JsonRpcRequestIdExtractor(),
+                $this->createMock(SystemSettings::class),
+            ])
+            ->onlyMethods([
+                'createRequestFromGlobals',
+                'isCurrentApiRequestRoot',
+                'getRootApiRequestMethod',
+                'checkUserHasSomeViewAccess',
+            ])
+            ->getMock();
+
+        $api->method('createRequestFromGlobals')
+            ->willReturn($this->createRequest());
+        $api->method('isCurrentApiRequestRoot')
+            ->willReturn(true);
+        $api->method('getRootApiRequestMethod')
+            ->willReturn('McpServer.mcp');
+        $api->method('checkUserHasSomeViewAccess')
+            ->willThrowException(new \Piwik\NoAccessException('No access'));
+
         $result = $api->mcp();
 
         self::assertInstanceOf(ResponseInterface::class, $result);
@@ -246,6 +272,45 @@ class APITest extends TestCase
         self::assertSame('', McpTestHelper::getResponseBody($response));
     }
 
+    public function testMcpReturnsForbiddenErrorWhenPrivilegeLevelIsTooHighAndTopLevelIdExists(): void
+    {
+        Access::getInstance()->setSuperUserAccess(true);
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $request = $this->createRequest(McpTestHelper::makeInitializeRequest('privilege-1'));
+        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', true, false);
+        $response = $api->mcp();
+
+        self::assertSame(403, $response->getStatusCode());
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame(
+            'Authenticated MCP access has too high privilege level. Maximum of Write access level is allowed.',
+            $message->message,
+        );
+        self::assertSame('privilege-1', $message->id);
+    }
+
+    public function testMcpReturnsForbiddenWithoutBodyWhenPrivilegeLevelIsTooHighAndTopLevelIdIsMissing(): void
+    {
+        Access::getInstance()->setSuperUserAccess(true);
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $initialize = \json_decode(McpTestHelper::makeInitializeRequest('batch-1'), true, 512, \JSON_THROW_ON_ERROR);
+        $batchPayload = \json_encode([$initialize], \JSON_THROW_ON_ERROR);
+        $request = $this->createRequest($batchPayload);
+        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', true, false);
+        $response = $api->mcp();
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame('', $response->getHeaderLine('Content-Type'));
+        self::assertSame('', McpTestHelper::getResponseBody($response));
+    }
+
     public function testMcpReturnsInternalErrorResponseWhenRequestCreationFails(): void
     {
         $_GET['module'] = 'API';
@@ -310,8 +375,12 @@ class APITest extends TestCase
         bool $isRootApiRequest = true,
         ?string $rootApiMethod = 'McpServer.mcp',
         bool $isMcpEnabled = true,
+        bool $isCurrentUserPrivilegeLevelAllowed = true,
     ): API {
         $factory = $this->createFactory();
+        $systemSettings = $this->createMock(SystemSettings::class);
+        $systemSettings->method('getMaximumAllowedMcpAccessLevel')
+            ->willReturn('write');
 
         $api = $this
             ->getMockBuilder(API::class)
@@ -320,13 +389,14 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
-                $this->createMock(SystemSettings::class),
+                $systemSettings,
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
                 'isCurrentApiRequestRoot',
                 'getRootApiRequestMethod',
                 'isMcpEnabled',
+                'isCurrentUserPrivilegeLevelAllowed',
             ])
             ->getMock();
 
@@ -338,6 +408,8 @@ class APITest extends TestCase
             ->willReturn($rootApiMethod);
         $api->method('isMcpEnabled')
             ->willReturn($isMcpEnabled);
+        $api->method('isCurrentUserPrivilegeLevelAllowed')
+            ->willReturn($isCurrentUserPrivilegeLevelAllowed);
 
         return $api;
     }

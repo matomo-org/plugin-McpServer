@@ -20,12 +20,15 @@ use Piwik\Container\StaticContainer;
 use Piwik\FrontController;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\SystemSettings;
+use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
+use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
 /**
@@ -43,6 +46,12 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
 
     private bool $originalEnableMcpValue = false;
 
+    private string $originalMaximumAllowedMcpAccessLevel = McpAccessLevel::UNLIMITED;
+
+    private int $idSite = 0;
+
+    private int $idSiteOther = 0;
+
     public function setUp(): void
     {
         parent::setUp();
@@ -50,12 +59,22 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $this->originalNestedApiInvocationCount = $this->getNestedApiInvocationCount();
         $this->originalRootApiMethod = (string) ApiRequest::getRootApiRequestMethod();
         $this->originalEnableMcpValue = (bool) StaticContainer::get(SystemSettings::class)->enableMcp->getValue();
+        $this->originalMaximumAllowedMcpAccessLevel = StaticContainer::get(SystemSettings::class)
+            ->getMaximumAllowedMcpAccessLevel();
+        $this->idSite = Fixture::createWebsite('2010-01-01 00:00:00', 0, 'Boundary Test Site', 'https://boundary.test');
+        $this->idSiteOther = Fixture::createWebsite(
+            '2010-01-01 00:00:00',
+            0,
+            'Boundary Other Site',
+            'https://boundary-other.test',
+        );
     }
 
     public function tearDown(): void
     {
         $_GET = $this->originalGet;
         $this->setMcpEnabled($this->originalEnableMcpValue);
+        $this->setMaximumAllowedMcpAccessLevel($this->originalMaximumAllowedMcpAccessLevel);
         $this->setNestedApiInvocationCount($this->originalNestedApiInvocationCount);
         ApiRequest::setIsRootRequestApiRequest($this->originalRootApiMethod);
         Access::getInstance()->setSuperUserAccess(false);
@@ -224,6 +243,124 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertSame('', McpTestHelper::getResponseBody($response));
     }
 
+    public function testPrivilegeCapAllowsViewUserWhenMaximumIsView(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setMaximumAllowedMcpAccessLevel(McpAccessLevel::VIEW);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        McpAuthTestHelper::asViewUserForSite($this->idSite, function (): void {
+            $api = $this->createApiWithRequest($this->createRequest(McpTestHelper::makeInitializeRequest('view-1')));
+            $response = $api->mcp();
+
+            self::assertSame(200, $response->getStatusCode());
+            McpTestHelper::decodeResponse($response);
+        });
+    }
+
+    public function testPrivilegeCapRejectsWriteUserWhenMaximumIsView(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setMaximumAllowedMcpAccessLevel(McpAccessLevel::VIEW);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        McpAuthTestHelper::asWriteUserForSite($this->idSite, function (): void {
+            $api = $this->createApiWithRequest($this->createRequest(McpTestHelper::makeInitializeRequest('write-1')));
+            $response = $api->mcp();
+            $error = McpTestHelper::decodeError($response);
+
+            self::assertSame(403, $response->getStatusCode());
+            self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+            self::assertSame(
+                'Authenticated MCP access has too high privilege level. Maximum of View access level is allowed.',
+                $error->message,
+            );
+            self::assertSame('write-1', $error->id);
+        });
+    }
+
+    public function testPrivilegeCapRejectsAdminUserWhenMaximumIsWrite(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setMaximumAllowedMcpAccessLevel(McpAccessLevel::WRITE);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        McpAuthTestHelper::asAdminUserForSite($this->idSite, function (): void {
+            $api = $this->createApiWithRequest($this->createRequest(McpTestHelper::makeInitializeRequest('admin-1')));
+            $response = $api->mcp();
+            $error = McpTestHelper::decodeError($response);
+
+            self::assertSame(403, $response->getStatusCode());
+            self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+            self::assertSame(
+                'Authenticated MCP access has too high privilege level. Maximum of Write access level is allowed.',
+                $error->message,
+            );
+            self::assertSame('admin-1', $error->id);
+        });
+    }
+
+    public function testPrivilegeCapUsesHighestPrivilegeAcrossSites(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setMaximumAllowedMcpAccessLevel(McpAccessLevel::WRITE);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        McpAuthTestHelper::asUserWithSiteAccessLevels(
+            ['view' => [$this->idSite], 'admin' => [$this->idSiteOther]],
+            function (): void {
+                $api = $this->createApiWithRequest(
+                    $this->createRequest(McpTestHelper::makeInitializeRequest('mixed-1')),
+                );
+                $response = $api->mcp();
+                $error = McpTestHelper::decodeError($response);
+
+                self::assertSame(403, $response->getStatusCode());
+                self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+                self::assertSame(
+                    'Authenticated MCP access has too high privilege level. Maximum of Write access level is allowed.',
+                    $error->message,
+                );
+                self::assertSame('mixed-1', $error->id);
+            },
+        );
+    }
+
+    public function testPrivilegeCapRejectsSuperUserWhenMaximumIsAdmin(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setMaximumAllowedMcpAccessLevel(McpAccessLevel::ADMIN);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest($this->createRequest(McpTestHelper::makeInitializeRequest('superuser-1')));
+        $response = $api->mcp();
+        $error = McpTestHelper::decodeError($response);
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+        self::assertSame(
+            'Authenticated MCP access has too high privilege level. Maximum of Admin access level is allowed.',
+            $error->message,
+        );
+        self::assertSame('superuser-1', $error->id);
+    }
+
     private function createRequest(string $payload): ServerRequestInterface
     {
         $factory = new Psr17Factory();
@@ -307,6 +444,19 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
 
         try {
             $settings->enableMcp->setValue($isEnabled);
+        } finally {
+            Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
+        }
+    }
+
+    private function setMaximumAllowedMcpAccessLevel(string $maximumAllowedMcpAccessLevel): void
+    {
+        $settings = StaticContainer::get(SystemSettings::class);
+        $hadSuperUserAccess = Access::getInstance()->hasSuperUserAccess();
+        Access::getInstance()->setSuperUserAccess(true);
+
+        try {
+            $settings->maximumMcpAccessLevel->setValue($maximumAllowedMcpAccessLevel);
         } finally {
             Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
         }

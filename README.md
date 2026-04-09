@@ -68,6 +68,8 @@ For the recommended end-user setup flow, use the in-product connect guide at **A
 - Raw Matomo API discovery and execution tools are separately disabled by default and must be enabled by an administrator.
 - The plugin uses Matomo authentication, including OAuth2 when the Matomo `OAuth2` plugin is installed and enabled and an OAuth2 client is configured for the MCP client, or `token_auth` Bearer tokens otherwise.
 - Data access is limited to the same sites and reports the Matomo user can already access.
+- Data access can be limited to specific permissions/roles and what type of methods can be accessed.
+- Administrators can optionally restrict MCP usage to users or tokens at or below a configured privilege level.
 - When raw API access is enabled, MCP clients can access the same Matomo API surface available to the authenticated user, including state-changing methods if an administrator has allowed them.
 - If features such as the Visitor Log are available to that user, MCP clients may access the same underlying data scope.
 - Review privacy, security, and compliance requirements before enabling raw API access.

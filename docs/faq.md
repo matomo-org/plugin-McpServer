@@ -39,6 +39,13 @@ Configure raw Matomo API tool access in **Administration -> System -> General Se
 - Low-confidence or unclassified direct API methods require `Full API access`.
 - Direct API access can expose raw or personal data depending on enabled Matomo features. Review privacy and security requirements before enabling it, and consult your DPO or compliance owner when needed.
 
+Configure MCP privilege limits in **Administration -> System -> General Settings -> McpServer**:
+
+- Use **Maximum allowed MCP privilege level** to deny MCP access for users authenticated with a higher Matomo privilege.
+- `No privilege limit` (default): follows the usual Matomo access model and does not add an extra MCP privilege cap.
+- `View access`, `Write access`, or `Admin access`: allows only users whose highest privilege across all sites is at or below the selected level.
+- For stricter separation, create a separate Matomo user or token with reduced permissions for MCP use.
+
 ## Enabling MCP
 
 MCP access is disabled by default and must be enabled in **Administration -> System -> General Settings -> McpServer**.
@@ -69,5 +76,5 @@ To change how AI clients see this tool, adjust the Matomo archiving settings tha
 ## Troubleshooting
 
 - `401 Unauthorized`: verify the Bearer token is present and active. If you use OAuth2, verify the client completed authorization successfully and is sending a valid access token. If you use `token_auth`, verify you are sending `Authorization: Bearer <token_auth>` and that the token belongs to a user with access to the requested site data.
-- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> General Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user behind the OAuth2 access token or `token_auth` has access to the requested site or report data.
+- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> General Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user behind the OAuth2 access token or `token_auth` has access to the requested site or report data and does not exceed the configured maximum MCP privilege level
 - `400 Bad Request`: verify the client is using the exact MCP endpoint and is not proxying requests through `API.getBulkRequest`.

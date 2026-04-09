@@ -22,5 +22,7 @@ final class McpEndpointSpec
         . 'Nested API calls (including API.getBulkRequest) are not supported.';
     public const UNAUTHORIZED_ERROR = 'Authentication required.';
     public const DISABLED_ERROR = 'MCP endpoint is disabled. Please contact your Matomo administrator.';
+    public const TOO_HIGH_PRIVILEGE_ERROR =
+        'Authenticated MCP access has too high privilege level. Maximum of %s access level is allowed.';
     public const INTERNAL_ERROR = 'Internal endpoint error.';
 }

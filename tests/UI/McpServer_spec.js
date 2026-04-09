@@ -14,6 +14,7 @@ describe('McpServer', function () {
     const connectUrl = '?module=McpServer&action=connect&idSite=1&period=day&date=yesterday';
     const settingsSelector = '#McpServerPluginSettings';
     const enabledCheckboxSelector = 'input[name="enable_mcp"]';
+    const maximumMcpAccessLevelSelector = 'select[name="maximum_mcp_access_level"]';
     const rawApiAccessScopeSelector = 'select[name="raw_api_access_scope"]';
     const settingsSaveButtonSelector = `${settingsSelector} .pluginsSettingsSubmit`;
     const connectSelector = '.mcpServerConnect';
@@ -69,7 +70,12 @@ describe('McpServer', function () {
         }, rawApiAccessScopeSelector);
     }
 
-    async function configureMcp(enabled, rawApiAccessScope = 'string:partial', rawApiAccessLevels = [])
+    async function configureMcp(
+        enabled,
+        maximumMcpAccessLevel = 'string:unlimited',
+        rawApiAccessScope = 'string:partial',
+        rawApiAccessLevels = []
+    )
     {
         resetUserToSuperUser();
         await page.goto(settingsUrl);
@@ -87,11 +93,23 @@ describe('McpServer', function () {
         }
 
         if (enabled) {
+            await page.waitForSelector(maximumMcpAccessLevelSelector, { visible: true });
             await page.waitForSelector(rawApiAccessScopeSelector, { visible: true });
+            const currentMaximumMcpAccessLevel = await page.$eval(maximumMcpAccessLevelSelector, (el) => el.value);
             const currentRawApiAccessScope = await page.$eval(rawApiAccessScopeSelector, (el) => el.value);
+            let didChangeSetting = false;
+
+            if (currentMaximumMcpAccessLevel !== maximumMcpAccessLevel) {
+                await page.select(maximumMcpAccessLevelSelector, maximumMcpAccessLevel);
+                didChangeSetting = true;
+            }
 
             if (currentRawApiAccessScope !== rawApiAccessScope) {
                 await page.select(rawApiAccessScopeSelector, rawApiAccessScope);
+                didChangeSetting = true;
+            }
+
+            if (didChangeSetting) {
                 await page.waitForTimeout(250);
                 await saveSettings();
             }
@@ -145,9 +163,10 @@ describe('McpServer', function () {
     });
 
     it('should display the plugin settings when MCP is enabled with partial API access', async function () {
-        await configureMcp(true, 'string:partial', ['read']);
+        await configureMcp(true, 'string:view', 'string:partial', ['read']);
 
         expect(await isRawApiAccessScopeVisible()).to.equal(true);
+        expect(await page.$eval(maximumMcpAccessLevelSelector, (el) => el.value)).to.equal('string:view');
         expect(await page.$eval(rawApiAccessScopeSelector, (el) => el.value)).to.equal('string:partial');
         expect(await page.$eval('input[name="raw_api_access_read"]', (el) => !!el.checked)).to.equal(true);
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');

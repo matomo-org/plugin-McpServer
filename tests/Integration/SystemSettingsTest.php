@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -25,6 +26,7 @@ class SystemSettingsTest extends IntegrationTestCase
 {
     private ?SystemSettings $settings = null;
     private bool $originalEnableMcp = false;
+    private string $originalMaximumAllowedMcpAccessLevel = McpAccessLevel::UNLIMITED;
     private string $originalRawApiAccessMode = RawApiAccessMode::NONE;
 
     public function setUp(): void
@@ -34,6 +36,7 @@ class SystemSettingsTest extends IntegrationTestCase
         $this->settings = StaticContainer::get(SystemSettings::class);
         self::assertInstanceOf(SystemSettings::class, $this->settings);
         $this->originalEnableMcp = $this->settings->isMcpEnabled();
+        $this->originalMaximumAllowedMcpAccessLevel = $this->settings->getMaximumAllowedMcpAccessLevel();
         $this->originalRawApiAccessMode = $this->settings->getRawApiAccessMode();
     }
 
@@ -45,6 +48,7 @@ class SystemSettingsTest extends IntegrationTestCase
 
         try {
             $this->settings->enableMcp->setValue($this->originalEnableMcp);
+            $this->settings->maximumMcpAccessLevel->setValue($this->originalMaximumAllowedMcpAccessLevel);
             $this->applyRawApiAccessMode($this->originalRawApiAccessMode);
         } finally {
             Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
@@ -69,6 +73,33 @@ class SystemSettingsTest extends IntegrationTestCase
         try {
             $this->settings->enableMcp->setValue(true);
             self::assertTrue($this->settings->isMcpEnabled());
+        } finally {
+            $access->setSuperUserAccess($hadSuperUserAccess);
+        }
+    }
+
+    public function testMaximumAllowedMcpAccessLevelDefaultsToUnlimited(): void
+    {
+        self::assertInstanceOf(SystemSettings::class, $this->settings);
+        self::assertSame(McpAccessLevel::UNLIMITED, $this->settings->getMaximumAllowedMcpAccessLevel());
+    }
+
+    public function testCanChangeMaximumAllowedMcpAccessLevel(): void
+    {
+        self::assertInstanceOf(SystemSettings::class, $this->settings);
+        $access = Access::getInstance();
+        $hadSuperUserAccess = $access->hasSuperUserAccess();
+        $access->setSuperUserAccess(true);
+
+        try {
+            $this->settings->maximumMcpAccessLevel->setValue(McpAccessLevel::VIEW);
+            self::assertSame(McpAccessLevel::VIEW, $this->settings->getMaximumAllowedMcpAccessLevel());
+
+            $this->settings->maximumMcpAccessLevel->setValue(McpAccessLevel::WRITE);
+            self::assertSame(McpAccessLevel::WRITE, $this->settings->getMaximumAllowedMcpAccessLevel());
+
+            $this->settings->maximumMcpAccessLevel->setValue(McpAccessLevel::ADMIN);
+            self::assertSame(McpAccessLevel::ADMIN, $this->settings->getMaximumAllowedMcpAccessLevel());
         } finally {
             $access->setSuperUserAccess($hadSuperUserAccess);
         }

@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -131,6 +132,7 @@ class McpServerTest extends IntegrationTestCase
         $systemSettings = StaticContainer::get(SystemSettings::class);
         self::assertInstanceOf(SystemSettings::class, $systemSettings);
         $originalEnableMcpValue = (bool) $systemSettings->enableMcp->getValue();
+        $originalMaximumAllowedMcpAccessLevel = $systemSettings->getMaximumAllowedMcpAccessLevel();
         $originalRawApiAccessMode = $systemSettings->getRawApiAccessMode();
 
         Access::getInstance()->setSuperUserAccess(true);
@@ -141,6 +143,15 @@ class McpServerTest extends IntegrationTestCase
 
             $systemSettings->enableMcp->setValue(true);
             self::assertTrue($systemSettings->isMcpEnabled());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::VIEW);
+            self::assertSame(McpAccessLevel::VIEW, $systemSettings->getMaximumAllowedMcpAccessLevel());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::WRITE);
+            self::assertSame(McpAccessLevel::WRITE, $systemSettings->getMaximumAllowedMcpAccessLevel());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::ADMIN);
+            self::assertSame(McpAccessLevel::ADMIN, $systemSettings->getMaximumAllowedMcpAccessLevel());
 
             $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::READ);
             self::assertSame('read', $systemSettings->getRawApiAccessMode());
@@ -158,6 +169,7 @@ class McpServerTest extends IntegrationTestCase
             self::assertSame('full', $systemSettings->getRawApiAccessMode());
         } finally {
             $systemSettings->enableMcp->setValue($originalEnableMcpValue);
+            $systemSettings->maximumMcpAccessLevel->setValue($originalMaximumAllowedMcpAccessLevel);
             $this->applyRawApiAccessMode($systemSettings, $originalRawApiAccessMode);
             Access::getInstance()->setSuperUserAccess(false);
         }

@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer;
 
 use Piwik\Piwik;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Settings\FieldConfig;
 use Piwik\Settings\Setting;
@@ -26,6 +27,9 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     /** @var Setting */
     public $enableMcp;
+
+    /** @var Setting */
+    public $maximumMcpAccessLevel;
 
     /** @var Setting */
     public $rawApiAccessScope;
@@ -61,6 +65,28 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                     ),
                 ]);
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+            },
+        );
+
+        $this->maximumMcpAccessLevel = $this->makeSetting(
+            'maximum_mcp_access_level',
+            McpAccessLevel::UNLIMITED,
+            FieldConfig::TYPE_STRING,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_MaximumMcpAccessLevelTitle');
+                $field->inlineHelp = implode('<br><br>', [
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpPurpose'),
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpTokens'),
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpSeparateUser'),
+                ]);
+                $field->uiControl = FieldConfig::UI_CONTROL_SINGLE_SELECT;
+                $field->condition = 'enable_mcp==1';
+                $field->availableValues = [
+                    McpAccessLevel::UNLIMITED => Piwik::translate('McpServer_MaximumMcpAccessLevelUnlimited'),
+                    McpAccessLevel::VIEW => Piwik::translate('McpServer_MaximumMcpAccessLevelView'),
+                    McpAccessLevel::WRITE => Piwik::translate('McpServer_MaximumMcpAccessLevelWrite'),
+                    McpAccessLevel::ADMIN => Piwik::translate('McpServer_MaximumMcpAccessLevelAdmin'),
+                ];
             },
         );
 
@@ -137,6 +163,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
     public function isMcpEnabled(): bool
     {
         return (bool) $this->enableMcp->getValue();
+    }
+
+    public function getMaximumAllowedMcpAccessLevel(): string
+    {
+        return McpAccessLevel::normalizeMaximumAllowed($this->maximumMcpAccessLevel->getValue());
     }
 
     public function getRawApiAccessMode(): string
