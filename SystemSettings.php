@@ -51,15 +51,16 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     private function getMcpEndpointUrl(): string
     {
-        $baseUrl = (string) SettingsPiwik::getPiwikUrl();
-
-        return rtrim($baseUrl, '/') . '/index.php?module=API&method=McpServer.mcp&format=mcp';
+        return $this->getNormalizedBaseUrl() . '/index.php?module=API&method=McpServer.mcp&format=mcp';
     }
 
     private function getConnectGuideUrl(): string
     {
-        $baseUrl = (string) SettingsPiwik::getPiwikUrl();
+        return $this->getNormalizedBaseUrl() . '/index.php?module=McpServer&action=connect';
+    }
 
-        return rtrim($baseUrl, '/') . '/index.php?module=McpServer&action=connect';
+    private function getNormalizedBaseUrl(): string
+    {
+        return rtrim((string) SettingsPiwik::getPiwikUrl(), '/');
     }
 }
