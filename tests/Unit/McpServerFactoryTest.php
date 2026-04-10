@@ -140,6 +140,30 @@ class McpServerFactoryTest extends TestCase
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
     }
 
+    public function testBooleanTrueConfigEnablesToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => true];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-bool-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
     public function testToolCallLoggingDisabledSkipsObservedHandlerInjection(): void
     {
         Config::getInstance()->McpServer = ['log_tool_calls' => 0];
@@ -158,6 +182,54 @@ class McpServerFactoryTest extends TestCase
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-2');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testStringZeroConfigDisablesToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => '0'];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-zero-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testStringTrueConfigDoesNotEnableToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => 'true'];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-true-1');
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
