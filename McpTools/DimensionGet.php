@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
 
 /**
@@ -41,9 +41,9 @@ class DimensionGet
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: DimensionDetailToolOutputSchema::ITEM
+        outputSchema: DimensionDetailToolOutputSchema::ITEM,
     )]
     #[Schema(
         type: 'object',
@@ -60,7 +60,7 @@ class DimensionGet
             ],
         ],
         required: ['idSite', 'idDimension'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function get(int $idSite, int $idDimension): array
     {

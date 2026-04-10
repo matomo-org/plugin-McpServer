@@ -49,7 +49,7 @@ class DbSessionStore implements SessionStoreInterface
     {
         $sql = sprintf(
             'SELECT data, expires_at FROM `%s` WHERE id = ? AND login = ?',
-            $this->tableName
+            $this->tableName,
         );
 
         $row = Db::fetchRow($sql, [$id->toRfc4122(), $this->resolveCurrentLogin()]);
@@ -78,7 +78,7 @@ class DbSessionStore implements SessionStoreInterface
         $sql = sprintf(
             'INSERT INTO `%s` (id, login, expires_at, data) VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE login = VALUES(login), expires_at = VALUES(expires_at), data = VALUES(data)',
-            $this->tableName
+            $this->tableName,
         );
 
         Db::query($sql, [$id->toRfc4122(), $login, $expiresAt, $data]);
@@ -104,7 +104,7 @@ class DbSessionStore implements SessionStoreInterface
             $sql = sprintf(
                 'DELETE FROM `%s` WHERE expires_at <= ? ORDER BY expires_at LIMIT %d',
                 $this->tableName,
-                self::GC_BATCH_SIZE
+                self::GC_BATCH_SIZE,
             );
 
             $query = Db::query($sql, [$now]);

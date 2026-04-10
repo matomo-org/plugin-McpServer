@@ -11,15 +11,15 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer;
 
-use Piwik\API\Request as ApiRequest;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
+use Piwik\API\Request as ApiRequest;
+use Piwik\Http\BadRequestException;
 use Piwik\NoAccessException;
 use Piwik\Piwik;
-use Piwik\Http\BadRequestException;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
@@ -33,7 +33,7 @@ class API extends \Piwik\Plugin\API
         private McpEndpointGuard $endpointGuard,
         private JsonRpcErrorResponseFactory $jsonRpcErrorResponseFactory,
         private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor,
-        private SystemSettings $systemSettings
+        private SystemSettings $systemSettings,
     ) {
     }
 
@@ -49,7 +49,7 @@ class API extends \Piwik\Plugin\API
         // If format!=mcp, Matomo will use a non-MCP renderer that cannot serialize PSR-7 responses.
         if ($format !== McpEndpointSpec::FORMAT) {
             throw new BadRequestException(
-                'MCP endpoint requires format=mcp. Use module=API&method=McpServer.mcp&format=mcp.'
+                'MCP endpoint requires format=mcp. Use module=API&method=McpServer.mcp&format=mcp.',
             );
         }
 
@@ -59,7 +59,7 @@ class API extends \Piwik\Plugin\API
             return $errorFactory->create(
                 500,
                 JsonRpcError::INTERNAL_ERROR,
-                McpEndpointSpec::INTERNAL_ERROR
+                McpEndpointSpec::INTERNAL_ERROR,
             );
         }
 
@@ -70,7 +70,7 @@ class API extends \Piwik\Plugin\API
             $requestParams->getStringParameter('module', ''),
             $requestParams->getStringParameter('method', ''),
             $this->isCurrentApiRequestRoot(),
-            $this->getRootApiRequestMethod()
+            $this->getRootApiRequestMethod(),
         );
 
         if ($guardError !== null) {
@@ -88,7 +88,7 @@ class API extends \Piwik\Plugin\API
                 500,
                 JsonRpcError::INTERNAL_ERROR,
                 McpEndpointSpec::INTERNAL_ERROR,
-                $requestId
+                $requestId,
             );
         }
 
@@ -101,12 +101,12 @@ class API extends \Piwik\Plugin\API
             $transport = new StreamableHttpTransport($request);
 
             return $server->run($transport);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return $errorFactory->create(
                 500,
                 JsonRpcError::INTERNAL_ERROR,
                 McpEndpointSpec::INTERNAL_ERROR,
-                $requestId
+                $requestId,
             );
         }
     }
@@ -128,7 +128,7 @@ class API extends \Piwik\Plugin\API
             JsonRpcError::INVALID_REQUEST,
             McpEndpointSpec::UNAUTHORIZED_ERROR,
             $requestId,
-            ['WWW-Authenticate' => 'Bearer realm="mcp"']
+            ['WWW-Authenticate' => 'Bearer realm="mcp"'],
         );
     }
 
@@ -172,7 +172,7 @@ class API extends \Piwik\Plugin\API
             403,
             JsonRpcError::INVALID_REQUEST,
             McpEndpointSpec::DISABLED_ERROR,
-            $topLevelRequestId
+            $topLevelRequestId,
         );
     }
 }

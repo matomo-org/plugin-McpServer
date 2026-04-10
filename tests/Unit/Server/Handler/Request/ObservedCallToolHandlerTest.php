@@ -67,7 +67,7 @@ class ObservedCallToolHandlerTest extends TestCase
                         $context['tool_name'],
                         $context['formatted_arguments'],
                         $context['session_id'],
-                        $context['response_bytes']
+                        $context['response_bytes'],
                     )
                         && $context['mcp_session_id'] === '87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1'
                         && $context['mcp_tool_name'] === 'demo_tool'
@@ -78,7 +78,7 @@ class ObservedCallToolHandlerTest extends TestCase
                         && $context['response_bytes'] === $context['mcp_response_bytes']
                         && is_int($context['mcp_response_bytes'])
                         && $context['mcp_response_bytes'] > 0;
-                })
+                }),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -104,7 +104,7 @@ class ObservedCallToolHandlerTest extends TestCase
                     && ($context['mcp_session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd'
                     && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
                     && ($context['formatted_arguments'] ?? null) === 'query: <string:6>'
-                    && ($context['session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd')
+                    && ($context['session_id'] ?? null) === 'e6b0fd2f-24a8-4a74-bf74-ec56d99963dd'),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -147,7 +147,7 @@ class ObservedCallToolHandlerTest extends TestCase
                     return str_contains($context['error_message'], 'Invalid parameters for tool')
                         && $context['formatted_arguments'] === 'query: <string:6>'
                         && !str_contains($context['formatted_arguments'], 'secret');
-                })
+                }),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -172,7 +172,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ]),
             static function (): void {
                 throw new ToolCallException('Tool execution failed');
-            }
+            },
         );
 
         $logger->expects(self::once())
@@ -183,7 +183,7 @@ class ObservedCallToolHandlerTest extends TestCase
                     && ($context['error_message'] ?? null) === 'Tool execution failed'
                     && ($context['formatted_arguments'] ?? null) === 'id: <int>'
                     && ($context['session_id'] ?? null) === '9d7bbcf8-c0c4-4379-87be-ae04689f80e1'
-                    && ($context['mcp_session_id'] ?? null) === '9d7bbcf8-c0c4-4379-87be-ae04689f80e1')
+                    && ($context['mcp_session_id'] ?? null) === '9d7bbcf8-c0c4-4379-87be-ae04689f80e1'),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -209,7 +209,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ]),
             static function (): void {
                 throw new \RuntimeException('boom');
-            }
+            },
         );
 
         $logger->expects(self::once())
@@ -220,7 +220,7 @@ class ObservedCallToolHandlerTest extends TestCase
                     && ($context['error_message'] ?? null) === 'Error while executing tool'
                     && ($context['formatted_arguments'] ?? null) === 'id: <int>'
                     && ($context['session_id'] ?? null) === 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
-                    && ($context['mcp_session_id'] ?? null) === 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
+                    && ($context['mcp_session_id'] ?? null) === 'f47ac10b-58cc-4372-a567-0e02b2c3d479'),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false);
@@ -313,7 +313,7 @@ class ObservedCallToolHandlerTest extends TestCase
             $observed = $this->createObservedHandler(
                 $registryForObserved,
                 $this->createMock(LoggerInterface::class),
-                false
+                false,
             )->handle($case['request'], $session);
             $sdk = $this->createSdkHandler($registryForSdk)
                 ->handle($case['request'], $session);
@@ -338,7 +338,7 @@ class ObservedCallToolHandlerTest extends TestCase
                 self::callback(static fn(array $context): bool => ($context['mcp_params_mode'] ?? null) === 'full'
                     && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
                     && str_contains((string) ($context['formatted_arguments'] ?? ''), '%253A')
-                    && ($context['session_id'] ?? null) === 'c7f81059-95ee-406e-89b9-a3f3d8f61373')
+                    && ($context['session_id'] ?? null) === 'c7f81059-95ee-406e-89b9-a3f3d8f61373'),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, true);
@@ -359,7 +359,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('warning')
             ->with(
                 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
-                self::isType('array')
+                self::isType('array'),
             );
         $logger->expects(self::never())->method('debug');
 
@@ -381,7 +381,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('info')
             ->with(
                 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
-                self::isType('array')
+                self::isType('array'),
             );
         $logger->expects(self::never())->method('debug');
 
@@ -403,7 +403,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('error')
             ->with(
                 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
-                self::isType('array')
+                self::isType('array'),
             );
         $logger->expects(self::never())->method('debug');
 
@@ -425,7 +425,7 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('debug')
             ->with(
                 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
-                self::isType('array')
+                self::isType('array'),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, false, 'VERBOSE');
@@ -456,14 +456,14 @@ class ObservedCallToolHandlerTest extends TestCase
         Registry $registry,
         LoggerInterface $logger,
         bool $fullParameterLoggingEnabled,
-        string $logLevel = 'DEBUG'
+        string $logLevel = 'DEBUG',
     ): ObservedCallToolHandler {
         return new ObservedCallToolHandler(
             $this->createSdkHandler($registry),
             $logger,
             new ToolCallParameterFormatter(),
             $fullParameterLoggingEnabled,
-            $logLevel
+            $logLevel,
         );
     }
 
@@ -479,7 +479,7 @@ class ObservedCallToolHandlerTest extends TestCase
     {
         $encoded = json_encode(
             $message->jsonSerialize(),
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
         );
 
         return is_string($encoded) ? $encoded : '';

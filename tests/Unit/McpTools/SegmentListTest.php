@@ -41,7 +41,7 @@ class SegmentListTest extends TestCase
         $actual = (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
-            sort: SegmentsPagination::SORT_NAME_ASC
+            sort: SegmentsPagination::SORT_NAME_ASC,
         );
 
         self::assertSame([
@@ -84,7 +84,7 @@ class SegmentListTest extends TestCase
 
         (new SegmentList(
             $wrapper,
-            new PaginatedCollectionResponder(new CursorPaginator())
+            new PaginatedCollectionResponder(new CursorPaginator()),
         ))->list(1, cursor: 'invalid');
     }
 

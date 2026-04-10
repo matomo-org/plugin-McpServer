@@ -23,7 +23,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
 {
     public function __construct(
         private CoreGoalsGatewayInterface $coreGoalsGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 
@@ -50,7 +50,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
         return $this->normalizeGoalSummaryRows(
             $goals,
             'Goal list data is invalid.',
-            'Goal list item'
+            'Goal list item',
         );
     }
 
@@ -81,7 +81,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
     public function normalizeGoalSummaryRows(
         mixed $goals,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($goals)) {
             throw new ToolCallException($invalidDataMessage);

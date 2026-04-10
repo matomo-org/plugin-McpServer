@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
@@ -41,7 +41,7 @@ class GoalListTest extends TestCase
         $actual = (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
-            sort: GoalsPagination::SORT_NAME_ASC
+            sort: GoalsPagination::SORT_NAME_ASC,
         );
 
         self::assertSame([

@@ -34,6 +34,6 @@ interface ReportProcessedQueryServiceInterface
         ?int $idDimension,
         ?int $idSubtable,
         int $filterLimit,
-        int $filterOffset
+        int $filterOffset,
     ): ReportProcessedRecord;
 }

@@ -51,7 +51,7 @@ class ReportSummaryQueryServiceTest extends TestCase
 
         $report = $service->normalizeReportSummaryData(
             $this->makeValidReportSummaryData(),
-            'Report list item'
+            'Report list item',
         );
 
         self::assertSame([
@@ -109,7 +109,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $service->normalizeReportSummaryRows(
             'invalid',
             'Report list data is invalid.',
-            'Report list item'
+            'Report list item',
         );
     }
 
@@ -123,7 +123,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $service->normalizeReportSummaryRows(
             ['invalid'],
             'Report list data is invalid.',
-            'Report list item'
+            'Report list item',
         );
     }
 
@@ -138,7 +138,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeReportSummaryRows(
             [$subtable, $this->makeValidReportSummaryData()],
             'Report list data is invalid.',
-            'Report list item'
+            'Report list item',
         );
 
         self::assertCount(1, $actual);
@@ -156,7 +156,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeReportSummaryRows(
             [$subtable, $this->makeValidReportSummaryData()],
             'Report list data is invalid.',
-            'Report list item'
+            'Report list item',
         );
 
         self::assertCount(1, $actual);

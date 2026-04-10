@@ -20,11 +20,11 @@ use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
 use Piwik\Period\Factory as PeriodFactory;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
-use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
@@ -71,7 +71,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         private CoreApiModuleGatewayInterface $coreApiModuleGateway,
         private TranslatorContextRunnerInterface $translatorContextRunner,
         private StrictSegmentPolicyServiceInterface $strictSegmentPolicy,
-        ?callable $processedReportCaller = null
+        ?callable $processedReportCaller = null,
     ) {
         $this->processedReportCaller = $processedReportCaller;
     }
@@ -95,12 +95,12 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         ?int $idDimension,
         ?int $idSubtable,
         int $filterLimit,
-        int $filterOffset
+        int $filterOffset,
     ): ReportProcessedRecord {
         $this->validatePeriodAndDate($period, $date);
         $normalizedApiParameters = $this->normalizeApiParameters($apiParameters);
         [$genericSafeParameters, $reportSpecificParameters] = $this->splitSafeAndReportSpecificApiParameters(
-            $normalizedApiParameters
+            $normalizedApiParameters,
         );
 
         if ($reportUniqueId !== null) {
@@ -108,7 +108,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             if ($reportSpecificParameters !== []) {
                 throw new ToolCallException(
                     'Invalid apiParameters for reportUniqueId lookup. '
-                    . 'Only safe filter/sort/columns/expanded/flat/label/compare* parameters are allowed.'
+                    . 'Only safe filter/sort/columns/expanded/flat/label/compare* parameters are allowed.',
                 );
             }
         } else {
@@ -120,7 +120,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $idGoal,
                 $idDimension,
                 $period,
-                $date
+                $date,
             );
         }
 
@@ -131,7 +131,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $goalMetricsMode,
             $goalMetricsProcessGoals,
             $idGoal,
-            $reportUsesIdGoalSelector
+            $reportUsesIdGoalSelector,
         );
         $requestParameters = array_merge($genericRequestParameters, $goalRequestParameters);
         $resolvedApiParametersForResponse = array_merge($apiParametersForCall, $requestParameters);
@@ -152,12 +152,12 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             idDimension: $idDimension,
             idSubtable: $idSubtable,
             filterLimit: $effectiveFilterLimit,
-            filterOffset: $effectiveFilterOffset
+            filterOffset: $effectiveFilterOffset,
         );
 
         [$returnedRows, $totalRows, $hasMore] = $this->derivePaginationFromProcessedReport(
             $processed,
-            $effectiveFilterOffset
+            $effectiveFilterOffset,
         );
         $normalizedReport = $this->normalizeProcessedReportPayload($processed);
         $this->throwStrictSegmentGuidanceForEmptySegmentedReportIfNeeded(
@@ -166,7 +166,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $idSite,
             $period,
             $date,
-            $segment
+            $segment,
         );
 
         return new ReportProcessedRecord(
@@ -179,7 +179,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             uniqueId: $reportMetadata->uniqueId,
             apiModule: $reportMetadata->module,
             apiAction: $reportMetadata->action,
-            apiParameters: $resolvedApiParametersForResponse
+            apiParameters: $resolvedApiParametersForResponse,
         );
     }
 
@@ -194,7 +194,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         int|string|null $idGoal,
         ?int $idDimension,
         string $period,
-        string $date
+        string $date,
     ): ReportMetadataRecord {
         try {
             return $this->metadataQueryService->getReportMetadataByModuleAction(
@@ -203,7 +203,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $apiAction,
                 $reportSpecificParameters,
                 $period,
-                $date
+                $date,
             );
         } catch (ToolCallException $e) {
             if (!$this->isReportNotFoundError($e)) {
@@ -213,7 +213,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $fallbackParameters = $this->buildFallbackMetadataLookupParameters(
                 $reportSpecificParameters,
                 $idGoal,
-                $idDimension
+                $idDimension,
             );
             if ($fallbackParameters === null) {
                 throw $e;
@@ -225,7 +225,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $apiAction,
                 $fallbackParameters,
                 $period,
-                $date
+                $date,
             );
         }
     }
@@ -242,7 +242,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private function buildFallbackMetadataLookupParameters(
         array $reportSpecificParameters,
         int|string|null $idGoal,
-        ?int $idDimension
+        ?int $idDimension,
     ): ?array {
         $fallback = $reportSpecificParameters;
         $changed = false;
@@ -285,7 +285,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 || $key === self::GOAL_COLUMNS_PROCESS_GOALS_KEY
             ) {
                 throw new ToolCallException(
-                    "Use top-level goal parameters instead of apiParameters key '{$key}'."
+                    "Use top-level goal parameters instead of apiParameters key '{$key}'.",
                 );
             }
 
@@ -307,7 +307,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         ?string $goalMetricsMode,
         ?array $goalMetricsProcessGoals,
         int|string|null $idGoal,
-        bool $reportUsesIdGoalSelector
+        bool $reportUsesIdGoalSelector,
     ): array {
         $requestParameters = $genericSafeParameters;
         /** @var array<string, string> $goalRequestParameters */
@@ -336,7 +336,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         if ($goalMetricsProcessGoals !== null) {
             $goalRequestParameters[self::GOAL_COLUMNS_PROCESS_GOALS_KEY] = implode(
                 ',',
-                $this->normalizeGoalColumnsProcessGoals($goalMetricsProcessGoals)
+                $this->normalizeGoalColumnsProcessGoals($goalMetricsProcessGoals),
             );
         }
 
@@ -358,7 +358,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         foreach ($goalMetricsProcessGoals as $value) {
             if (!is_int($value) && !is_string($value)) {
                 throw new ToolCallException(
-                    'Invalid goalMetricsProcessGoals value: expected int or int-like string.'
+                    'Invalid goalMetricsProcessGoals value: expected int or int-like string.',
                 );
             }
 
@@ -372,7 +372,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             ) {
                 throw new ToolCallException(
                     "Invalid goalMetricsProcessGoals value '{$stringValue}': expected positive goal ID or "
-                    . 'core ecommerce goal ID (ecommerceOrder, ecommerceAbandonedCart).'
+                    . 'core ecommerce goal ID (ecommerceOrder, ecommerceAbandonedCart).',
                 );
             }
 
@@ -381,7 +381,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         if ($normalized === []) {
             throw new ToolCallException(
-                'Invalid goalMetricsProcessGoals value: at least one goal ID is required.'
+                'Invalid goalMetricsProcessGoals value: at least one goal ID is required.',
             );
         }
 
@@ -458,7 +458,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     {
         try {
             PeriodFactory::build($period, $date);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             throw new ToolCallException('Invalid period/date parameters.');
         }
     }
@@ -480,12 +480,12 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         ?int $idDimension,
         ?int $idSubtable,
         int $filterLimit,
-        int $filterOffset
+        int $filterOffset,
     ): array {
         if ($this->processedReportCaller === null) {
             try {
                 Access::getInstance()->checkUserHasViewAccess($idSite);
-            } catch (NoAccessException $e) {
+            } catch (NoAccessException) {
                 throw new ToolCallException('Report not found.');
             }
         }
@@ -526,14 +526,14 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                     $resolvedRequestParameters,
                     $idGoal,
                     $idDimension,
-                    $idSubtable
+                    $idSubtable,
                 );
             });
-        } catch (NoAccessException $e) {
+        } catch (NoAccessException) {
             throw new ToolCallException('Report not found.');
-        } catch (AccessDeniedLikeException $e) {
+        } catch (AccessDeniedLikeException) {
             throw new ToolCallException('Report not found.');
-        } catch (InfrastructureDataException $e) {
+        } catch (InfrastructureDataException) {
             throw new ToolCallException('Report data is invalid.');
         } catch (CoreApiRequestException $e) {
             $rootCause = $e->getPrevious() ?? $e;
@@ -548,9 +548,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                         $idSite,
                         $period,
                         $date,
-                        $segment
+                        $segment,
                     );
-                } catch (\Throwable $policyError) {
+                } catch (\Throwable) {
                     $shouldMapToStrictSegmentGuidance = false;
                 }
             }
@@ -635,7 +635,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
             [$tableReturnedRows, $tableTotalRows, $tableHasMore] = $this->derivePaginationFromDataTable(
                 $table,
-                $filterOffset
+                $filterOffset,
             );
             $returnedRows = max($returnedRows, $tableReturnedRows);
             $totalRows = max($totalRows, $tableTotalRows);
@@ -692,7 +692,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         int $idSite,
         string $period,
         string $date,
-        ?string $segment
+        ?string $segment,
     ): void {
         if (trim((string) $segment) === '') {
             return;
@@ -707,9 +707,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $idSite,
                 $period,
                 $date,
-                $segment
+                $segment,
             );
-        } catch (\Throwable $policyError) {
+        } catch (\Throwable) {
             $shouldMapToStrictSegmentGuidance = false;
         }
 
@@ -751,7 +751,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         array $requestParameters,
         int|string|null $idGoal,
         ?int $idDimension,
-        ?int $idSubtable
+        ?int $idSubtable,
     ): array {
         if ($this->processedReportCaller !== null) {
             $processed = ($this->processedReportCaller)(
@@ -765,7 +765,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $requestParameters,
                 $idGoal,
                 $idDimension,
-                $idSubtable
+                $idSubtable,
             );
 
             return ToolDataNormalizer::requireStringKeyedArray($processed, 'Report data is invalid.');
@@ -782,7 +782,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $requestParameters,
             $idGoal,
             $idDimension,
-            $idSubtable
+            $idSubtable,
         );
     }
 

@@ -47,7 +47,7 @@ class SiteSearchTest extends TestCase
         $actual = (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->search(
             'site',
             limit: 10,
-            sort: SitesPagination::SORT_NAME_ASC
+            sort: SitesPagination::SORT_NAME_ASC,
         );
 
         self::assertSame([
@@ -100,7 +100,7 @@ class SiteSearchTest extends TestCase
 
         (new SiteSearch(
             $wrapper,
-            new PaginatedCollectionResponder(new CursorPaginator())
+            new PaginatedCollectionResponder(new CursorPaginator()),
         ))->search('site', cursor: 'invalid');
     }
 

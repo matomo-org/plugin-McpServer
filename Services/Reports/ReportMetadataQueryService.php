@@ -27,7 +27,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 {
     public function __construct(
         private CoreProcessedReportGatewayInterface $coreProcessedReportGateway,
-        private TranslatorContextRunnerInterface $translatorContextRunner
+        private TranslatorContextRunnerInterface $translatorContextRunner,
     ) {
     }
 
@@ -38,17 +38,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 function () use ($idSite, $reportUniqueId) {
                     return $this->coreProcessedReportGateway->getReportMetadataByUniqueId(
                         $idSite,
-                        $reportUniqueId
+                        $reportUniqueId,
                     );
-                }
+                },
             );
-        } catch (NoAccessException $e) {
+        } catch (NoAccessException) {
             throw new ToolCallException('Report not found.');
-        } catch (InfrastructureDataException $e) {
+        } catch (InfrastructureDataException) {
             throw new ToolCallException('Report not found.');
         } catch (ToolCallException $e) {
             throw $e;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
             }
@@ -73,7 +73,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         string $apiAction,
         array $apiParameters,
         string $period,
-        string $date
+        string $date,
     ): ReportMetadataRecord {
         $normalizedApiParameters = $this->normalizeParameterObject($apiParameters, 'apiParameters');
         [$normalizedPeriod, $normalizedDate] = $this->normalizeReportMetadataPeriodAndDate($period, $date);
@@ -86,17 +86,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                         $normalizedPeriod,
                         $normalizedDate,
                         false,
-                        false
+                        false,
                     );
-                }
+                },
             );
-        } catch (NoAccessException $e) {
+        } catch (NoAccessException) {
             throw new ToolCallException('Report not found.');
-        } catch (InfrastructureDataException $e) {
+        } catch (InfrastructureDataException) {
             throw new ToolCallException('Report metadata data is invalid.');
         } catch (ToolCallException $e) {
             throw $e;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
                 throw new ToolCallException('Report not found.');
             }
@@ -199,7 +199,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     {
         return ToolDataNormalizer::requireStringKeyedArray(
             $value,
-            "Report metadata item is invalid (field '{$field}')"
+            "Report metadata item is invalid (field '{$field}')",
         );
     }
 
@@ -231,7 +231,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     {
         try {
             $normalizedPeriod = PeriodFactory::build($period, $date);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             throw new ToolCallException('Invalid period/date parameters.');
         }
 

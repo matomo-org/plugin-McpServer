@@ -36,7 +36,7 @@ class DimensionGetTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Dimension Get Test Site',
-            'https://dimension-get.test'
+            'https://dimension-get.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
@@ -47,7 +47,7 @@ class DimensionGetTest extends IntegrationTestCase
             'action',
             1,
             [['dimension' => 'url', 'pattern' => 'customer=(.*)']],
-            false
+            false,
         );
     }
 
@@ -60,7 +60,7 @@ class DimensionGetTest extends IntegrationTestCase
             $sessionId,
             DimensionGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idDimension' => $this->idDimension],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame([
@@ -87,7 +87,7 @@ class DimensionGetTest extends IntegrationTestCase
             DimensionGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idDimension' => 999999],
             'Dimension not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -102,7 +102,7 @@ class DimensionGetTest extends IntegrationTestCase
                 DimensionGet::TOOL_NAME,
                 ['idSite' => $this->idSite, 'idDimension' => $this->idDimension],
                 'Dimension not found.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -116,11 +116,11 @@ class DimensionGetTest extends IntegrationTestCase
             $sessionId,
             DimensionGet::TOOL_NAME,
             ['idSite' => 0, 'idDimension' => $this->idDimension],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionGet::TOOL_NAME . "':",
-            $message->message
+            $message->message,
         );
         self::assertStringContainsString('idSite', $message->message);
     }
@@ -134,11 +134,11 @@ class DimensionGetTest extends IntegrationTestCase
             $sessionId,
             DimensionGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idDimension' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionGet::TOOL_NAME . "':",
-            $message->message
+            $message->message,
         );
         self::assertStringContainsString('idDimension', $message->message);
     }

@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
+use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use Piwik\Plugins\McpServer\Tasks;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer

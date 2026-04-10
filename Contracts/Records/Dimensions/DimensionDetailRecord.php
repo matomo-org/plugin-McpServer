@@ -41,7 +41,7 @@ final class DimensionDetailRecord
         public readonly string $scope,
         public readonly bool $active,
         public readonly bool $caseSensitive,
-        public readonly array $extractions
+        public readonly array $extractions,
     ) {
     }
 

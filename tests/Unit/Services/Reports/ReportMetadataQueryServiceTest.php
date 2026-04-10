@@ -55,7 +55,7 @@ class ReportMetadataQueryServiceTest extends TestCase
 
         $record = $service->normalizeReportMetadataData(
             $this->makeValidReportMetadataData(),
-            'Report metadata item'
+            'Report metadata item',
         );
 
         $actual = $record->toArray();
@@ -82,11 +82,11 @@ class ReportMetadataQueryServiceTest extends TestCase
                     string $period,
                     \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
-                    bool $showSubtableReports
+                    bool $showSubtableReports,
                 ): array {
                     return [];
                 }
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -108,11 +108,11 @@ class ReportMetadataQueryServiceTest extends TestCase
                     string $period,
                     \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
-                    bool $showSubtableReports
+                    bool $showSubtableReports,
                 ): array {
                     return [];
                 }
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -141,11 +141,11 @@ class ReportMetadataQueryServiceTest extends TestCase
                     string $period,
                     \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
-                    bool $showSubtableReports
+                    bool $showSubtableReports,
                 ): array {
                     return [$this->metadata];
                 }
-            }
+            },
         );
 
         $record = $service->getReportMetadataByModuleAction(
@@ -154,7 +154,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             'getPageUrls',
             ['idGoal' => '1'],
             'day',
-            'today'
+            'today',
         );
 
         self::assertSame('Actions_getPageUrls', $record->uniqueId);
@@ -174,11 +174,11 @@ class ReportMetadataQueryServiceTest extends TestCase
                     string $period,
                     \Piwik\Date|string|bool $date,
                     bool $hideMetricsDoc,
-                    bool $showSubtableReports
+                    bool $showSubtableReports,
                 ): array {
                     throw new InfrastructureDataException('Report metadata data is invalid.');
                 }
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -190,7 +190,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             'getPageUrls',
             ['idGoal' => '1'],
             'day',
-            'today'
+            'today',
         );
     }
 
@@ -218,7 +218,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 string $period,
                 \Piwik\Date|string|bool $date,
                 bool $hideMetricsDoc,
-                bool $showSubtableReports
+                bool $showSubtableReports,
             ): array {
                 $this->capturedPeriod = $period;
                 $this->capturedDate = $date;
@@ -234,7 +234,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             'getPageUrls',
             ['idGoal' => '1'],
             'month',
-            'last3'
+            'last3',
         );
 
         self::assertSame('Actions_getPageUrls', $record->uniqueId);
@@ -242,7 +242,7 @@ class ReportMetadataQueryServiceTest extends TestCase
         self::assertIsString($gateway->capturedDate);
         self::assertSame(
             PeriodFactory::build('month', 'last3')->getRangeString(),
-            $gateway->capturedDate
+            $gateway->capturedDate,
         );
     }
 
@@ -270,7 +270,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 string $period,
                 \Piwik\Date|string|bool $date,
                 bool $hideMetricsDoc,
-                bool $showSubtableReports
+                bool $showSubtableReports,
             ): array {
                 $this->capturedPeriod = $period;
                 $this->capturedDate = $date;
@@ -286,7 +286,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             'getPageUrls',
             ['idGoal' => '1'],
             'range',
-            '2015-01-01,2015-01-31'
+            '2015-01-01,2015-01-31',
         );
 
         self::assertSame('Actions_getPageUrls', $record->uniqueId);
@@ -307,12 +307,12 @@ class ReportMetadataQueryServiceTest extends TestCase
             'getPageUrls',
             ['idGoal' => '1'],
             'invalid_period',
-            'today'
+            'today',
         );
     }
 
     private function makeService(
-        ?CoreProcessedReportGatewayInterface $gateway = null
+        ?CoreProcessedReportGatewayInterface $gateway = null,
     ): ReportMetadataQueryService {
         $gateway = $gateway ?? new class () implements CoreProcessedReportGatewayInterface {
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
@@ -325,7 +325,7 @@ class ReportMetadataQueryServiceTest extends TestCase
                 string $period,
                 \Piwik\Date|string|bool $date,
                 bool $hideMetricsDoc,
-                bool $showSubtableReports
+                bool $showSubtableReports,
             ): array {
                 return [];
             }
@@ -340,7 +340,7 @@ class ReportMetadataQueryServiceTest extends TestCase
 
         return new ReportMetadataQueryService(
             $gateway,
-            $translatorRunner
+            $translatorRunner,
         );
     }
 

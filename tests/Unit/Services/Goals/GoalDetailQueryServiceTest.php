@@ -150,7 +150,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
         return new GoalDetailQueryService(
             $this->createMock(CoreGoalsGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

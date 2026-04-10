@@ -87,7 +87,7 @@ final class JsonRpcRequestIdExtractor
 
         try {
             return json_decode($raw, true, 512, \JSON_THROW_ON_ERROR);
-        } catch (\JsonException $e) {
+        } catch (\JsonException) {
             return null;
         }
     }

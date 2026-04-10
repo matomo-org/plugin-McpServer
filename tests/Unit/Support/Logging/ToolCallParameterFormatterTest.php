@@ -38,7 +38,7 @@ class ToolCallParameterFormatterTest extends TestCase
         self::assertSame(
             'idGoal: <int>, ratio: <float>, enabled: <bool>, optional: <null>, '
             . 'segment: <string:11>, list: <array:2>, filter: <object:1>, obj: <object:stdClass>',
-            $formatted
+            $formatted,
         );
     }
 
@@ -55,7 +55,7 @@ class ToolCallParameterFormatterTest extends TestCase
 
         self::assertSame(
             'idGoal: 4, segment: "country==de", enabled: true, filter: {"contains":"foo"}',
-            $formatted
+            $formatted,
         );
     }
 

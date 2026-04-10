@@ -22,7 +22,7 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
 {
     public function __construct(
-        private CoreSitesManagerGatewayInterface $coreSitesManagerGateway
+        private CoreSitesManagerGatewayInterface $coreSitesManagerGateway,
     ) {
     }
 
@@ -34,7 +34,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
         return $this->fetchSiteSummaries(
             search: '',
             invalidDataMessage: 'Site list data is invalid.',
-            context: 'Site list item'
+            context: 'Site list item',
         );
     }
 
@@ -46,7 +46,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
         return $this->fetchSiteSummaries(
             search: $search,
             invalidDataMessage: 'Site search data is invalid.',
-            context: 'Site search item'
+            context: 'Site search item',
         );
     }
 
@@ -73,7 +73,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
     public function normalizeSiteSummaryRows(
         mixed $sites,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($sites)) {
             throw new ToolCallException($invalidDataMessage);

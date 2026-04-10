@@ -32,7 +32,7 @@ final class ReportSummaryRecord
         public readonly string $action,
         public readonly string $name,
         public readonly string $category,
-        public readonly array $parameters
+        public readonly array $parameters,
     ) {
     }
 

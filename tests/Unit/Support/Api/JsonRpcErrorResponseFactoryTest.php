@@ -12,9 +12,9 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Api;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer
@@ -31,7 +31,7 @@ class JsonRpcErrorResponseFactoryTest extends TestCase
             JsonRpcError::INVALID_REQUEST,
             'Authentication required.',
             'request-1',
-            ['WWW-Authenticate' => 'Bearer realm="mcp"']
+            ['WWW-Authenticate' => 'Bearer realm="mcp"'],
         );
 
         self::assertSame(401, $response->getStatusCode());

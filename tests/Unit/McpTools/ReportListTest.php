@@ -38,7 +38,7 @@ class ReportListTest extends TestCase
                         'get',
                         'Overview',
                         'Visits Summary',
-                        []
+                        [],
                     ),
                     new ReportSummaryRecord(
                         'Actions_getPageUrls',
@@ -46,7 +46,7 @@ class ReportListTest extends TestCase
                         'getPageUrls',
                         'Page URLs',
                         'Actions',
-                        ['foo' => 'bar']
+                        ['foo' => 'bar'],
                     ),
                 ];
             }
@@ -55,7 +55,7 @@ class ReportListTest extends TestCase
         $actual = (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
-            sort: ReportsPagination::SORT_CATEGORY_ASC
+            sort: ReportsPagination::SORT_CATEGORY_ASC,
         );
 
         self::assertEquals([
@@ -125,7 +125,7 @@ class ReportListTest extends TestCase
                         'get',
                         'Overview',
                         'Visits',
-                        []
+                        [],
                     ),
                     new ReportSummaryRecord(
                         'Actions_getPageUrls',
@@ -133,7 +133,7 @@ class ReportListTest extends TestCase
                         'getPageUrls',
                         'Page URLs',
                         'Actions',
-                        []
+                        [],
                     ),
                 ];
             }
@@ -162,7 +162,7 @@ class ReportListTest extends TestCase
                         'get',
                         'Overview',
                         'Visits',
-                        []
+                        [],
                     ),
                     new ReportSummaryRecord(
                         'Actions_getPageUrls',
@@ -170,7 +170,7 @@ class ReportListTest extends TestCase
                         'getPageUrls',
                         'Page URLs',
                         'Actions',
-                        []
+                        [],
                     ),
                 ];
             }

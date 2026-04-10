@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Framework;
 
-use Piwik\API\Request;
 use Piwik\Access;
+use Piwik\API\Request;
 use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\Piwik;
@@ -121,7 +121,7 @@ final class McpAuthTestHelper
             $login,
             $tokenAuth,
             'MCP no access test token',
-            Date::now()->getDatetime()
+            Date::now()->getDatetime(),
         );
 
         return [
@@ -144,7 +144,7 @@ final class McpAuthTestHelper
             $login,
             $tokenAuth,
             'MCP view access test token',
-            Date::now()->getDatetime()
+            Date::now()->getDatetime(),
         );
         UsersManagerApi::getInstance()->setUserAccess($login, 'view', [$idSite]);
 

@@ -33,7 +33,7 @@ class CoreGoalsGatewayTest extends TestCase
                     ['idgoal' => '2', 'name' => 'Goal Alpha'],
                     ['idgoal' => '3', 'name' => 'Goal Beta'],
                 ];
-            }
+            },
         );
         $result = $gateway->getGoals(5);
 
@@ -47,7 +47,7 @@ class CoreGoalsGatewayTest extends TestCase
         $gateway = new CoreGoalsGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return ['unexpected' => 'shape'];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -63,7 +63,7 @@ class CoreGoalsGatewayTest extends TestCase
                     ['idgoal' => '2', 'name' => 'Goal Alpha'],
                     ['invalid-row'],
                 ];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -80,7 +80,7 @@ class CoreGoalsGatewayTest extends TestCase
                 self::assertSame([], $defaultRequest);
 
                 return ['idgoal' => '3', 'name' => 'Goal Detail'];
-            }
+            },
         );
         $result = $gateway->getGoal(5, 3);
 
@@ -92,7 +92,7 @@ class CoreGoalsGatewayTest extends TestCase
         $gateway = new CoreGoalsGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return ['invalid-row'];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);

@@ -23,7 +23,7 @@ final class PageResult
         public readonly array $items,
         public readonly ?string $nextCursor,
         public readonly bool $hasMore,
-        public readonly int $totalRows
+        public readonly int $totalRows,
     ) {
     }
 }

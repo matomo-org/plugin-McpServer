@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
@@ -19,7 +20,6 @@ use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer
@@ -46,7 +46,7 @@ class SiteListTest extends TestCase
 
         $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             limit: 10,
-            sort: SitesPagination::SORT_NAME_ASC
+            sort: SitesPagination::SORT_NAME_ASC,
         );
 
         self::assertSame([

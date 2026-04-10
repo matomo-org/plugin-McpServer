@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
@@ -41,7 +41,7 @@ class DimensionListTest extends TestCase
         $actual = (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
             1,
             limit: 10,
-            sort: DimensionsPagination::SORT_NAME_ASC
+            sort: DimensionsPagination::SORT_NAME_ASC,
         );
 
         self::assertSame([
@@ -92,7 +92,7 @@ class DimensionListTest extends TestCase
 
         (new DimensionList(
             $wrapper,
-            new PaginatedCollectionResponder(new CursorPaginator())
+            new PaginatedCollectionResponder(new CursorPaginator()),
         ))->list(1, cursor: 'invalid');
     }
 

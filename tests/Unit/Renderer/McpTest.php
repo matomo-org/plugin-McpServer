@@ -13,9 +13,9 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Renderer;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use PHPUnit\Framework\TestCase;
 use Piwik\Http\BadRequestException;
 use Piwik\Plugins\McpServer\Renderer\Mcp;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer
@@ -49,7 +49,7 @@ class McpTest extends TestCase
                 ['header' => 'Content-Type: application/json', 'replace' => false],
                 ['header' => 'Mcp-Session-Id: session-1', 'replace' => false],
             ],
-            $renderer->headers
+            $renderer->headers,
         );
     }
 
@@ -77,12 +77,12 @@ class McpTest extends TestCase
 
         $payload = $renderer->renderException(
             'Bad request payload',
-            new BadRequestException('bad', 400)
+            new BadRequestException('bad', 400),
         );
 
         self::assertSame(
             '{"jsonrpc":"2.0","id":"","error":{"code":-32600,"message":"Bad request payload"}}',
-            $payload
+            $payload,
         );
         self::assertSame('Content-Type: application/json', $renderer->headers[0]['header']);
         self::assertTrue($renderer->headers[0]['replace']);
@@ -97,9 +97,9 @@ class McpTest extends TestCase
         self::assertSame(
             sprintf(
                 '{"jsonrpc":"2.0","id":"","error":{"code":%d,"message":"Internal endpoint error."}}',
-                JsonRpcError::INTERNAL_ERROR
+                JsonRpcError::INTERNAL_ERROR,
             ),
-            $payload
+            $payload,
         );
     }
 }

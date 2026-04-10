@@ -16,19 +16,19 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
+use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -197,7 +197,7 @@ class APITest extends TestCase
             ->willReturn('McpServer.mcp');
         $api->method('checkUserHasSomeViewAccess')
             ->willThrowException(
-                new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access'))
+                new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access')),
             );
 
         $result = $api->mcp();
@@ -300,7 +300,7 @@ class APITest extends TestCase
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
     }
 
@@ -308,7 +308,7 @@ class APITest extends TestCase
         ServerRequestInterface $request,
         bool $isRootApiRequest = true,
         ?string $rootApiMethod = 'McpServer.mcp',
-        bool $isMcpEnabled = true
+        bool $isMcpEnabled = true,
     ): API {
         $factory = $this->createFactory();
 

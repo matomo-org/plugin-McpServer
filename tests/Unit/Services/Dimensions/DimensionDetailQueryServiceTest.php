@@ -140,7 +140,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
         return new DimensionDetailQueryService(
             $this->createMock(CoreCustomDimensionsGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

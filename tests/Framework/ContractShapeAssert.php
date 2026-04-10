@@ -36,7 +36,7 @@ final class ContractShapeAssert
         $selectedType = self::selectMatchingType($types, $data);
         Assert::assertNotNull(
             $selectedType,
-            'Type mismatch at ' . $path . '. Allowed: ' . implode(', ', $types)
+            'Type mismatch at ' . $path . '. Allowed: ' . implode(', ', $types),
         );
 
         if ($selectedType === 'object') {
@@ -120,7 +120,7 @@ final class ContractShapeAssert
                 Assert::assertArrayHasKey(
                     $key,
                     $properties,
-                    'Unexpected key at ' . $path . '.' . $key
+                    'Unexpected key at ' . $path . '.' . $key,
                 );
             }
         }

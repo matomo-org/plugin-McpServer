@@ -23,7 +23,7 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
 {
     public function __construct(
         private CoreCustomDimensionsGatewayInterface $coreCustomDimensionsGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 
@@ -50,7 +50,7 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
         return $this->normalizeDimensionSummaryRows(
             $dimensions,
             'Dimension list data is invalid.',
-            'Dimension list item'
+            'Dimension list item',
         );
     }
 
@@ -76,7 +76,7 @@ final class DimensionSummaryQueryService implements DimensionSummaryQueryService
     public function normalizeDimensionSummaryRows(
         mixed $dimensions,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($dimensions)) {
             throw new ToolCallException($invalidDataMessage);

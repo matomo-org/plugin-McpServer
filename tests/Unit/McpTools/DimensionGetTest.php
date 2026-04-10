@@ -13,8 +13,8 @@ namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
-use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 
 /**
@@ -36,7 +36,7 @@ class DimensionGetTest extends TestCase
                     scope: 'visit',
                     active: true,
                     caseSensitive: false,
-                    extractions: []
+                    extractions: [],
                 );
             }
         };
@@ -76,7 +76,7 @@ class DimensionGetTest extends TestCase
                     scope: 'action',
                     active: false,
                     caseSensitive: true,
-                    extractions: [['dimension' => 'url', 'pattern' => '(.*)']]
+                    extractions: [['dimension' => 'url', 'pattern' => '(.*)']],
                 );
             }
         };

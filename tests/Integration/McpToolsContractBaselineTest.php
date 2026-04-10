@@ -72,26 +72,26 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             '2015-01-01 00:00:00',
             0,
             'MCP Contract Baseline Site ' . $suffix,
-            'https://baseline-main.test'
+            'https://baseline-main.test',
         );
         Fixture::createWebsite(
             '2015-01-01 00:00:00',
             0,
             'MCP Contract Searchable Site ' . $suffix,
-            'https://baseline-search.test'
+            'https://baseline-search.test',
         );
 
         $this->idSegment = SegmentEditorApi::getInstance()->add(
             'MCP Contract Segment ' . $suffix,
             'countryCode==de',
-            $this->idSite
+            $this->idSite,
         );
 
         $this->idDimension = (int) CustomDimensionsApi::getInstance()->configureNewCustomDimension(
             $this->idSite,
             'MCP Contract Dimension ' . $suffix,
             'action',
-            1
+            1,
         );
 
         $this->idGoal = (int) GoalsApi::getInstance()->addGoal(
@@ -104,14 +104,14 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             false,
             true,
             'MCP Contract Goal Description',
-            true
+            true,
         );
 
         $tracker = Fixture::getTracker(
             $this->idSite,
             '2015-01-03 12:00:00',
             $defaultInit = true,
-            $useLocal = true
+            $useLocal = true,
         );
         $tracker->setUrl('https://baseline-main.test/page-a');
         Fixture::checkResponse($tracker->doTrackPageView('page-a'));
@@ -131,7 +131,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     public function testToolSuccessShape(
         string $toolName,
         string $successArgumentsMethod,
-        array $expectedSchema
+        array $expectedSchema,
     ): void {
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -161,7 +161,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportProcessed::TOOL_NAME,
             $this->reportProcessedSuccessArguments(),
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -183,7 +183,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
                 'apiAction' => 'getPageUrls',
                 'apiParameters' => [],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -225,7 +225,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportList::TOOL_NAME,
             $this->reportListSuccessArguments(),
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -400,7 +400,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             SiteGet::TOOL_NAME,
             ['idSite' => 999999],
             'Site not found or access denied.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -412,7 +412,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             SiteList::TOOL_NAME,
             ['cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -424,7 +424,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             SiteSearch::TOOL_NAME,
             ['search' => 'Contract Searchable', 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -436,7 +436,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             SegmentGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idSegment' => 999999],
             'Segment not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -448,7 +448,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -460,7 +460,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             DimensionGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idDimension' => 999999],
             'Dimension not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -472,7 +472,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -484,7 +484,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             GoalGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idGoal' => 999999],
             'Goal not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -496,7 +496,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -508,7 +508,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -520,7 +520,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             ReportMetadata::TOOL_NAME,
             ['idSite' => $this->idSite, 'reportUniqueId' => 'not-a-real-report-id'],
             'Report not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -538,7 +538,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
                 'apiParameters' => ['method' => 'VisitsSummary.get'],
             ],
             "Unsupported apiParameters key 'method'.",
-            __METHOD__
+            __METHOD__,
         );
     }
 

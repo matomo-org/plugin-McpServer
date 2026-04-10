@@ -33,7 +33,7 @@ class CoreSitesManagerGatewayTest extends TestCase
                     ['idsite' => '1', 'name' => 'Site Alpha'],
                     ['idsite' => '2', 'name' => 'Site Beta'],
                 ];
-            }
+            },
         );
         $result = $gateway->getSitesWithMinimumAccess('view', 'site', 2);
 
@@ -47,7 +47,7 @@ class CoreSitesManagerGatewayTest extends TestCase
         $gateway = new CoreSitesManagerGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return ['unexpected' => 'shape'];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -63,7 +63,7 @@ class CoreSitesManagerGatewayTest extends TestCase
                     ['idsite' => '1', 'name' => 'Site Alpha'],
                     ['invalid-row'],
                 ];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -80,7 +80,7 @@ class CoreSitesManagerGatewayTest extends TestCase
                 self::assertSame([], $defaultRequest);
 
                 return ['idsite' => '4', 'name' => 'Site Detail'];
-            }
+            },
         );
         $result = $gateway->getSiteFromId(4);
 
@@ -92,7 +92,7 @@ class CoreSitesManagerGatewayTest extends TestCase
         $gateway = new CoreSitesManagerGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return ['invalid-row'];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);

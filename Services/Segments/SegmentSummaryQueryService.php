@@ -23,7 +23,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
 {
     public function __construct(
         private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 
@@ -50,7 +50,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
         return $this->normalizeSegmentSummaryRows(
             $segments,
             'Segment list data is invalid.',
-            'Segment list item'
+            'Segment list item',
         );
     }
 
@@ -79,7 +79,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
     public function normalizeSegmentSummaryRows(
         mixed $segments,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($segments)) {
             throw new ToolCallException($invalidDataMessage);

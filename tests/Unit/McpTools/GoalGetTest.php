@@ -39,7 +39,7 @@ class GoalGetTest extends TestCase
                     eventValueAsRevenue: false,
                     pattern: 'evt-alpha',
                     patternType: 'exact',
-                    caseSensitive: false
+                    caseSensitive: false,
                 );
             }
         };
@@ -85,7 +85,7 @@ class GoalGetTest extends TestCase
                     eventValueAsRevenue: false,
                     pattern: null,
                     patternType: null,
-                    caseSensitive: null
+                    caseSensitive: null,
                 );
             }
         };

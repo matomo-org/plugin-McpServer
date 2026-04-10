@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
@@ -30,7 +30,7 @@ class GoalList
 
     public function __construct(
         private GoalSummaryQueryServiceInterface $queryService,
-        private PaginatedCollectionResponder $paginationResponder
+        private PaginatedCollectionResponder $paginationResponder,
     ) {
     }
 
@@ -51,9 +51,9 @@ class GoalList
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST
+        outputSchema: GoalSummaryToolOutputSchema::PAGINATED_LIST,
     )]
     #[Schema(
         type: 'object',
@@ -85,7 +85,7 @@ class GoalList
             ],
         ],
         required: ['idSite'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {

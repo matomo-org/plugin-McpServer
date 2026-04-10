@@ -47,7 +47,7 @@ final class ReportProcessedRecord
         public readonly string $uniqueId,
         public readonly string $apiModule,
         public readonly string $apiAction,
-        public readonly array $apiParameters
+        public readonly array $apiParameters,
     ) {
     }
 

@@ -90,7 +90,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
         $service->normalizeSegmentSummaryRows(
             'invalid',
             'Segment list data is invalid.',
-            'Segment list item'
+            'Segment list item',
         );
     }
 
@@ -104,7 +104,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
         $service->normalizeSegmentSummaryRows(
             ['invalid'],
             'Segment list data is invalid.',
-            'Segment list item'
+            'Segment list item',
         );
     }
 
@@ -117,7 +117,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeSegmentSummaryRows(
             [$data],
             'Segment list data is invalid.',
-            'Segment list item'
+            'Segment list item',
         );
 
         self::assertCount(1, $actual);
@@ -149,7 +149,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
         return new SegmentSummaryQueryService(
             $this->createMock(CoreSegmentEditorGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

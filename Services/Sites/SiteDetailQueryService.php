@@ -21,7 +21,7 @@ use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
 {
     public function __construct(
-        private CoreSitesManagerGatewayInterface $coreSitesManagerGateway
+        private CoreSitesManagerGatewayInterface $coreSitesManagerGateway,
     ) {
     }
 

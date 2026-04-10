@@ -39,13 +39,13 @@ class DimensionListTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Dimension Test Site',
-            'https://dimension.test'
+            'https://dimension.test',
         );
         $this->idSiteOther = Fixture::createWebsite(
             '2010-01-01 00:00:00',
             0,
             'MCP Dimension Other Test Site',
-            'https://dimension-other.test'
+            'https://dimension-other.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__), 0, 8);
@@ -53,25 +53,25 @@ class DimensionListTest extends IntegrationTestCase
             $this->idSite,
             'MCP Dimension Alpha ' . $suffix,
             'visit',
-            1
+            1,
         );
         $this->idDimensionBeta = (int) CustomDimensionsApi::getInstance()->configureNewCustomDimension(
             $this->idSite,
             'MCP Dimension Beta ' . $suffix,
             'action',
-            1
+            1,
         );
         $this->idDimensionGamma = (int) CustomDimensionsApi::getInstance()->configureNewCustomDimension(
             $this->idSite,
             'MCP Dimension Gamma ' . $suffix,
             'visit',
-            1
+            1,
         );
         CustomDimensionsApi::getInstance()->configureNewCustomDimension(
             $this->idSite,
             'MCP Dimension Inactive ' . $suffix,
             'action',
-            0
+            0,
         );
     }
 
@@ -84,7 +84,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
 
         self::assertIsArray($firstPage['dimensions'] ?? null);
@@ -98,7 +98,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
 
         self::assertIsArray($secondPage['dimensions'] ?? null);
@@ -117,7 +117,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 25],
-            __METHOD__
+            __METHOD__,
         );
 
         $dimensions = $content['dimensions'] ?? null;
@@ -143,7 +143,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 3, 'sort' => DimensionsPagination::SORT_ID_DESC],
-            __METHOD__
+            __METHOD__,
         );
         $dimensions = $content['dimensions'] ?? null;
         self::assertIsArray($dimensions);
@@ -160,7 +160,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => DimensionsPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $dimensions = $firstPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
@@ -171,7 +171,7 @@ class DimensionListTest extends IntegrationTestCase
             $this->idSite,
             'MCP Dimension Delta ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'visit',
-            1
+            1,
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -184,7 +184,7 @@ class DimensionListTest extends IntegrationTestCase
                 'sort' => DimensionsPagination::SORT_ID_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $dimensions = $secondPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
@@ -202,7 +202,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => DimensionsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $dimensions = $firstPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
@@ -213,7 +213,7 @@ class DimensionListTest extends IntegrationTestCase
             $this->idSite,
             'MCP Dimension Aaron ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'visit',
-            1
+            1,
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -226,7 +226,7 @@ class DimensionListTest extends IntegrationTestCase
                 'sort' => DimensionsPagination::SORT_NAME_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $dimensions = $secondPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
@@ -243,11 +243,11 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('limit', $message->message ?? '');
     }
@@ -261,11 +261,11 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'sort' => 'invalid'],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('sort', $message->message ?? '');
     }
@@ -280,7 +280,7 @@ class DimensionListTest extends IntegrationTestCase
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -294,7 +294,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => DimensionsPagination::SORT_ID_DESC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -305,7 +305,7 @@ class DimensionListTest extends IntegrationTestCase
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => $nextCursor, 'sort' => DimensionsPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -319,7 +319,7 @@ class DimensionListTest extends IntegrationTestCase
             $sessionId,
             DimensionList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => DimensionsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -334,7 +334,7 @@ class DimensionListTest extends IntegrationTestCase
                 'sort' => DimensionsPagination::SORT_NAME_ASC,
             ],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -348,7 +348,7 @@ class DimensionListTest extends IntegrationTestCase
                 $sessionId,
                 DimensionList::TOOL_NAME,
                 ['idSite' => $this->idSite],
-                __METHOD__
+                __METHOD__,
             );
             self::assertSame([], $content['dimensions'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);

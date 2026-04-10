@@ -14,17 +14,17 @@ namespace Piwik\Plugins\McpServer\tests\Integration;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
-use Piwik\API\Request as ApiRequest;
 use Piwik\Access;
+use Piwik\API\Request as ApiRequest;
 use Piwik\Container\StaticContainer;
 use Piwik\FrontController;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -192,7 +192,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $_GET['format'] = 'mcp';
 
         $api = $this->createApiWithRequest(
-            $this->createRequest(McpTestHelper::makeInitializeRequest('disabled-auth-1'))
+            $this->createRequest(McpTestHelper::makeInitializeRequest('disabled-auth-1')),
         );
         $response = $api->mcp();
         $error = McpTestHelper::decodeError($response);

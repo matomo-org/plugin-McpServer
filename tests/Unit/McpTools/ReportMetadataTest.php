@@ -35,7 +35,7 @@ class ReportMetadataTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: ['uniqueId' => $reportUniqueId, 'module' => 'Actions', 'action' => 'getPageUrls']
+                    metadata: ['uniqueId' => $reportUniqueId, 'module' => 'Actions', 'action' => 'getPageUrls'],
                 );
             }
 
@@ -45,7 +45,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 throw new \RuntimeException('unexpected');
             }
@@ -75,7 +75,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 $this->captured = [
                     'idSite' => $idSite,
@@ -93,7 +93,7 @@ class ReportMetadataTest extends TestCase
                     name: 'Overview',
                     category: 'Visits Summary',
                     parameters: $apiParameters,
-                    metadata: ['module' => $apiModule, 'action' => $apiAction]
+                    metadata: ['module' => $apiModule, 'action' => $apiAction],
                 );
             }
         };
@@ -125,7 +125,7 @@ class ReportMetadataTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: ['uniqueId' => $reportUniqueId]
+                    metadata: ['uniqueId' => $reportUniqueId],
                 );
             }
 
@@ -135,7 +135,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 throw new \RuntimeException('unexpected');
             }
@@ -145,7 +145,7 @@ class ReportMetadataTest extends TestCase
             idSite: 1,
             reportUniqueId: 'Actions_getPageUrls',
             period: 'week',
-            date: 'today'
+            date: 'today',
         );
 
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
@@ -170,7 +170,7 @@ class ReportMetadataTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: ['uniqueId' => $reportUniqueId]
+                    metadata: ['uniqueId' => $reportUniqueId],
                 );
             }
 
@@ -180,7 +180,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 throw new \RuntimeException('unexpected');
             }
@@ -189,7 +189,7 @@ class ReportMetadataTest extends TestCase
         $actual = (new ReportMetadata($wrapper))->get(
             idSite: 1,
             reportUniqueId: 'Actions_getPageUrls',
-            apiParameters: []
+            apiParameters: [],
         );
 
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
@@ -210,7 +210,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 throw new \RuntimeException('unexpected');
             }
@@ -222,7 +222,7 @@ class ReportMetadataTest extends TestCase
         (new ReportMetadata($wrapper))->get(
             idSite: 1,
             reportUniqueId: 'Actions_getPageUrls',
-            apiModule: 'Actions'
+            apiModule: 'Actions',
         );
     }
 
@@ -240,7 +240,7 @@ class ReportMetadataTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 throw new \RuntimeException('unexpected');
             }

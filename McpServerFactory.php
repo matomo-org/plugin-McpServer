@@ -11,15 +11,15 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
-use Piwik\Plugin\Manager;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
@@ -35,7 +35,7 @@ final class McpServerFactory
         private LoggerInterface $logger,
         private SessionStoreInterface $sessionStore,
         private ContainerInterface $container,
-        private ToolCallParameterFormatter $toolCallParameterFormatter
+        private ToolCallParameterFormatter $toolCallParameterFormatter,
     ) {
     }
 
@@ -74,7 +74,7 @@ final class McpServerFactory
                 $this->logger,
                 $this->toolCallParameterFormatter,
                 $loggingConfig['logFullParameters'],
-                $loggingConfig['logLevel']
+                $loggingConfig['logLevel'],
             ));
         }
 

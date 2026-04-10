@@ -104,7 +104,7 @@ class GoalSummaryQueryServiceTest extends TestCase
         $service->normalizeGoalSummaryRows(
             'invalid',
             'Goal list data is invalid.',
-            'Goal list item'
+            'Goal list item',
         );
     }
 
@@ -118,7 +118,7 @@ class GoalSummaryQueryServiceTest extends TestCase
         $service->normalizeGoalSummaryRows(
             ['invalid'],
             'Goal list data is invalid.',
-            'Goal list item'
+            'Goal list item',
         );
     }
 
@@ -129,7 +129,7 @@ class GoalSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeGoalSummaryRows(
             [$this->makeValidGoalSummaryData()],
             'Goal list data is invalid.',
-            'Goal list item'
+            'Goal list item',
         );
 
         self::assertCount(1, $actual);
@@ -169,7 +169,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
         return new GoalSummaryQueryService(
             $this->createMock(CoreGoalsGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

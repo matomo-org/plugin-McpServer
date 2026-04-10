@@ -24,7 +24,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
 {
     public function __construct(
         private CoreSegmentEditorGatewayInterface $coreSegmentEditorGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 
@@ -52,7 +52,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         return $this->normalizeSegmentDetailRows(
             $segments,
             'Segment detail data is invalid.',
-            'Segment detail item'
+            'Segment detail item',
         );
     }
 
@@ -60,7 +60,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         int $idSite,
         ?int $idSegment = null,
         ?string $name = null,
-        ?string $definition = null
+        ?string $definition = null,
     ): SegmentDetailRecord {
         $segments = $this->getSegmentDetailsForSite($idSite);
         $matches = array_values(array_filter(
@@ -75,7 +75,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
                 }
 
                 return $segment->definition === $definition;
-            }
+            },
         ));
 
         if ($matches === []) {
@@ -117,7 +117,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
     public function normalizeSegmentDetailRows(
         mixed $segments,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($segments)) {
             throw new ToolCallException($invalidDataMessage);

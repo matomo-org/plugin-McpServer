@@ -12,10 +12,10 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @group McpServer
@@ -38,7 +38,7 @@ class SiteGetTest extends TestCase
                     currencyName: 'Euro',
                     ecommerce: false,
                     siteSearch: true,
-                    type: 'website'
+                    type: 'website',
                 );
             }
         };

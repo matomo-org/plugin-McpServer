@@ -15,8 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
@@ -44,9 +44,9 @@ class ReportMetadata
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: ReportMetadataToolOutputSchema::ITEM
+        outputSchema: ReportMetadataToolOutputSchema::ITEM,
     )]
     #[Schema(definition: [
         'type' => 'object',
@@ -159,7 +159,7 @@ class ReportMetadata
         ?string $apiAction = null,
         ?string $period = null,
         ?string $date = null,
-        ?array $apiParameters = null
+        ?array $apiParameters = null,
     ): array {
         $apiParameters = $apiParameters === null
             ? null
@@ -173,7 +173,7 @@ class ReportMetadata
             ) {
                 throw new ToolCallException(
                     'Invalid parameter combination: reportUniqueId cannot be combined '
-                    . 'with apiModule, apiAction, or non-empty apiParameters.'
+                    . 'with apiModule, apiAction, or non-empty apiParameters.',
                 );
             }
 
@@ -186,7 +186,7 @@ class ReportMetadata
             (string) $apiAction,
             $apiParameters ?? [],
             $period ?? 'day',
-            $date ?? 'today'
+            $date ?? 'today',
         )->toArray();
     }
 }

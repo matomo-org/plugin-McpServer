@@ -23,7 +23,7 @@ final class DimensionSummaryRecord
     public function __construct(
         public readonly int $idDimension,
         public readonly string $name,
-        public readonly string $scope
+        public readonly string $scope,
     ) {
     }
 

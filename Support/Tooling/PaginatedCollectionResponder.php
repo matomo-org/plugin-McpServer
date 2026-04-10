@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\Support\Tooling;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
+use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
 use Piwik\Plugins\McpServer\Support\Pagination\PaginationConfig;
 
@@ -42,7 +42,7 @@ final class PaginatedCollectionResponder
         ?string $cursor = null,
         ?string $sort = null,
         ?string $cursorContext = null,
-        ?callable $recordToSortData = null
+        ?callable $recordToSortData = null,
     ): array {
         $sort = $sort ?? $defaultSortToken;
         $sortSpec = $paginationConfig->getSortSpec($sort);
@@ -70,7 +70,7 @@ final class PaginatedCollectionResponder
         $page = $this->paginator->paginate(
             $rows,
             new PageRequest($limit, $sort, $cursor, $cursorContext),
-            $paginationConfig
+            $paginationConfig,
         );
 
         /** @var list<TItem> $items */

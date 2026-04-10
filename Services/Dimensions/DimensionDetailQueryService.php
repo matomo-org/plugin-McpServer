@@ -24,7 +24,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
 {
     public function __construct(
         private CoreCustomDimensionsGatewayInterface $coreCustomDimensionsGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 
@@ -51,7 +51,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
             $candidateId = ToolDataNormalizer::requireIntLikeField(
                 $dimensionData,
                 'idcustomdimension',
-                'Dimension data'
+                'Dimension data',
             );
 
             if ($candidateId !== $idDimension) {
@@ -96,7 +96,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
         foreach ($extractions as $extraction) {
             $extractionData = ToolDataNormalizer::requireStringKeyedArray(
                 $extraction,
-                "{$context} is invalid (field 'extractions')"
+                "{$context} is invalid (field 'extractions')",
             );
 
             $result[] = [

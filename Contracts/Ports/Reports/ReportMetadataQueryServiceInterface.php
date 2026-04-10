@@ -26,6 +26,6 @@ interface ReportMetadataQueryServiceInterface
         string $apiAction,
         array $apiParameters,
         string $period,
-        string $date
+        string $date,
     ): ReportMetadataRecord;
 }

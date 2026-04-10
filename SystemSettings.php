@@ -36,11 +36,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                     Piwik::translate('McpServer_EnableMcpHelpUrl', ['<code>', $this->getMcpEndpointUrl(), '</code>']),
                     Piwik::translate(
                         'McpServer_EnableMcpHelpConnectGuide',
-                        ['<a href="' . $this->getConnectGuideUrl() . '">', '</a>']
+                        ['<a href="' . $this->getConnectGuideUrl() . '">', '</a>'],
                     ),
                 ]);
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
-            }
+            },
         );
     }
 

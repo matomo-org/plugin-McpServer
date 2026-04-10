@@ -34,7 +34,7 @@ class SegmentGetTest extends TestCase
                 int $idSite,
                 ?int $idSegment = null,
                 ?string $name = null,
-                ?string $definition = null
+                ?string $definition = null,
             ): SegmentDetailRecord {
                 return new SegmentDetailRecord(
                     idSegment: 4,
@@ -43,7 +43,7 @@ class SegmentGetTest extends TestCase
                     idSite: 2,
                     autoArchive: true,
                     enabledAllUsers: false,
-                    login: 'superUserLogin'
+                    login: 'superUserLogin',
                 );
             }
         };
@@ -76,7 +76,7 @@ class SegmentGetTest extends TestCase
                 int $idSite,
                 ?int $idSegment = null,
                 ?string $name = null,
-                ?string $definition = null
+                ?string $definition = null,
             ): SegmentDetailRecord {
                 $this->captured = [
                     'idSite' => $idSite,
@@ -92,7 +92,7 @@ class SegmentGetTest extends TestCase
                     idSite: $idSite,
                     autoArchive: false,
                     enabledAllUsers: false,
-                    login: 'forwarded'
+                    login: 'forwarded',
                 );
             }
         };
@@ -101,7 +101,7 @@ class SegmentGetTest extends TestCase
             idSite: 2,
             idSegment: 8,
             name: '  Segment Name  ',
-            definition: '  browserCode==FF  '
+            definition: '  browserCode==FF  ',
         );
 
         $captured = $wrapper->captured;

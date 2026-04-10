@@ -35,7 +35,7 @@ final class ReportMetadataRecord
         public readonly string $name,
         public readonly string $category,
         public readonly array $parameters,
-        public readonly array $metadata
+        public readonly array $metadata,
     ) {
     }
 

@@ -39,7 +39,7 @@ final class GoalDetailRecord
         public readonly bool $eventValueAsRevenue,
         public readonly ?string $pattern,
         public readonly ?string $patternType,
-        public readonly ?bool $caseSensitive
+        public readonly ?bool $caseSensitive,
     ) {
     }
 

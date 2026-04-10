@@ -38,13 +38,13 @@ class ReportListTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Report Test Site',
-            'https://report.test'
+            'https://report.test',
         );
         $this->idSiteOther = Fixture::createWebsite(
             '2010-01-01 00:00:00',
             0,
             'MCP Report Other Test Site',
-            'https://report-other.test'
+            'https://report-other.test',
         );
     }
 
@@ -57,7 +57,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
 
         self::assertIsArray($firstPage['reports'] ?? null);
@@ -82,7 +82,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
 
         self::assertIsArray($secondPage['reports'] ?? null);
@@ -97,7 +97,7 @@ class ReportListTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 25],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -116,7 +116,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 25, 'sort' => ReportsPagination::SORT_NAME_DESC],
-            __METHOD__
+            __METHOD__,
         );
         $reports = $content['reports'] ?? null;
         self::assertIsArray($reports);
@@ -136,11 +136,11 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('limit', $message->message ?? '');
     }
@@ -154,11 +154,11 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'sort' => 'invalid'],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('sort', $message->message ?? '');
     }
@@ -173,7 +173,7 @@ class ReportListTest extends IntegrationTestCase
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -187,7 +187,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => ReportsPagination::SORT_NAME_DESC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -198,7 +198,7 @@ class ReportListTest extends IntegrationTestCase
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => $nextCursor, 'sort' => ReportsPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -212,7 +212,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => ReportsPagination::SORT_CATEGORY_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -227,7 +227,7 @@ class ReportListTest extends IntegrationTestCase
                 'sort' => ReportsPagination::SORT_CATEGORY_ASC,
             ],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -255,7 +255,7 @@ class ReportListTest extends IntegrationTestCase
 
         self::assertNotEmpty(
             $subtableUniqueIds,
-            'Expected fixture metadata to include at least one subtable report.'
+            'Expected fixture metadata to include at least one subtable report.',
         );
 
         $server = McpTestHelper::buildServer();
@@ -282,7 +282,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => ReportsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $reports = $firstPage['reports'] ?? null;
         self::assertIsArray($reports);
@@ -296,14 +296,14 @@ class ReportListTest extends IntegrationTestCase
             '0000 MCP Report Low ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-low',
-            'exact'
+            'exact',
         );
         $goalIdHigh = (int) GoalsApi::getInstance()->addGoal(
             $this->idSite,
             'zzzz MCP Report Delta ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-delta',
-            'exact'
+            'exact',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -316,7 +316,7 @@ class ReportListTest extends IntegrationTestCase
                 'sort' => ReportsPagination::SORT_NAME_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $reports = $secondPage['reports'] ?? null;
         self::assertIsArray($reports);
@@ -326,12 +326,12 @@ class ReportListTest extends IntegrationTestCase
         $candidateUniqueIdsAfterBoundary = $this->collectGoalReportUniqueIdsAfterNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
-            $boundary['uniqueId']
+            $boundary['uniqueId'],
         );
         $candidateUniqueIdsAtOrBeforeBoundary = $this->collectGoalReportUniqueIdsAtOrBeforeNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
-            $boundary['uniqueId']
+            $boundary['uniqueId'],
         );
 
         self::assertNotEmpty($candidateUniqueIdsAfterBoundary);
@@ -348,7 +348,7 @@ class ReportListTest extends IntegrationTestCase
             $sessionId,
             ReportList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => ReportsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $reports = $firstPage['reports'] ?? null;
         self::assertIsArray($reports);
@@ -362,14 +362,14 @@ class ReportListTest extends IntegrationTestCase
             '0000 MCP Report Aaron ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-aaron',
-            'exact'
+            'exact',
         );
         $goalIdHigh = (int) GoalsApi::getInstance()->addGoal(
             $this->idSite,
             'zzzz MCP Report High ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-high',
-            'exact'
+            'exact',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -382,7 +382,7 @@ class ReportListTest extends IntegrationTestCase
                 'sort' => ReportsPagination::SORT_NAME_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $reports = $secondPage['reports'] ?? null;
         self::assertIsArray($reports);
@@ -392,12 +392,12 @@ class ReportListTest extends IntegrationTestCase
         $candidateUniqueIdsAfterBoundary = $this->collectGoalReportUniqueIdsAfterNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
-            $boundary['uniqueId']
+            $boundary['uniqueId'],
         );
         $candidateUniqueIdsAtOrBeforeBoundary = $this->collectGoalReportUniqueIdsAtOrBeforeNameBoundary(
             [$goalIdLow, $goalIdHigh],
             $boundary['name'],
-            $boundary['uniqueId']
+            $boundary['uniqueId'],
         );
 
         self::assertNotEmpty($candidateUniqueIdsAfterBoundary);
@@ -415,7 +415,7 @@ class ReportListTest extends IntegrationTestCase
                 $sessionId,
                 ReportList::TOOL_NAME,
                 ['idSite' => $this->idSite],
-                __METHOD__
+                __METHOD__,
             );
             self::assertSame([], $content['reports'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);
@@ -443,7 +443,7 @@ class ReportListTest extends IntegrationTestCase
                 $sessionId,
                 ReportList::TOOL_NAME,
                 $arguments,
-                __METHOD__ . ':' . (string) count($allReports)
+                __METHOD__ . ':' . (string) count($allReports),
             );
 
             $pageReports = $content['reports'] ?? [];
@@ -504,13 +504,13 @@ class ReportListTest extends IntegrationTestCase
     private function collectGoalReportUniqueIdsAfterNameBoundary(
         array $idGoals,
         string $boundaryName,
-        string $boundaryUniqueId
+        string $boundaryUniqueId,
     ): array {
         return $this->collectGoalReportUniqueIdsForNameBoundary(
             $idGoals,
             $boundaryName,
             $boundaryUniqueId,
-            static fn(int $comparison): bool => $comparison > 0
+            static fn(int $comparison): bool => $comparison > 0,
         );
     }
 
@@ -521,13 +521,13 @@ class ReportListTest extends IntegrationTestCase
     private function collectGoalReportUniqueIdsAtOrBeforeNameBoundary(
         array $idGoals,
         string $boundaryName,
-        string $boundaryUniqueId
+        string $boundaryUniqueId,
     ): array {
         return $this->collectGoalReportUniqueIdsForNameBoundary(
             $idGoals,
             $boundaryName,
             $boundaryUniqueId,
-            static fn(int $comparison): bool => $comparison <= 0
+            static fn(int $comparison): bool => $comparison <= 0,
         );
     }
 
@@ -540,7 +540,7 @@ class ReportListTest extends IntegrationTestCase
         array $idGoals,
         string $boundaryName,
         string $boundaryUniqueId,
-        callable $predicate
+        callable $predicate,
     ): array {
         $source = ApiModuleApi::getInstance()->getReportMetadata((string) $this->idSite, false, false, true, true);
         $uniqueIds = [];
@@ -631,7 +631,7 @@ class ReportListTest extends IntegrationTestCase
         string $leftName,
         string $leftUniqueId,
         string $rightName,
-        string $rightUniqueId
+        string $rightUniqueId,
     ): int {
         $comparison = strcmp($leftName, $rightName);
         if ($comparison !== 0) {

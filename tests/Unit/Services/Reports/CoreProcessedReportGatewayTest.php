@@ -28,7 +28,7 @@ class CoreProcessedReportGatewayTest extends TestCase
                 return [
                     ['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions'],
                 ];
-            }
+            },
         );
         $actual = $gateway->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
 
@@ -41,7 +41,7 @@ class CoreProcessedReportGatewayTest extends TestCase
         $gateway = new CoreProcessedReportGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return [['invalid-indexed-row']];
-            }
+            },
         );
 
         $this->expectException(InfrastructureDataException::class);
@@ -57,7 +57,7 @@ class CoreProcessedReportGatewayTest extends TestCase
                     ['uniqueId' => 'Actions_getPageUrls', 'module' => 'Actions'],
                     ['uniqueId' => 'VisitsSummary_get', 'module' => 'VisitsSummary'],
                 ];
-            }
+            },
         );
         $actual = $gateway->getReportMetadata(1, 'day', false, false, false);
 
@@ -71,7 +71,7 @@ class CoreProcessedReportGatewayTest extends TestCase
         $gateway = new CoreProcessedReportGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): string {
                 return 'invalid';
-            }
+            },
         );
 
         $this->expectException(InfrastructureDataException::class);
@@ -87,7 +87,7 @@ class CoreProcessedReportGatewayTest extends TestCase
                     ['uniqueId' => 'Actions_getPageUrls'],
                     ['invalid-indexed-row'],
                 ];
-            }
+            },
         );
 
         $this->expectException(InfrastructureDataException::class);
