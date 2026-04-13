@@ -18,7 +18,7 @@ final class McpEndpointGuard
         string $module,
         string $method,
         bool $isRootApiRequest,
-        string $rootApiMethod
+        string $rootApiMethod,
     ): ?string {
         if (
             $format !== McpEndpointSpec::FORMAT

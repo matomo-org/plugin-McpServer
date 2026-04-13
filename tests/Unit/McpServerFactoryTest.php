@@ -11,15 +11,15 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
+use PHPUnit\Framework\TestCase;
 use Piwik\Config;
-use Piwik\Plugin\Manager;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -54,7 +54,7 @@ class McpServerFactoryTest extends TestCase
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $payload = McpTestHelper::makeInitializeRequest('init-1');
@@ -92,7 +92,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -121,19 +121,43 @@ class McpServerFactoryTest extends TestCase
                 }),
                 self::callback(static fn(mixed $context): bool => is_array($context)
                     && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
-                    && ($context['formatted_arguments'] ?? null) === 'query: "secret"')
+                    && ($context['formatted_arguments'] ?? null) === 'query: "secret"'),
             );
 
         $factory = new McpServerFactory(
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', ['query' => 'secret'], 'missing-full-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testBooleanTrueConfigEnablesToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => true];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-bool-1');
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
@@ -152,12 +176,60 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-2');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testStringZeroConfigDisablesToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => '0'];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-zero-1');
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+    }
+
+    public function testStringTrueConfigDoesNotEnableToolCallLogging(): void
+    {
+        Config::getInstance()->McpServer = ['log_tool_calls' => 'true'];
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())
+            ->method('debug');
+
+        $factory = new McpServerFactory(
+            $logger,
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+        );
+        $server = $factory->createServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-true-1');
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
@@ -176,7 +248,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -203,7 +275,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -230,7 +302,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -257,7 +329,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -283,7 +355,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
@@ -312,7 +384,7 @@ class McpServerFactoryTest extends TestCase
             $logger,
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter()
+            new ToolCallParameterFormatter(),
         );
         $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);

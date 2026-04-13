@@ -37,21 +37,21 @@ class SiteListTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Test Site Alpha',
-            'https://alpha.test'
+            'https://alpha.test',
         );
 
         $this->idSiteBeta = Fixture::createWebsite(
             '2010-01-02 00:00:00',
             0,
             'MCP Test Site Beta',
-            'https://beta.test'
+            'https://beta.test',
         );
 
         $this->idSiteGamma = Fixture::createWebsite(
             '2010-01-03 00:00:00',
             0,
             'MCP Test Site Gamma',
-            'https://gamma.test'
+            'https://gamma.test',
         );
     }
 
@@ -64,7 +64,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         self::assertIsArray($firstPage['sites'] ?? null);
         self::assertCount(2, $firstPage['sites']);
@@ -79,7 +79,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         self::assertIsArray($secondPage['sites'] ?? null);
         self::assertCount(1, $secondPage['sites']);
@@ -98,7 +98,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 3, 'sort' => SitesPagination::SORT_ID_DESC],
-            __METHOD__
+            __METHOD__,
         );
         $sites = $content['sites'] ?? null;
         self::assertIsArray($sites);
@@ -116,7 +116,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
@@ -128,7 +128,7 @@ class SiteListTest extends IntegrationTestCase
             '2010-01-04 00:00:00',
             0,
             'MCP Test Site Delta',
-            'https://delta.test'
+            'https://delta.test',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -136,7 +136,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_ID_ASC, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
@@ -153,7 +153,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
@@ -165,7 +165,7 @@ class SiteListTest extends IntegrationTestCase
             '2010-01-04 00:00:00',
             0,
             'MCP Test Site Aaron',
-            'https://aaron.test'
+            'https://aaron.test',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -173,7 +173,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 2, 'sort' => SitesPagination::SORT_NAME_ASC, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
@@ -191,11 +191,11 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('limit', $message->message ?? '');
     }
@@ -209,11 +209,11 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['sort' => 'invalid'],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('sort', $message->message ?? '');
     }
@@ -228,7 +228,7 @@ class SiteListTest extends IntegrationTestCase
             SiteList::TOOL_NAME,
             ['cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -242,7 +242,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteList::TOOL_NAME,
             ['limit' => 1, 'sort' => SitesPagination::SORT_ID_DESC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -253,7 +253,7 @@ class SiteListTest extends IntegrationTestCase
             SiteList::TOOL_NAME,
             ['cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -267,7 +267,7 @@ class SiteListTest extends IntegrationTestCase
             $sessionId,
             SiteSearch::TOOL_NAME,
             ['search' => 'Test Site', 'limit' => 1, 'sort' => SitesPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $searchPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -278,7 +278,7 @@ class SiteListTest extends IntegrationTestCase
             SiteList::TOOL_NAME,
             ['cursor' => $nextCursor, 'sort' => SitesPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -292,7 +292,7 @@ class SiteListTest extends IntegrationTestCase
                 $sessionId,
                 SiteList::TOOL_NAME,
                 [],
-                __METHOD__
+                __METHOD__,
             );
             self::assertSame([], $content['sites'] ?? null);
             self::assertFalse($content['has_more'] ?? true);

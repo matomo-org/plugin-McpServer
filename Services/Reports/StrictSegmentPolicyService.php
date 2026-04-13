@@ -23,7 +23,7 @@ final class StrictSegmentPolicyService implements StrictSegmentPolicyServiceInte
         int $idSite,
         string $period,
         string $date,
-        ?string $segment
+        ?string $segment,
     ): bool {
         if ($segment === null || trim($segment) === '') {
             return false;
@@ -35,7 +35,7 @@ final class StrictSegmentPolicyService implements StrictSegmentPolicyServiceInte
 
         try {
             return !$this->isSegmentPreprocessedForReportRequest($idSite, $period, $date, $segment);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return false;
         }
     }
@@ -49,7 +49,7 @@ final class StrictSegmentPolicyService implements StrictSegmentPolicyServiceInte
         int $idSite,
         string $period,
         string $date,
-        string $segment
+        string $segment,
     ): bool {
         $site = new Site($idSite);
         $resolvedPeriod = Period\Factory::build($period, $date);
@@ -57,7 +57,7 @@ final class StrictSegmentPolicyService implements StrictSegmentPolicyServiceInte
             $segment,
             [$idSite],
             $resolvedPeriod->getDateTimeStart()->setTimezone($site->getTimezone()),
-            $resolvedPeriod->getDateTimeEnd()->setTimezone($site->getTimezone())
+            $resolvedPeriod->getDateTimeEnd()->setTimezone($site->getTimezone()),
         );
 
         return Rules::isSegmentPreProcessed([$idSite], $resolvedSegment);

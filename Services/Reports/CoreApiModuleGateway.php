@@ -35,7 +35,7 @@ final class CoreApiModuleGateway implements CoreApiModuleGatewayInterface
         array $requestParameters,
         int|string|null $idGoal,
         ?int $idDimension,
-        ?int $idSubtable
+        ?int $idSubtable,
     ): array {
         try {
             $paramOverride = [

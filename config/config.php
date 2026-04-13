@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\DI;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
@@ -22,9 +23,9 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInt
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
-use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
@@ -43,13 +44,12 @@ use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
-use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 use Piwik\Plugins\McpServer\Tasks;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 
 return [
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),

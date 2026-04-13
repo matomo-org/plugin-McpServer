@@ -34,14 +34,14 @@ class ToolErrorMapperTest extends TestCase
     public function testShouldReturnEmptyListForReturnsTrueForNoAccessException(): void
     {
         self::assertTrue(
-            ToolErrorMapper::shouldReturnEmptyListFor(new NoAccessException('no access'))
+            ToolErrorMapper::shouldReturnEmptyListFor(new NoAccessException('no access')),
         );
     }
 
     public function testShouldReturnEmptyListForReturnsTrueForAccessDeniedLikeException(): void
     {
         self::assertTrue(
-            ToolErrorMapper::shouldReturnEmptyListFor(new AccessDeniedLikeException('no access'))
+            ToolErrorMapper::shouldReturnEmptyListFor(new AccessDeniedLikeException('no access')),
         );
     }
 
@@ -52,7 +52,7 @@ class ToolErrorMapperTest extends TestCase
         $expected = ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback();
         $actual = ToolErrorMapper::shouldReturnEmptyListFor(
             new \RuntimeException('some failure'),
-            static fn(\Throwable $e): bool => true
+            static fn(\Throwable $e): bool => true,
         );
 
         self::assertSame($expected, $actual);
@@ -63,7 +63,7 @@ class ToolErrorMapperTest extends TestCase
         $actual = ToolErrorMapper::shouldReturnEmptyListFor(
             new \RuntimeException('some failure'),
             static fn(\Throwable $e): bool => false,
-            false
+            false,
         );
 
         self::assertFalse($actual);
@@ -77,7 +77,7 @@ class ToolErrorMapperTest extends TestCase
         ToolErrorMapper::throwDetailFailure(
             new NoAccessException('no access'),
             'not-found',
-            'failed'
+            'failed',
         );
     }
 
@@ -89,7 +89,7 @@ class ToolErrorMapperTest extends TestCase
         ToolErrorMapper::throwDetailFailure(
             new AccessDeniedLikeException('no access'),
             'not-found',
-            'failed'
+            'failed',
         );
     }
 
@@ -102,7 +102,7 @@ class ToolErrorMapperTest extends TestCase
             new \RuntimeException('some failure'),
             'not-found',
             'failed',
-            static fn(\Throwable $e): bool => true
+            static fn(\Throwable $e): bool => true,
         );
     }
 
@@ -115,7 +115,7 @@ class ToolErrorMapperTest extends TestCase
             new \RuntimeException('some failure'),
             'not-found',
             'failed',
-            static fn(\Throwable $e): bool => false
+            static fn(\Throwable $e): bool => false,
         );
     }
 }

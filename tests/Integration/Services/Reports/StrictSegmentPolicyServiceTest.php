@@ -35,7 +35,7 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
             '2015-01-01 00:00:00',
             0,
             'MCP Strict Segment Policy Service Test Site',
-            'https://strict-segment-policy-service.test'
+            'https://strict-segment-policy-service.test',
         );
     }
 
@@ -60,7 +60,7 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
         $this->runWithSegmentArchivingMode(strictMode: false, callback: function () use ($service): void {
             $segment = 'countryCode==de;browserCode==ff';
             self::assertFalse(
-                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment)
+                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment),
             );
         });
     }
@@ -72,7 +72,7 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
         $this->runWithSegmentArchivingMode(strictMode: true, callback: function () use ($service): void {
             $segment = 'countryCode==fr;browserCode==ff';
             self::assertTrue(
-                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment)
+                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment),
             );
         });
     }
@@ -87,12 +87,12 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
                 'MCP Strict Segment Policy Service ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
                 $segment,
                 $this->idSite,
-                true
+                true,
             );
             Cache::getTransientCache()->flushAll();
 
             self::assertFalse(
-                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment)
+                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'day', 'today', $segment),
             );
         });
     }
@@ -103,7 +103,7 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
 
         $this->runWithSegmentArchivingMode(strictMode: true, callback: function () use ($service): void {
             self::assertFalse(
-                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'invalidPeriod', 'today', 'countryCode==de')
+                $service->shouldMapToStrictSegmentGuidance($this->idSite, 'invalidPeriod', 'today', 'countryCode==de'),
             );
         });
     }

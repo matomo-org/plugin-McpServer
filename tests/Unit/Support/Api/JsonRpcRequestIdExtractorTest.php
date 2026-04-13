@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Api;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
-use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 
 /**
  * @group McpServer

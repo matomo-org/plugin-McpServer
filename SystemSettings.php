@@ -36,11 +36,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                     Piwik::translate('McpServer_EnableMcpHelpUrl', ['<code>', $this->getMcpEndpointUrl(), '</code>']),
                     Piwik::translate(
                         'McpServer_EnableMcpHelpConnectGuide',
-                        ['<a href="' . $this->getConnectGuideUrl() . '">', '</a>']
+                        ['<a href="' . $this->getConnectGuideUrl() . '">', '</a>'],
                     ),
                 ]);
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
-            }
+            },
         );
     }
 
@@ -51,15 +51,16 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     private function getMcpEndpointUrl(): string
     {
-        $baseUrl = (string) SettingsPiwik::getPiwikUrl();
-
-        return rtrim($baseUrl, '/') . '/index.php?module=API&method=McpServer.mcp&format=mcp';
+        return $this->getNormalizedBaseUrl() . '/index.php?module=API&method=McpServer.mcp&format=mcp';
     }
 
     private function getConnectGuideUrl(): string
     {
-        $baseUrl = (string) SettingsPiwik::getPiwikUrl();
+        return $this->getNormalizedBaseUrl() . '/index.php?module=McpServer&action=connect';
+    }
 
-        return rtrim($baseUrl, '/') . '/index.php?module=McpServer&action=connect';
+    private function getNormalizedBaseUrl(): string
+    {
+        return rtrim((string) SettingsPiwik::getPiwikUrl(), '/');
     }
 }

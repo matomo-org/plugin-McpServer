@@ -23,9 +23,9 @@ use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
 use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
@@ -57,14 +57,14 @@ class ReportProcessedTest extends IntegrationTestCase
             '2015-01-01 00:00:00',
             0,
             'MCP Processed Report Test Site',
-            'https://report-processed.test'
+            'https://report-processed.test',
         );
 
         $tracker = Fixture::getTracker(
             $this->idSite,
             '2015-01-03 12:00:00',
             $defaultInit = true,
-            $useLocal = true
+            $useLocal = true,
         );
         $tracker->setUrl('https://report-processed.test/page-a');
         Fixture::checkResponse($tracker->doTrackPageView('page-a'));
@@ -94,7 +94,7 @@ class ReportProcessedTest extends IntegrationTestCase
             false,
             false,
             null,
-            false
+            false,
         );
         $baselineReportData = $baseline['reportData'] ?? null;
         self::assertInstanceOf(DataTable::class, $baselineReportData);
@@ -114,7 +114,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'filter_limit' => 1,
                 'filter_offset' => 0,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertArrayHasKey('report', $content);
@@ -161,7 +161,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'apiParameters' => ['method' => 'VisitsSummary.get'],
             ],
             "Unsupported apiParameters key 'method'.",
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -182,7 +182,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'filter_limit' => 1,
                 'filter_offset' => 0,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -211,7 +211,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'reportUniqueId' => $reportUniqueId,
             ],
             'Invalid period/date parameters.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -274,7 +274,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'apiModule' => 'Actions',
                 'apiAction' => 'getPageUrls',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -301,7 +301,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'apiModule' => 'Actions',
                 'apiAction' => 'getPageUrls',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -329,7 +329,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     'reportUniqueId' => $reportUniqueId,
                 ],
                 'Report not found.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -353,7 +353,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'goalMetricsMode' => 'overview',
                 'goalMetricsProcessGoals' => [1, '2'],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -383,7 +383,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'goalMetricsMode' => 'full',
                 'goalMetricsProcessGoals' => ['ecommerceOrder'],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -413,7 +413,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'goalMetricsMode' => 'specific_goal',
                 'idGoal' => 'ecommerceOrder',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -431,7 +431,7 @@ class ReportProcessedTest extends IntegrationTestCase
             'MCP Report Processed Numeric Goal ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-report-processed-goal',
-            'exact'
+            'exact',
         );
         $reportSelector = $this->findGoalParameterizedReport($this->idSite, $idGoal);
         self::assertNotNull($reportSelector);
@@ -450,7 +450,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'goalMetricsMode' => 'specific_goal',
                 'idGoal' => $idGoal,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -531,7 +531,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'reportUniqueId' => $reportUniqueId,
                 'goal_columns_mode' => '-1',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertStringContainsString('goal_columns_mode', $error->message ?? '');
@@ -557,7 +557,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'filter_limit' => 1,
                 'filter_offset' => 0,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -592,7 +592,7 @@ class ReportProcessedTest extends IntegrationTestCase
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $content = McpTestHelper::assertToolSuccess(
-            McpTestHelper::parseCallTool(McpTestHelper::decodeResponse($response))
+            McpTestHelper::parseCallTool(McpTestHelper::decodeResponse($response)),
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -621,7 +621,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'filter_limit' => 1,
                 'filter_offset' => 0,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $resolvedReport = $content['resolvedReport'] ?? null;
@@ -659,7 +659,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     'segment' => 'countryCode==de',
                 ],
                 self::STRICT_SEGMENT_ERROR_MESSAGE,
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -675,7 +675,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'MCP Strict Segment ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
                 $segmentDefinition,
                 $this->idSite,
-                true
+                true,
             );
 
             $server = McpTestHelper::buildServer();
@@ -691,7 +691,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     'reportUniqueId' => $reportUniqueId,
                     'segment' => $segmentDefinition,
                 ],
-                __METHOD__
+                __METHOD__,
             );
 
             self::assertArrayHasKey('report', $content);
@@ -724,7 +724,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     'segment' => 'notASupportedSegment==de',
                 ],
                 'Report retrieval failed.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -752,15 +752,15 @@ class ReportProcessedTest extends IntegrationTestCase
                     array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
-                    ?int $idSubtable
+                    ?int $idSubtable,
                 ): array {
                     throw new CoreApiRequestException(
                         'Core API processed report request failed.',
                         0,
-                        new \RuntimeException('report data has not been pre-processed')
+                        new \RuntimeException('report data has not been pre-processed'),
                     );
                 }
-            }
+            },
         );
         $container->set(
             StrictSegmentPolicyServiceInterface::class,
@@ -769,11 +769,11 @@ class ReportProcessedTest extends IntegrationTestCase
                     int $idSite,
                     string $period,
                     string $date,
-                    ?string $segment
+                    ?string $segment,
                 ): bool {
                     return true;
                 }
-            }
+            },
         );
 
         try {
@@ -793,7 +793,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'segment' => 'countryCode==zz',
                     ],
                     self::STRICT_SEGMENT_ERROR_MESSAGE,
-                    __METHOD__
+                    __METHOD__,
                 );
             });
         } finally {
@@ -825,7 +825,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
-                    ?int $idSubtable
+                    ?int $idSubtable,
                 ): array {
                     $reportData = new DataTable();
                     $reportData->setMetadata(DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME, 0);
@@ -836,7 +836,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'columns' => ['label' => 'Label'],
                     ];
                 }
-            }
+            },
         );
         $container->set(
             StrictSegmentPolicyServiceInterface::class,
@@ -845,11 +845,11 @@ class ReportProcessedTest extends IntegrationTestCase
                     int $idSite,
                     string $period,
                     string $date,
-                    ?string $segment
+                    ?string $segment,
                 ): bool {
                     return true;
                 }
-            }
+            },
         );
 
         try {
@@ -869,7 +869,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'segment' => 'countryCode==zz',
                     ],
                     self::STRICT_SEGMENT_ERROR_MESSAGE,
-                    __METHOD__
+                    __METHOD__,
                 );
             });
         } finally {
@@ -900,7 +900,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
-                    ?int $idSubtable
+                    ?int $idSubtable,
                 ): array {
                     $tableA = new DataTable();
                     $tableA->addRow(new Row([Row::COLUMNS => ['label' => 'A1']]));
@@ -923,7 +923,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'columns' => ['label' => 'Label'],
                     ];
                 }
-            }
+            },
         );
 
         try {
@@ -942,7 +942,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'filter_limit' => 10,
                         'filter_offset' => 1,
                     ],
-                    __METHOD__
+                    __METHOD__,
                 );
 
                 $pagination = $content['pagination'] ?? null;
@@ -978,7 +978,7 @@ class ReportProcessedTest extends IntegrationTestCase
                     array $requestParameters,
                     int|string|null $idGoal,
                     ?int $idDimension,
-                    ?int $idSubtable
+                    ?int $idSubtable,
                 ): array {
                     $tableA = new DataTable();
                     $tableA->addRow(new Row([Row::COLUMNS => ['label' => 'A1']]));
@@ -997,7 +997,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'columns' => ['label' => 'Label'],
                     ];
                 }
-            }
+            },
         );
 
         try {
@@ -1016,7 +1016,7 @@ class ReportProcessedTest extends IntegrationTestCase
                         'filter_limit' => 10,
                         'filter_offset' => 1,
                     ],
-                    __METHOD__
+                    __METHOD__,
                 );
 
                 $pagination = $content['pagination'] ?? null;
@@ -1068,7 +1068,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 'period' => 'day',
                 'date' => '2015-01-03',
             ],
-            $selectorArguments
+            $selectorArguments,
         );
 
         $error = McpTestHelper::callToolExpectInvalidParams(
@@ -1076,12 +1076,12 @@ class ReportProcessedTest extends IntegrationTestCase
             $sessionId,
             ReportProcessed::TOOL_NAME,
             $arguments,
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
-            $error->message ?? ''
+            $error->message ?? '',
         );
     }
 

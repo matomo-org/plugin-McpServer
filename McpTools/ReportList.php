@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
@@ -30,7 +30,7 @@ class ReportList
 
     public function __construct(
         private ReportSummaryQueryServiceInterface $queryService,
-        private PaginatedCollectionResponder $paginationResponder
+        private PaginatedCollectionResponder $paginationResponder,
     ) {
     }
 
@@ -51,9 +51,9 @@ class ReportList
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST
+        outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST,
     )]
     #[Schema(
         type: 'object',
@@ -85,7 +85,7 @@ class ReportList
             ],
         ],
         required: ['idSite'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {

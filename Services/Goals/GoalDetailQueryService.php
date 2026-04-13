@@ -24,7 +24,7 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
 {
     public function __construct(
         private CoreGoalsGatewayInterface $coreGoalsGateway,
-        private PluginCapabilityGatewayInterface $pluginCapabilityGateway
+        private PluginCapabilityGatewayInterface $pluginCapabilityGateway,
     ) {
     }
 

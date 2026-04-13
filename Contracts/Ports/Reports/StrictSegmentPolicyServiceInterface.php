@@ -17,6 +17,6 @@ interface StrictSegmentPolicyServiceInterface
         int $idSite,
         string $period,
         string $date,
-        ?string $segment
+        ?string $segment,
     ): bool;
 }

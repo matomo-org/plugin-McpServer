@@ -24,6 +24,6 @@ interface SegmentDetailQueryServiceInterface
         int $idSite,
         ?int $idSegment = null,
         ?string $name = null,
-        ?string $definition = null
+        ?string $definition = null,
     ): SegmentDetailRecord;
 }

@@ -28,6 +28,6 @@ interface CoreProcessedReportGatewayInterface
         string $period,
         Date|string|bool $date,
         bool $hideMetricsDoc,
-        bool $showSubtableReports
+        bool $showSubtableReports,
     ): array;
 }

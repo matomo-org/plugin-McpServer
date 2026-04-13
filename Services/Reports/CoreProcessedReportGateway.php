@@ -51,7 +51,7 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
         string $period,
         Date|string|bool $date,
         bool $hideMetricsDoc,
-        bool $showSubtableReports
+        bool $showSubtableReports,
     ): array {
         $reports = $this->processRequest([
             'idSite' => (string) $idSite,

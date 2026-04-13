@@ -31,7 +31,7 @@ final class SegmentDetailRecord
         public readonly ?int $idSite,
         public readonly bool $autoArchive,
         public readonly bool $enabledAllUsers,
-        public readonly string $login
+        public readonly string $login,
     ) {
     }
 

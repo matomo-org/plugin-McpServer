@@ -25,7 +25,7 @@ final class JsonRpcErrorResponseFactory
         int $jsonRpcCode,
         string $message,
         string|int $id = '',
-        array $headers = []
+        array $headers = [],
     ): ResponseInterface {
         $payload = $this->encodeError($id, $jsonRpcCode, $message);
 
@@ -46,7 +46,7 @@ final class JsonRpcErrorResponseFactory
     {
         $json = json_encode(
             new JsonRpcError($id, $code, $message),
-            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES
+            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES,
         );
 
         if (!is_string($json)) {

@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
@@ -30,7 +30,7 @@ class SiteList
 
     public function __construct(
         private SiteSummaryQueryServiceInterface $queryService,
-        private PaginatedCollectionResponder $paginationResponder
+        private PaginatedCollectionResponder $paginationResponder,
     ) {
     }
 
@@ -51,9 +51,9 @@ class SiteList
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
+        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST,
     )]
     #[Schema(
         type: 'object',
@@ -79,7 +79,7 @@ class SiteList
                 'description' => 'Sort order for results.',
             ],
         ],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function list(?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {

@@ -36,7 +36,7 @@ class GoalGetTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Goal Get Test Site',
-            'https://goal-get.test'
+            'https://goal-get.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
@@ -51,7 +51,7 @@ class GoalGetTest extends IntegrationTestCase
             false,
             true,
             'MCP Goal Get Description',
-            true
+            true,
         );
     }
 
@@ -64,7 +64,7 @@ class GoalGetTest extends IntegrationTestCase
             $sessionId,
             GoalGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idGoal' => $this->idGoal],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame([
@@ -92,7 +92,7 @@ class GoalGetTest extends IntegrationTestCase
             GoalGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idGoal' => 999999],
             'Goal not found.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -107,7 +107,7 @@ class GoalGetTest extends IntegrationTestCase
                 GoalGet::TOOL_NAME,
                 ['idSite' => $this->idSite, 'idGoal' => $this->idGoal],
                 'Goal not found.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -121,11 +121,11 @@ class GoalGetTest extends IntegrationTestCase
             $sessionId,
             GoalGet::TOOL_NAME,
             ['idSite' => 0, 'idGoal' => $this->idGoal],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalGet::TOOL_NAME . "':",
-            $message->message
+            $message->message,
         );
         self::assertStringContainsString('idSite', $message->message);
     }
@@ -139,11 +139,11 @@ class GoalGetTest extends IntegrationTestCase
             $sessionId,
             GoalGet::TOOL_NAME,
             ['idSite' => $this->idSite, 'idGoal' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalGet::TOOL_NAME . "':",
-            $message->message
+            $message->message,
         );
         self::assertStringContainsString('idGoal', $message->message);
     }

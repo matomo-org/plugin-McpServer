@@ -34,7 +34,7 @@ final class ReportsPagination
                     [
                         new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
                         new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    ]
+                    ],
                 ),
                 new SortSpec(
                     self::SORT_CATEGORY_DESC,
@@ -42,19 +42,19 @@ final class ReportsPagination
                     [
                         new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
                         new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    ]
+                    ],
                 ),
                 new SortSpec(
                     self::SORT_NAME_ASC,
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    [new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::ASC)]
+                    [new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::ASC)],
                 ),
                 new SortSpec(
                     self::SORT_NAME_DESC,
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    [new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::DESC)]
+                    [new KeySpec('uniqueId', KeySpec::TYPE_STRING, SortDirection::DESC)],
                 ),
-            ]
+            ],
         );
     }
 }

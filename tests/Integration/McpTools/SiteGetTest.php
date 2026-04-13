@@ -39,7 +39,7 @@ class SiteGetTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Test Site',
-            'https://example.test'
+            'https://example.test',
         );
 
         SitesManagerApi::getInstance()->updateSite(
@@ -47,7 +47,7 @@ class SiteGetTest extends IntegrationTestCase
             siteSearch: 1,
             timezone: self::TEST_TIMEZONE,
             currency: self::TEST_CURRENCY,
-            type: 'website'
+            type: 'website',
         );
 
         $site = SitesManagerApi::getInstance()->getSiteFromId($this->idSite);
@@ -71,7 +71,7 @@ class SiteGetTest extends IntegrationTestCase
             $sessionId,
             SiteGet::TOOL_NAME,
             ['idSite' => $this->idSite],
-            __METHOD__
+            __METHOD__,
         );
         self::assertSame([
             'idsite' => $this->idSite,
@@ -97,7 +97,7 @@ class SiteGetTest extends IntegrationTestCase
             SiteGet::TOOL_NAME,
             ['idSite' => 999999],
             'Site not found or access denied.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -112,7 +112,7 @@ class SiteGetTest extends IntegrationTestCase
                 SiteGet::TOOL_NAME,
                 ['idSite' => $this->idSite],
                 'Site not found or access denied.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -126,11 +126,11 @@ class SiteGetTest extends IntegrationTestCase
             $sessionId,
             SiteGet::TOOL_NAME,
             ['idSite' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteGet::TOOL_NAME . "':",
-            $message->message
+            $message->message,
         );
         self::assertStringContainsString('idSite', $message->message);
     }

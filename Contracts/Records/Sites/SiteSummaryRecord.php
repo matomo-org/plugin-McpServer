@@ -25,7 +25,7 @@ final class SiteSummaryRecord
         public readonly int $idSite,
         public readonly string $name,
         public readonly string $mainUrl,
-        public readonly string $type
+        public readonly string $type,
     ) {
     }
 

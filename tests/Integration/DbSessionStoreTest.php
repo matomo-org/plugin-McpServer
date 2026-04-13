@@ -15,10 +15,10 @@ use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use Piwik\Common;
 use Piwik\Config;
 use Piwik\Db;
+use Piwik\Piwik;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 use Piwik\Plugins\McpServer\Session\DbSessionTable;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
-use Piwik\Piwik;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
 /**
@@ -140,7 +140,7 @@ class DbSessionStoreTest extends IntegrationTestCase
         $store->write($id, 'payload');
         Db::query(
             sprintf('UPDATE `%s` SET data = NULL WHERE id = ?', $this->tableName),
-            [$id->toRfc4122()]
+            [$id->toRfc4122()],
         );
 
         $this->assertFalse($store->read($id));
@@ -235,7 +235,7 @@ class DbSessionStoreTest extends IntegrationTestCase
         $timestamp = time() - $secondsAgo;
         Db::query(
             sprintf('UPDATE `%s` SET expires_at = ? WHERE id = ?', $this->tableName),
-            [$timestamp, $id->toRfc4122()]
+            [$timestamp, $id->toRfc4122()],
         );
     }
 
@@ -243,7 +243,7 @@ class DbSessionStoreTest extends IntegrationTestCase
     {
         $row = Db::fetchRow(
             sprintf('SELECT expires_at FROM `%s` WHERE id = ?', $this->tableName),
-            [$id->toRfc4122()]
+            [$id->toRfc4122()],
         );
 
         if (!array_key_exists('expires_at', $row) || $row['expires_at'] === null) {
@@ -257,7 +257,7 @@ class DbSessionStoreTest extends IntegrationTestCase
     {
         $row = Db::fetchRow(
             sprintf('SELECT login FROM `%s` WHERE id = ?', $this->tableName),
-            [$id->toRfc4122()]
+            [$id->toRfc4122()],
         );
 
         if (!array_key_exists('login', $row) || $row['login'] === null || !is_scalar($row['login'])) {
@@ -271,7 +271,7 @@ class DbSessionStoreTest extends IntegrationTestCase
     {
         $row = Db::fetchRow(
             sprintf('SELECT data FROM `%s` WHERE id = ?', $this->tableName),
-            [$id->toRfc4122()]
+            [$id->toRfc4122()],
         );
 
         if (!array_key_exists('data', $row) || $row['data'] === null || !is_scalar($row['data'])) {
@@ -285,7 +285,7 @@ class DbSessionStoreTest extends IntegrationTestCase
     {
         $row = Db::fetchRow(
             sprintf('SELECT id FROM `%s` WHERE id = ?', $this->tableName),
-            [$id->toRfc4122()]
+            [$id->toRfc4122()],
         );
 
         $this->assertFalse($row);

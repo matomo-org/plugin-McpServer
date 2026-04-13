@@ -93,7 +93,7 @@ class SegmentDetailQueryServiceTest extends TestCase
         $service->normalizeSegmentDetailRows(
             'invalid',
             'Segment detail data is invalid.',
-            'Segment detail item'
+            'Segment detail item',
         );
     }
 
@@ -107,7 +107,7 @@ class SegmentDetailQueryServiceTest extends TestCase
         $service->normalizeSegmentDetailRows(
             ['invalid'],
             'Segment detail data is invalid.',
-            'Segment detail item'
+            'Segment detail item',
         );
     }
 
@@ -134,7 +134,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
         return new SegmentDetailQueryService(
             $this->createMock(CoreSegmentEditorGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

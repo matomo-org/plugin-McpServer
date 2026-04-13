@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
 
 /**
@@ -41,9 +41,9 @@ class SegmentGet
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: SegmentDetailToolOutputSchema::ITEM
+        outputSchema: SegmentDetailToolOutputSchema::ITEM,
     )]
     #[Schema(definition: [
         'type' => 'object',
@@ -80,13 +80,13 @@ class SegmentGet
         int $idSite,
         ?int $idSegment = null,
         ?string $name = null,
-        ?string $definition = null
+        ?string $definition = null,
     ): array {
         return $this->queryService->getSegmentBySelector(
             $idSite,
             $idSegment,
             $name,
-            $definition
+            $definition,
         )->toArray();
     }
 }

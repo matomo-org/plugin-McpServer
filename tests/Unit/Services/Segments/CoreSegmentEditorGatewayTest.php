@@ -33,7 +33,7 @@ class CoreSegmentEditorGatewayTest extends TestCase
                     ['idsegment' => '1', 'name' => 'Segment Alpha'],
                     ['idsegment' => '2', 'name' => 'Segment Beta'],
                 ];
-            }
+            },
         );
         $result = $gateway->getAll(9);
 
@@ -47,7 +47,7 @@ class CoreSegmentEditorGatewayTest extends TestCase
         $gateway = new CoreSegmentEditorGateway(
             static function (string $method, array $paramOverride, array $defaultRequest): array {
                 return ['unexpected' => 'shape'];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -63,7 +63,7 @@ class CoreSegmentEditorGatewayTest extends TestCase
                     ['idsegment' => '1', 'name' => 'Segment Alpha'],
                     ['invalid-row'],
                 ];
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);

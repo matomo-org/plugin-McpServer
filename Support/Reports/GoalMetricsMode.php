@@ -44,7 +44,7 @@ enum GoalMetricsMode: string
     public static function fromInput(string $value): self
     {
         return self::tryFrom($value) ?? throw new ToolCallException(
-            "Invalid goalMetricsMode value '{$value}'. Allowed values: " . implode(', ', self::SCHEMA_VALUES) . '.'
+            "Invalid goalMetricsMode value '{$value}'. Allowed values: " . implode(', ', self::SCHEMA_VALUES) . '.',
         );
     }
 
@@ -84,7 +84,7 @@ enum GoalMetricsMode: string
         throw new ToolCallException(
             "goalMetricsMode '" . self::SPECIFIC_GOAL->value . "' requires idGoal to be a positive integer "
             . "or one of: " . Piwik::LABEL_ID_GOAL_IS_ECOMMERCE_ORDER . ', '
-            . Piwik::LABEL_ID_GOAL_IS_ECOMMERCE_CART . '.'
+            . Piwik::LABEL_ID_GOAL_IS_ECOMMERCE_CART . '.',
         );
     }
 

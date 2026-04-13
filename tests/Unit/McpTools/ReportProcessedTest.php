@@ -46,7 +46,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idDimension,
                 ?int $idSubtable,
                 int $filterLimit,
-                int $filterOffset
+                int $filterOffset,
             ): ReportProcessedRecord {
                 $this->captured = [
                     'idSite' => $idSite,
@@ -76,7 +76,7 @@ class ReportProcessedTest extends TestCase
                     uniqueId: (string) $reportUniqueId,
                     apiModule: 'Actions',
                     apiAction: 'getPageUrls',
-                    apiParameters: []
+                    apiParameters: [],
                 );
             }
         };
@@ -85,7 +85,7 @@ class ReportProcessedTest extends TestCase
             idSite: 3,
             period: 'day',
             date: 'today',
-            reportUniqueId: 'Actions_getPageUrls'
+            reportUniqueId: 'Actions_getPageUrls',
         );
 
         self::assertSame(3, $wrapper->captured['idSite']);
@@ -120,7 +120,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idDimension,
                 ?int $idSubtable,
                 int $filterLimit,
-                int $filterOffset
+                int $filterOffset,
             ): ReportProcessedRecord {
                 $this->captured = [
                     'apiModule' => $apiModule,
@@ -146,7 +146,7 @@ class ReportProcessedTest extends TestCase
                     uniqueId: 'VisitsSummary_get',
                     apiModule: (string) $apiModule,
                     apiAction: (string) $apiAction,
-                    apiParameters: $apiParameters ?? []
+                    apiParameters: $apiParameters ?? [],
                 );
             }
         };
@@ -165,7 +165,7 @@ class ReportProcessedTest extends TestCase
             idDimension: 4,
             idSubtable: 9,
             filter_limit: 25,
-            filter_offset: 50
+            filter_offset: 50,
         );
 
         self::assertSame('VisitsSummary', $wrapper->captured['apiModule']);
@@ -205,7 +205,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idDimension,
                 ?int $idSubtable,
                 int $filterLimit,
-                int $filterOffset
+                int $filterOffset,
             ): ReportProcessedRecord {
                 $this->captured = [
                     'reportUniqueId' => $reportUniqueId,
@@ -222,7 +222,7 @@ class ReportProcessedTest extends TestCase
                     uniqueId: (string) $reportUniqueId,
                     apiModule: 'Actions',
                     apiAction: 'getPageUrls',
-                    apiParameters: $apiParameters ?? []
+                    apiParameters: $apiParameters ?? [],
                 );
             }
         };
@@ -232,7 +232,7 @@ class ReportProcessedTest extends TestCase
             period: 'day',
             date: 'today',
             reportUniqueId: 'Actions_getPageUrls',
-            apiParameters: []
+            apiParameters: [],
         );
 
         self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);
@@ -260,7 +260,7 @@ class ReportProcessedTest extends TestCase
                 ?int $idDimension,
                 ?int $idSubtable,
                 int $filterLimit,
-                int $filterOffset
+                int $filterOffset,
             ): ReportProcessedRecord {
                 throw new \RuntimeException('unexpected');
             }

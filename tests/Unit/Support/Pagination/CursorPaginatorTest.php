@@ -49,7 +49,7 @@ class CursorPaginatorTest extends TestCase
         $secondPage = $paginator->paginate(
             $items,
             new PageRequest(limit: 2, sortToken: 'name_asc', cursor: $firstPage->nextCursor),
-            $config
+            $config,
         );
 
         self::assertSame([
@@ -70,9 +70,9 @@ class CursorPaginatorTest extends TestCase
             allowedSorts: [
                 new SortSpec(
                     'login_asc',
-                    new KeySpec('login', KeySpec::TYPE_STRING, SortDirection::ASC)
+                    new KeySpec('login', KeySpec::TYPE_STRING, SortDirection::ASC),
                 ),
-            ]
+            ],
         );
         $items = [
             ['login' => 'carol'],
@@ -101,9 +101,9 @@ class CursorPaginatorTest extends TestCase
             allowedSorts: [
                 new SortSpec(
                     'name_asc',
-                    new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC)
+                    new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
                 ),
-            ]
+            ],
         );
         $items = [
             ['name' => 'alpha'],
@@ -129,7 +129,7 @@ class CursorPaginatorTest extends TestCase
         (new CursorPaginator())->paginate(
             [['idsite' => 1, 'name' => 'A']],
             new PageRequest(limit: 1, sortToken: 'unknown'),
-            $this->buildNameConfig()
+            $this->buildNameConfig(),
         );
     }
 
@@ -141,7 +141,7 @@ class CursorPaginatorTest extends TestCase
         (new CursorPaginator())->paginate(
             [['idsite' => 1, 'name' => 'A']],
             new PageRequest(limit: 1, sortToken: 'name_asc', cursor: 'invalid'),
-            $this->buildNameConfig()
+            $this->buildNameConfig(),
         );
     }
 
@@ -163,7 +163,7 @@ class CursorPaginatorTest extends TestCase
         $paginator->paginate(
             $items,
             new PageRequest(limit: 1, sortToken: 'name_desc', cursor: $page->nextCursor),
-            $config
+            $config,
         );
     }
 
@@ -180,7 +180,7 @@ class CursorPaginatorTest extends TestCase
         $firstPage = $paginator->paginate(
             $items,
             new PageRequest(limit: 2, sortToken: 'name_asc', cursorContext: 'search:a'),
-            $config
+            $config,
         );
         self::assertIsString($firstPage->nextCursor);
 
@@ -190,9 +190,9 @@ class CursorPaginatorTest extends TestCase
                 limit: 2,
                 sortToken: 'name_asc',
                 cursor: $firstPage->nextCursor,
-                cursorContext: 'search:a'
+                cursorContext: 'search:a',
             ),
-            $config
+            $config,
         );
 
         self::assertSame([
@@ -213,7 +213,7 @@ class CursorPaginatorTest extends TestCase
         $firstPage = $paginator->paginate(
             $items,
             new PageRequest(limit: 1, sortToken: 'name_asc', cursorContext: 'search:a'),
-            $config
+            $config,
         );
         self::assertIsString($firstPage->nextCursor);
 
@@ -226,9 +226,9 @@ class CursorPaginatorTest extends TestCase
                 limit: 1,
                 sortToken: 'name_asc',
                 cursor: $firstPage->nextCursor,
-                cursorContext: 'search:b'
+                cursorContext: 'search:b',
             ),
-            $config
+            $config,
         );
     }
 
@@ -244,7 +244,7 @@ class CursorPaginatorTest extends TestCase
         $legacyPage = $paginator->paginate(
             $items,
             new PageRequest(limit: 1, sortToken: 'name_asc'),
-            $config
+            $config,
         );
         self::assertIsString($legacyPage->nextCursor);
 
@@ -257,9 +257,9 @@ class CursorPaginatorTest extends TestCase
                 limit: 1,
                 sortToken: 'name_asc',
                 cursor: $legacyPage->nextCursor,
-                cursorContext: 'search:a'
+                cursorContext: 'search:a',
             ),
-            $config
+            $config,
         );
     }
 
@@ -271,7 +271,7 @@ class CursorPaginatorTest extends TestCase
         (new CursorPaginator())->paginate(
             [['idsite' => 1], ['idsite' => 2, 'name' => 'B']],
             new PageRequest(limit: 1, sortToken: 'name_asc'),
-            $this->buildNameConfig()
+            $this->buildNameConfig(),
         );
     }
 
@@ -283,7 +283,7 @@ class CursorPaginatorTest extends TestCase
         (new CursorPaginator())->paginate(
             [['idsite' => 1, 'name' => 'A']],
             new PageRequest(limit: 0, sortToken: 'name_asc'),
-            $this->buildNameConfig()
+            $this->buildNameConfig(),
         );
     }
 
@@ -297,14 +297,14 @@ class CursorPaginatorTest extends TestCase
                 new SortSpec(
                     'name_asc',
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::ASC)]
+                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::ASC)],
                 ),
                 new SortSpec(
                     'name_desc',
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::DESC)]
+                    [new KeySpec('idsite', KeySpec::TYPE_INT, SortDirection::DESC)],
                 ),
-            ]
+            ],
         );
     }
 }

@@ -33,7 +33,7 @@ final class GoalSummaryRecord
         public readonly string $matchAttribute,
         public readonly bool $allowMultiple,
         public readonly string $revenue,
-        public readonly bool $eventValueAsRevenue
+        public readonly bool $eventValueAsRevenue,
     ) {
     }
 

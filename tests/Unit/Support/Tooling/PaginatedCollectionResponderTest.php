@@ -33,21 +33,21 @@ class PaginatedCollectionResponderTest extends TestCase
             new class ('Beta', 2) {
                 public function __construct(
                     public string $name,
-                    public int $id
+                    public int $id,
                 ) {
                 }
             },
             new class ('Alpha', 1) {
                 public function __construct(
                     public string $name,
-                    public int $id
+                    public int $id,
                 ) {
                 }
             },
             new class ('Gamma', 3) {
                 public function __construct(
                     public string $name,
-                    public int $id
+                    public int $id,
                 ) {
                 }
             },
@@ -60,7 +60,7 @@ class PaginatedCollectionResponderTest extends TestCase
             'items',
             $this->buildConfig(),
             'name_asc',
-            limit: 2
+            limit: 2,
         );
 
         self::assertSame([
@@ -95,7 +95,7 @@ class PaginatedCollectionResponderTest extends TestCase
             'items',
             $this->buildConfig(),
             'name_asc',
-            sort: 'name_desc'
+            sort: 'name_desc',
         );
 
         self::assertSame('Beta', $result['items'][0]['name']);
@@ -121,7 +121,7 @@ class PaginatedCollectionResponderTest extends TestCase
             static fn(array $record): array => $record,
             'items',
             $this->buildConfig(),
-            'name_desc'
+            'name_desc',
         );
 
         self::assertSame('Beta', $result['items'][0]['name']);
@@ -150,7 +150,7 @@ class PaginatedCollectionResponderTest extends TestCase
             $this->buildConfig(),
             'name_asc',
             limit: 1,
-            cursorContext: 'ctx:a'
+            cursorContext: 'ctx:a',
         );
         self::assertIsString($firstPage['next_cursor']);
 
@@ -169,7 +169,7 @@ class PaginatedCollectionResponderTest extends TestCase
             'name_asc',
             limit: 1,
             cursor: $firstPage['next_cursor'],
-            cursorContext: 'ctx:b'
+            cursorContext: 'ctx:b',
         );
     }
 
@@ -207,7 +207,7 @@ class PaginatedCollectionResponderTest extends TestCase
             recordToSortData: static function (array $record) use (&$toSortCalls): array {
                 $toSortCalls++;
                 return ['name' => $record['name'], 'id' => $record['id']];
-            }
+            },
         );
 
         self::assertCount(10, $result['items']);
@@ -228,14 +228,14 @@ class PaginatedCollectionResponderTest extends TestCase
                 new SortSpec(
                     'name_asc',
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    [new KeySpec('id', KeySpec::TYPE_INT, SortDirection::ASC)]
+                    [new KeySpec('id', KeySpec::TYPE_INT, SortDirection::ASC)],
                 ),
                 new SortSpec(
                     'name_desc',
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    [new KeySpec('id', KeySpec::TYPE_INT, SortDirection::DESC)]
+                    [new KeySpec('id', KeySpec::TYPE_INT, SortDirection::DESC)],
                 ),
-            ]
+            ],
         );
     }
 }

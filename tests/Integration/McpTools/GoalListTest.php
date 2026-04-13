@@ -38,13 +38,13 @@ class GoalListTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Goal Test Site',
-            'https://goals.test'
+            'https://goals.test',
         );
         $this->idSiteOther = Fixture::createWebsite(
             '2010-01-01 00:00:00',
             0,
             'MCP Goal Other Test Site',
-            'https://goals-other.test'
+            'https://goals-other.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
@@ -54,21 +54,21 @@ class GoalListTest extends IntegrationTestCase
             'MCP Goal Alpha ' . $suffix,
             'event_action',
             'evt-alpha',
-            'exact'
+            'exact',
         );
         GoalsApi::getInstance()->addGoal(
             $this->idSite,
             'MCP Goal Beta ' . $suffix,
             'event_action',
             'evt-beta',
-            'exact'
+            'exact',
         );
         GoalsApi::getInstance()->addGoal(
             $this->idSite,
             'MCP Goal Gamma ' . $suffix,
             'event_action',
             'evt-gamma',
-            'exact'
+            'exact',
         );
     }
 
@@ -81,7 +81,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
 
         self::assertIsArray($firstPage['goals'] ?? null);
@@ -95,7 +95,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
 
         self::assertIsArray($secondPage['goals'] ?? null);
@@ -112,7 +112,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 3, 'sort' => GoalsPagination::SORT_ID_DESC],
-            __METHOD__
+            __METHOD__,
         );
         $goals = $content['goals'] ?? null;
         self::assertIsArray($goals);
@@ -129,7 +129,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => GoalsPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $goals = $firstPage['goals'] ?? null;
         self::assertIsArray($goals);
@@ -141,7 +141,7 @@ class GoalListTest extends IntegrationTestCase
             'MCP Goal Delta ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-delta',
-            'exact'
+            'exact',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -154,7 +154,7 @@ class GoalListTest extends IntegrationTestCase
                 'sort' => GoalsPagination::SORT_ID_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $goals = $secondPage['goals'] ?? null;
         self::assertIsArray($goals);
@@ -170,7 +170,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => GoalsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $goals = $firstPage['goals'] ?? null;
         self::assertIsArray($goals);
@@ -182,7 +182,7 @@ class GoalListTest extends IntegrationTestCase
             'MCP Goal Aaron ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'event_action',
             'evt-aaron',
-            'exact'
+            'exact',
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -195,7 +195,7 @@ class GoalListTest extends IntegrationTestCase
                 'sort' => GoalsPagination::SORT_NAME_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $goals = $secondPage['goals'] ?? null;
         self::assertIsArray($goals);
@@ -211,11 +211,11 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('limit', $message->message ?? '');
     }
@@ -229,11 +229,11 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'sort' => 'invalid'],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('sort', $message->message ?? '');
     }
@@ -248,7 +248,7 @@ class GoalListTest extends IntegrationTestCase
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -262,7 +262,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => GoalsPagination::SORT_ID_DESC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -273,7 +273,7 @@ class GoalListTest extends IntegrationTestCase
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => $nextCursor, 'sort' => GoalsPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -287,7 +287,7 @@ class GoalListTest extends IntegrationTestCase
             $sessionId,
             GoalList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => GoalsPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -302,7 +302,7 @@ class GoalListTest extends IntegrationTestCase
                 'sort' => GoalsPagination::SORT_ID_ASC,
             ],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -321,7 +321,7 @@ class GoalListTest extends IntegrationTestCase
                 $sessionId,
                 GoalList::TOOL_NAME,
                 ['idSite' => $this->idSite],
-                __METHOD__
+                __METHOD__,
             );
             self::assertSame([], $content['goals'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);

@@ -39,7 +39,7 @@ class ReportMetadataTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Report Metadata Test Site',
-            'https://report-metadata.test'
+            'https://report-metadata.test',
         );
     }
 
@@ -58,7 +58,7 @@ class ReportMetadataTest extends IntegrationTestCase
             $sessionId,
             ReportMetadata::TOOL_NAME,
             ['idSite' => $this->idSite, 'reportUniqueId' => $uniqueId],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($uniqueId, $content['uniqueId'] ?? null);
@@ -84,7 +84,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'apiModule' => 'Actions',
                 'apiAction' => 'getPageUrls',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
@@ -105,7 +105,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'apiAction' => 'getPageUrls',
                 'apiParameters' => [],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -133,7 +133,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'period' => 'month',
                 'date' => 'last3',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
@@ -157,7 +157,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'period' => 'range',
                 'date' => '2015-01-01,2015-01-31',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
@@ -182,7 +182,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'period' => 'week',
                 'date' => 'today',
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($uniqueId, $content['uniqueId'] ?? null);
@@ -200,7 +200,7 @@ class ReportMetadataTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportMetadata::TOOL_NAME,
             ['idSite' => $this->idSite, 'reportUniqueId' => $uniqueId, 'apiModule' => 'Actions'],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -208,7 +208,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -219,7 +219,7 @@ class ReportMetadataTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportMetadata::TOOL_NAME,
             ['idSite' => $this->idSite],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -228,7 +228,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -280,7 +280,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'reportUniqueId' => $uniqueId,
                 'apiParameters' => [],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($uniqueId, $content['uniqueId'] ?? null);
@@ -335,7 +335,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'apiAction' => 'getPageUrls',
                 'apiParameters' => [],
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
@@ -434,7 +434,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 ReportMetadata::TOOL_NAME,
                 ['idSite' => $this->idSite, 'reportUniqueId' => $uniqueId],
                 'Report not found.',
-                __METHOD__
+                __METHOD__,
             );
         });
     }
@@ -451,7 +451,7 @@ class ReportMetadataTest extends IntegrationTestCase
             $differing = $this->findReportWithLanguageDifference($processedReport, $this->idSite, 'fr', 'en');
             self::assertNotNull(
                 $differing,
-                'Expected at least one report metadata entry with observable language difference (fr vs en).'
+                'Expected at least one report metadata entry with observable language difference (fr vs en).',
             );
 
             $translator->setCurrentLanguage('en');
@@ -467,7 +467,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 $sessionId,
                 ReportMetadata::TOOL_NAME,
                 ['idSite' => $this->idSite, 'reportUniqueId' => $differing['uniqueId']],
-                __METHOD__
+                __METHOD__,
             );
 
             self::assertSame($englishMetadata['category'] ?? null, $content['category'] ?? null);
@@ -565,7 +565,7 @@ class ReportMetadataTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             ReportMetadata::TOOL_NAME,
             $arguments,
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -573,7 +573,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -586,7 +586,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -602,7 +602,7 @@ class ReportMetadataTest extends IntegrationTestCase
         ProcessedReport $processedReport,
         int $idSite,
         string $leftLanguage,
-        string $rightLanguage
+        string $rightLanguage,
     ): ?array {
         /** @var Translator $translator */
         $translator = StaticContainer::get(Translator::class);

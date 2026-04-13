@@ -35,7 +35,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
                     'hideMetricsDoc' => true,
                     'showSubtableReports' => true,
                 ],
-                []
+                [],
             );
         } catch (\Throwable $e) {
             // Keep list behavior aligned with other list tools: no view access yields no rows.
@@ -54,7 +54,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         return $this->normalizeReportSummaryRows(
             $reports,
             'Report list data is invalid.',
-            'Report list item'
+            'Report list item',
         );
     }
 
@@ -71,7 +71,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         }
         $parameters = ToolDataNormalizer::requireStringKeyedArray(
             $parametersValue,
-            "{$context} is invalid (field 'parameters')"
+            "{$context} is invalid (field 'parameters')",
         );
 
         return new ReportSummaryRecord(
@@ -92,7 +92,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
     public function normalizeReportSummaryRows(
         mixed $reports,
         string $invalidDataMessage,
-        string $context
+        string $context,
     ): array {
         if (!is_array($reports)) {
             throw new ToolCallException($invalidDataMessage);

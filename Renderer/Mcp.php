@@ -108,7 +108,7 @@ class Mcp extends \Piwik\API\ApiRenderer
 
         $payload = json_encode(
             new JsonRpcError('', $errorCode, $errorMessage),
-            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES
+            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES,
         );
 
         if (!is_string($payload)) {

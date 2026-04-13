@@ -15,8 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
@@ -31,7 +31,7 @@ class SiteSearch
 
     public function __construct(
         private SiteSummaryQueryServiceInterface $queryService,
-        private PaginatedCollectionResponder $paginationResponder
+        private PaginatedCollectionResponder $paginationResponder,
     ) {
     }
 
@@ -53,9 +53,9 @@ class SiteSearch
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST
+        outputSchema: SiteSummaryToolOutputSchema::PAGINATED_LIST,
     )]
     #[Schema(
         type: 'object',
@@ -87,13 +87,13 @@ class SiteSearch
             ],
         ],
         required: ['search'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function search(
         string $search,
         ?int $limit = null,
         ?string $cursor = null,
-        ?string $sort = null
+        ?string $sort = null,
     ): array {
         $search = trim($search);
         if ($search === '') {

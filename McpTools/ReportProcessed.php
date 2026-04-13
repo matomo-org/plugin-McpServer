@@ -56,9 +56,9 @@ class ReportProcessed
             readOnlyHint: false,
             destructiveHint: false,
             idempotentHint: false,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: ReportProcessedToolOutputSchema::ITEM
+        outputSchema: ReportProcessedToolOutputSchema::ITEM,
     )]
     #[Schema(definition: [
         'type' => 'object',
@@ -211,7 +211,7 @@ class ReportProcessed
         ?int $idDimension = null,
         ?int $idSubtable = null,
         ?int $filter_limit = null,
-        ?int $filter_offset = null
+        ?int $filter_offset = null,
     ): array {
         $apiParameters = $apiParameters === null
             ? null
@@ -232,7 +232,7 @@ class ReportProcessed
             idDimension: $idDimension,
             idSubtable: $idSubtable,
             filterLimit: $filter_limit ?? self::FILTER_LIMIT_DEFAULT,
-            filterOffset: $filter_offset ?? self::FILTER_OFFSET_DEFAULT
+            filterOffset: $filter_offset ?? self::FILTER_OFFSET_DEFAULT,
         )->toArray();
     }
 }

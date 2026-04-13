@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
@@ -30,7 +30,7 @@ class DimensionList
 
     public function __construct(
         private DimensionSummaryQueryServiceInterface $queryService,
-        private PaginatedCollectionResponder $paginationResponder
+        private PaginatedCollectionResponder $paginationResponder,
     ) {
     }
 
@@ -51,9 +51,9 @@ class DimensionList
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: DimensionSummaryToolOutputSchema::PAGINATED_LIST
+        outputSchema: DimensionSummaryToolOutputSchema::PAGINATED_LIST,
     )]
     #[Schema(
         type: 'object',
@@ -85,7 +85,7 @@ class DimensionList
             ],
         ],
         required: ['idSite'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {

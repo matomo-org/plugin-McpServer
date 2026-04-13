@@ -31,22 +31,22 @@ final class SegmentsPagination
                 new SortSpec(
                     self::SORT_NAME_ASC,
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::ASC),
-                    [new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::ASC)]
+                    [new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::ASC)],
                 ),
                 new SortSpec(
                     self::SORT_NAME_DESC,
                     new KeySpec('name', KeySpec::TYPE_STRING, SortDirection::DESC),
-                    [new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::DESC)]
+                    [new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::DESC)],
                 ),
                 new SortSpec(
                     self::SORT_ID_ASC,
-                    new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::ASC)
+                    new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::ASC),
                 ),
                 new SortSpec(
                     self::SORT_ID_DESC,
-                    new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::DESC)
+                    new KeySpec('idsegment', KeySpec::TYPE_INT, SortDirection::DESC),
                 ),
-            ]
+            ],
         );
     }
 }

@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\McpTools;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
 
 /**
@@ -42,9 +42,9 @@ class GoalGet
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false
+            openWorldHint: false,
         ),
-        outputSchema: GoalDetailToolOutputSchema::ITEM
+        outputSchema: GoalDetailToolOutputSchema::ITEM,
     )]
     #[Schema(
         type: 'object',
@@ -61,7 +61,7 @@ class GoalGet
             ],
         ],
         required: ['idSite', 'idGoal'],
-        additionalProperties: false
+        additionalProperties: false,
     )]
     public function get(int $idSite, int $idGoal): array
     {

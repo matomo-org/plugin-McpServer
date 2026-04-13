@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Piwik\Plugins\McpServer\McpTools\SegmentGet;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -45,7 +45,7 @@ class SegmentGetTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Segment Get Test Site',
-            'https://segment-get.test'
+            'https://segment-get.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
@@ -56,31 +56,31 @@ class SegmentGetTest extends IntegrationTestCase
         $this->idSegmentAlpha = SegmentEditorApi::getInstance()->add(
             $this->segmentNameAlpha,
             'countryCode==de',
-            $this->idSite
+            $this->idSite,
         );
 
         $this->idSegmentBeta = SegmentEditorApi::getInstance()->add(
             $this->segmentNameShared,
             'countryCode==fr',
-            $this->idSite
+            $this->idSite,
         );
 
         $this->idSegmentGamma = SegmentEditorApi::getInstance()->add(
             $this->segmentNameShared,
             'countryCode==ch',
-            $this->idSite
+            $this->idSite,
         );
 
         $this->idSegmentDelta = SegmentEditorApi::getInstance()->add(
             'MCP Segment Delta ' . $suffix,
             $this->segmentDefinitionShared,
-            $this->idSite
+            $this->idSite,
         );
 
         $this->idSegmentEpsilon = SegmentEditorApi::getInstance()->add(
             'MCP Segment Epsilon ' . $suffix,
             $this->segmentDefinitionShared,
-            $this->idSite
+            $this->idSite,
         );
     }
 
@@ -130,7 +130,7 @@ class SegmentGetTest extends IntegrationTestCase
                 'idSegment' => $this->idSegmentAlpha,
                 'name' => $this->segmentNameAlpha,
             ],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -139,7 +139,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -150,7 +150,7 @@ class SegmentGetTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             SegmentGet::TOOL_NAME,
             ['idSite' => $this->idSite],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -159,7 +159,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -246,7 +246,7 @@ class SegmentGetTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             SegmentGet::TOOL_NAME,
             ['idSite' => 0, 'idSegment' => $this->idSegmentAlpha],
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -255,7 +255,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 
@@ -303,7 +303,7 @@ class SegmentGetTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             SegmentGet::TOOL_NAME,
             $arguments,
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -321,7 +321,7 @@ class SegmentGetTest extends IntegrationTestCase
         $payload = McpTestHelper::makeCallToolRequest(
             SegmentGet::TOOL_NAME,
             $arguments,
-            __METHOD__
+            __METHOD__,
         );
 
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -329,7 +329,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
     }
 

@@ -71,7 +71,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
         $dimension = $service->normalizeDimensionSummaryData(
             $this->makeValidDimensionSummaryData(),
-            'Dimension list item'
+            'Dimension list item',
         );
 
         self::assertSame([
@@ -91,7 +91,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeDimensionSummaryRows(
             [$inactive, $this->makeValidDimensionSummaryData()],
             'Dimension list data is invalid.',
-            'Dimension list item'
+            'Dimension list item',
         );
 
         self::assertCount(1, $actual);
@@ -108,7 +108,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $service->normalizeDimensionSummaryRows(
             'invalid',
             'Dimension list data is invalid.',
-            'Dimension list item'
+            'Dimension list item',
         );
     }
 
@@ -122,7 +122,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $service->normalizeDimensionSummaryRows(
             ['invalid'],
             'Dimension list data is invalid.',
-            'Dimension list item'
+            'Dimension list item',
         );
     }
 
@@ -136,7 +136,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeDimensionSummaryRows(
             [$dimension],
             'Dimension list data is invalid.',
-            'Dimension list item'
+            'Dimension list item',
         );
 
         self::assertCount(1, $actual);
@@ -164,7 +164,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
         return new DimensionSummaryQueryService(
             $this->createMock(CoreCustomDimensionsGatewayInterface::class),
-            $capabilityGateway
+            $capabilityGateway,
         );
     }
 }

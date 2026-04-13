@@ -14,12 +14,12 @@ namespace Piwik\Plugins\McpServer\tests\Framework;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ClientCapabilities;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\InitializeRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListToolsRequest;
@@ -31,10 +31,10 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
+use PHPUnit\Framework\Assert;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use PHPUnit\Framework\Assert;
 
 /**
  * @phpstan-import-type ToolData from Tool
@@ -77,12 +77,12 @@ final class McpTestHelper
         Server $server,
         string $method,
         array|string $payload = '',
-        array $headers = []
+        array $headers = [],
     ): ResponseInterface {
         foreach ($headers as $name => $_value) {
             if (\strtolower($name) === 'authorization') {
                 throw new \InvalidArgumentException(
-                    'Do not pass Authorization header to McpTestHelper::sendRequest(); auth is managed by the helper.'
+                    'Do not pass Authorization header to McpTestHelper::sendRequest(); auth is managed by the helper.',
                 );
             }
         }
@@ -221,7 +221,7 @@ final class McpTestHelper
         $request = new InitializeRequest(
             MessageInterface::PROTOCOL_VERSION->value,
             new ClientCapabilities(),
-            new Implementation('test-client', '1.0.0')
+            new Implementation('test-client', '1.0.0'),
         );
 
         return self::encodeRequest($request, $id);
@@ -259,7 +259,7 @@ final class McpTestHelper
         string $sessionId,
         string $name,
         array $arguments = [],
-        string|int $id = '1'
+        string|int $id = '1',
     ): CallToolResult {
         $payload = self::makeCallToolRequest($name, $arguments, $id);
         $response = self::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
@@ -300,10 +300,10 @@ final class McpTestHelper
         string $sessionId,
         string $name,
         array $arguments = [],
-        string|int $id = '1'
+        string|int $id = '1',
     ): array {
         return self::assertToolSuccess(
-            self::callTool($server, $sessionId, $name, $arguments, $id)
+            self::callTool($server, $sessionId, $name, $arguments, $id),
         );
     }
 
@@ -316,7 +316,7 @@ final class McpTestHelper
         string $name,
         array $arguments = [],
         ?string $expectedText = null,
-        string|int $id = '1'
+        string|int $id = '1',
     ): CallToolResult {
         $result = self::callTool($server, $sessionId, $name, $arguments, $id);
         self::assertToolError($result, $expectedText);
@@ -332,7 +332,7 @@ final class McpTestHelper
         string $sessionId,
         string $name,
         array $arguments = [],
-        string|int $id = '1'
+        string|int $id = '1',
     ): Error {
         $payload = self::makeCallToolRequest($name, $arguments, $id);
         $response = self::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);

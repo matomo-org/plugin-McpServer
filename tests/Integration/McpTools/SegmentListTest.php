@@ -39,13 +39,13 @@ class SegmentListTest extends IntegrationTestCase
             '2010-01-01 00:00:00',
             0,
             'MCP Segment Test Site',
-            'https://segments.test'
+            'https://segments.test',
         );
         $this->idSiteOther = Fixture::createWebsite(
             '2010-01-01 00:00:00',
             0,
             'MCP Segment Other Test Site',
-            'https://segments-other.test'
+            'https://segments-other.test',
         );
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
@@ -67,7 +67,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
 
         self::assertIsArray($firstPage['segments'] ?? null);
@@ -81,7 +81,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'cursor' => $firstPage['next_cursor']],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         self::assertIsArray($secondPage['segments'] ?? null);
         self::assertNotEmpty($secondPage['segments']);
@@ -97,7 +97,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 3, 'sort' => SegmentsPagination::SORT_ID_DESC],
-            __METHOD__
+            __METHOD__,
         );
         $segments = $content['segments'] ?? null;
         self::assertIsArray($segments);
@@ -114,7 +114,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => SegmentsPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $segments = $firstPage['segments'] ?? null;
         self::assertIsArray($segments);
@@ -124,7 +124,7 @@ class SegmentListTest extends IntegrationTestCase
         SegmentEditorApi::getInstance()->add(
             'MCP Segment Delta ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'countryCode==it',
-            $this->idSite
+            $this->idSite,
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -137,7 +137,7 @@ class SegmentListTest extends IntegrationTestCase
                 'sort' => SegmentsPagination::SORT_ID_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $segments = $secondPage['segments'] ?? null;
         self::assertIsArray($segments);
@@ -153,7 +153,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 2, 'sort' => SegmentsPagination::SORT_NAME_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $segments = $firstPage['segments'] ?? null;
         self::assertIsArray($segments);
@@ -163,7 +163,7 @@ class SegmentListTest extends IntegrationTestCase
         SegmentEditorApi::getInstance()->add(
             'MCP Segment Aaron ' . substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8),
             'countryCode==at',
-            $this->idSite
+            $this->idSite,
         );
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
@@ -176,7 +176,7 @@ class SegmentListTest extends IntegrationTestCase
                 'sort' => SegmentsPagination::SORT_NAME_ASC,
                 'cursor' => $firstPage['next_cursor'],
             ],
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
         $segments = $secondPage['segments'] ?? null;
         self::assertIsArray($segments);
@@ -192,11 +192,11 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 0],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('limit', $message->message ?? '');
     }
@@ -210,11 +210,11 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'sort' => 'invalid'],
-            __METHOD__
+            __METHOD__,
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentList::TOOL_NAME . "':",
-            $message->message ?? ''
+            $message->message ?? '',
         );
         self::assertStringContainsString('sort', $message->message ?? '');
     }
@@ -229,7 +229,7 @@ class SegmentListTest extends IntegrationTestCase
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => 'invalid'],
             'Invalid cursor.',
-            __METHOD__
+            __METHOD__,
         );
     }
 
@@ -243,7 +243,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => SegmentsPagination::SORT_ID_DESC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -254,7 +254,7 @@ class SegmentListTest extends IntegrationTestCase
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'cursor' => $nextCursor, 'sort' => SegmentsPagination::SORT_NAME_ASC],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -268,7 +268,7 @@ class SegmentListTest extends IntegrationTestCase
             $sessionId,
             SegmentList::TOOL_NAME,
             ['idSite' => $this->idSite, 'limit' => 1, 'sort' => SegmentsPagination::SORT_ID_ASC],
-            __METHOD__ . '#1'
+            __METHOD__ . '#1',
         );
         $nextCursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($nextCursor);
@@ -283,7 +283,7 @@ class SegmentListTest extends IntegrationTestCase
                 'sort' => SegmentsPagination::SORT_ID_ASC,
             ],
             'Invalid cursor.',
-            __METHOD__ . '#2'
+            __METHOD__ . '#2',
         );
     }
 
@@ -297,7 +297,7 @@ class SegmentListTest extends IntegrationTestCase
                 $sessionId,
                 SegmentList::TOOL_NAME,
                 ['idSite' => $this->idSite],
-                __METHOD__
+                __METHOD__,
             );
             self::assertSame([], $content['segments'] ?? null);
             self::assertSame(false, $content['has_more'] ?? null);

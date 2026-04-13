@@ -33,7 +33,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         private readonly LoggerInterface $logger,
         private readonly ToolCallParameterFormatter $parameterFormatter,
         private readonly bool $fullParameterLoggingEnabled,
-        private readonly string $logLevel
+        private readonly string $logLevel,
     ) {
     }
 
@@ -70,7 +70,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
                 $this->extractFailureMessage($result),
                 $rawArguments,
                 $loggingMode,
-                $baseContext
+                $baseContext,
             );
         }
 
@@ -149,7 +149,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     {
         $encoded = json_encode(
             $response->jsonSerialize(),
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
         );
 
         if (!is_string($encoded)) {

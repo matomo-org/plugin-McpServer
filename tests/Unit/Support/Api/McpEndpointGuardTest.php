@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Api;
 
-use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 
 /**
  * @group McpServer

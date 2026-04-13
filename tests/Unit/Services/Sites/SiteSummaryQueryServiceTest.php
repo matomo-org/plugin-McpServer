@@ -71,7 +71,7 @@ class SiteSummaryQueryServiceTest extends TestCase
         $service->normalizeSiteSummaryRows(
             'invalid',
             'Site list data is invalid.',
-            'Site list item'
+            'Site list item',
         );
     }
 
@@ -85,7 +85,7 @@ class SiteSummaryQueryServiceTest extends TestCase
         $service->normalizeSiteSummaryRows(
             ['invalid'],
             'Site search data is invalid.',
-            'Site search item'
+            'Site search item',
         );
     }
 
@@ -96,7 +96,7 @@ class SiteSummaryQueryServiceTest extends TestCase
         $actual = $service->normalizeSiteSummaryRows(
             [$this->makeValidSiteSummaryData()],
             'Site search data is invalid.',
-            'Site search item'
+            'Site search item',
         );
 
         self::assertCount(1, $actual);

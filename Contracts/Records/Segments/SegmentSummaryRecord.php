@@ -25,7 +25,7 @@ final class SegmentSummaryRecord
         public readonly int $idSegment,
         public readonly string $name,
         public readonly string $definition,
-        public readonly ?int $idSite
+        public readonly ?int $idSite,
     ) {
     }
 

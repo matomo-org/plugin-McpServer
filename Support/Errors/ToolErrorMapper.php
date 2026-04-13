@@ -23,7 +23,7 @@ final class ToolErrorMapper
     public static function shouldReturnEmptyListFor(
         \Throwable $e,
         ?callable $isNoAccessLike = null,
-        bool $allowGlobalFallback = true
+        bool $allowGlobalFallback = true,
     ): bool {
         if ($e instanceof NoAccessException || $e instanceof AccessDeniedLikeException) {
             return true;
@@ -51,7 +51,7 @@ final class ToolErrorMapper
         \Throwable $e,
         string $notFoundMessage,
         string $failedMessage,
-        ?callable $isNotFoundOrNoAccessLike = null
+        ?callable $isNotFoundOrNoAccessLike = null,
     ): never {
         if (
             $e instanceof NoAccessException

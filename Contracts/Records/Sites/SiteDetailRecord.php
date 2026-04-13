@@ -37,7 +37,7 @@ final class SiteDetailRecord
         public readonly string $currencyName,
         public readonly bool $ecommerce,
         public readonly bool $siteSearch,
-        public readonly string $type
+        public readonly string $type,
     ) {
     }
 

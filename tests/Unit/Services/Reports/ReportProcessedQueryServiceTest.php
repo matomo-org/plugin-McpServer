@@ -58,7 +58,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 50,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -84,7 +84,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 50,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -106,7 +106,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -116,7 +116,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 $this->calls++;
 
@@ -127,7 +127,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Report',
                     category: 'Category',
                     parameters: $apiParameters,
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
@@ -145,12 +145,12 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (&$processedFetchCalls): array {
                 $processedFetchCalls++;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -172,7 +172,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 idDimension: null,
                 idSubtable: null,
                 filterLimit: 50,
-                filterOffset: 0
+                filterOffset: 0,
             );
         } finally {
             self::assertSame(0, $wrapper->calls);
@@ -198,7 +198,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -208,7 +208,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 $this->calls++;
 
@@ -219,7 +219,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Report',
                     category: 'Category',
                     parameters: $apiParameters,
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
@@ -237,12 +237,12 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (&$processedFetchCalls): array {
                 $processedFetchCalls++;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -264,7 +264,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 idDimension: null,
                 idSubtable: null,
                 filterLimit: 50,
-                filterOffset: 0
+                filterOffset: 0,
             );
         } finally {
             self::assertSame(0, $wrapper->calls);
@@ -292,7 +292,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedFilterLimit,
                 &$observedFilterOffset,
@@ -308,9 +308,9 @@ class ReportProcessedQueryServiceTest extends TestCase
                     rows: [['label' => 'A', 'nb_visits' => 10]],
                     rowMetadata: [['idsubdatatable' => 1]],
                     totalRowsBeforeLimit: 10,
-                    columns: ['label' => 'Label', 'nb_visits' => 'Visits']
+                    columns: ['label' => 'Label', 'nb_visits' => 'Visits'],
                 );
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -328,7 +328,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 1,
-            filterOffset: 5
+            filterOffset: 5,
         );
 
         self::assertSame('1', $observedFilterLimit);
@@ -374,7 +374,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedApiParameters,
                 &$observedRequestParameters,
@@ -389,7 +389,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -407,7 +407,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame([], $observedApiParameters);
@@ -433,12 +433,12 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (&$capturedRequestParameters): array {
                 $capturedRequestParameters = $requestParameters;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -456,7 +456,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 1,
-            filterOffset: 5
+            filterOffset: 5,
         );
 
         self::assertSame([
@@ -477,7 +477,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage(
-            "Use top-level goal parameters instead of apiParameters key 'filter_update_columns_when_show_all_goals'."
+            "Use top-level goal parameters instead of apiParameters key 'filter_update_columns_when_show_all_goals'.",
         );
 
         $service->getProcessedReport(
@@ -495,7 +495,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -521,7 +521,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -547,7 +547,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -557,7 +557,7 @@ class ReportProcessedQueryServiceTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage(
-            'Invalid goalMetricsProcessGoals value: at least one goal ID is required.'
+            'Invalid goalMetricsProcessGoals value: at least one goal ID is required.',
         );
 
         $service->getProcessedReport(
@@ -575,7 +575,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -597,7 +597,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedGoalColumnsMode,
                 &$observedGoalColumnsProcessGoals
@@ -608,7 +608,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -626,7 +626,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame('ecommerceOrder', $observedGoalColumnsMode);
@@ -652,7 +652,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedIdGoal,
                 &$observedGoalColumnsMode,
@@ -665,7 +665,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -683,7 +683,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertNull($observedIdGoal);
@@ -710,7 +710,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedIdGoal,
                 &$observedGoalColumnsMode,
@@ -723,7 +723,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -741,7 +741,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame(7, $observedIdGoal);
@@ -771,7 +771,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ) use (
                 &$observedGoalColumnsMode,
                 &$observedGoalColumnsProcessGoals
@@ -782,7 +782,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     $requestParameters['filter_show_goal_columns_process_goals'] ?? null;
 
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -800,7 +800,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame('0', $observedGoalColumnsMode);
@@ -829,7 +829,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -847,7 +847,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -857,7 +857,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 $this->calls++;
                 if (array_key_exists('idGoal', $apiParameters)) {
@@ -871,7 +871,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Report',
                     category: 'Category',
                     parameters: $apiParameters,
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
@@ -880,7 +880,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $wrapper,
             function (): array {
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $service->getProcessedReport(
@@ -898,7 +898,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame(1, $wrapper->calls);
@@ -918,7 +918,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -928,7 +928,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 $this->calls++;
                 if (!array_key_exists('idGoal', $apiParameters)) {
@@ -942,7 +942,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Report',
                     category: 'Category',
                     parameters: $apiParameters,
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
@@ -951,7 +951,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $wrapper,
             function (): array {
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -969,7 +969,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame(2, $wrapper->calls);
@@ -989,7 +989,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $this->makeMetadataWrapper(),
             function (): array {
                 throw new \RuntimeException("core\nfailed");
-            }
+            },
         );
 
         try {
@@ -1011,7 +1011,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 idDimension: null,
                 idSubtable: null,
                 filterLimit: 10,
-                filterOffset: 0
+                filterOffset: 0,
             );
         } finally {
             $access->setSuperUserAccess($wasSuperUser);
@@ -1024,7 +1024,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $this->makeMetadataWrapper(),
             function (): array {
                 throw new InfrastructureDataException('bad payload');
-            }
+            },
         );
 
         $this->expectException(ToolCallException::class);
@@ -1045,7 +1045,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1065,7 +1065,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     'reportMetadata' => $reportMetadata,
                     'columns' => ['label' => 'Label'],
                 ];
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -1083,7 +1083,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         $actual = $record->toArray();
@@ -1102,9 +1102,9 @@ class ReportProcessedQueryServiceTest extends TestCase
                         [['label' => 'A1'], ['label' => 'A2']],
                         [['label' => 'B1'], ['label' => 'B2'], ['label' => 'B3']],
                     ],
-                    totalRowsBeforeLimitByTable: [2, 10]
+                    totalRowsBeforeLimitByTable: [2, 10],
                 );
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -1122,7 +1122,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 1
+            filterOffset: 1,
         );
 
         $actual = $record->toArray();
@@ -1141,9 +1141,9 @@ class ReportProcessedQueryServiceTest extends TestCase
                         [['label' => 'A1']],
                         [['label' => 'B1'], ['label' => 'B2']],
                     ],
-                    totalRowsBeforeLimitByTable: [null, 10]
+                    totalRowsBeforeLimitByTable: [null, 10],
                 );
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -1161,7 +1161,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 1
+            filterOffset: 1,
         );
 
         $actual = $record->toArray();
@@ -1176,7 +1176,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $this->makeMetadataWrapper(),
             static function (): array {
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -1194,7 +1194,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         $resolved = $record->toArray()['resolvedReport'];
@@ -1210,7 +1210,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $this->makeMetadataWrapperWithIdGoalParameter(),
             static function (): array {
                 return self::makeProcessedReportPayload();
-            }
+            },
         );
 
         $record = $service->getProcessedReport(
@@ -1228,7 +1228,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         $resolved = $record->toArray()['resolvedReport'];
@@ -1243,7 +1243,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             processedReportCaller: static function (): array {
                 return self::makeProcessedReportPayload();
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
         $record = $service->getProcessedReport(
@@ -1261,7 +1261,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         $resolved = $record->toArray()['resolvedReport'];
@@ -1276,10 +1276,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 throw new CoreApiRequestException(
                     'core failed',
                     0,
-                    new \RuntimeException('report data has not been pre-processed')
+                    new \RuntimeException('report data has not been pre-processed'),
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1300,7 +1300,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1312,10 +1312,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 return self::makeProcessedReportPayload(
                     rows: [],
                     rowMetadata: [],
-                    totalRowsBeforeLimit: 0
+                    totalRowsBeforeLimit: 0,
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1336,7 +1336,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1348,10 +1348,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 return self::makeProcessedReportPayload(
                     rows: [],
                     rowMetadata: [],
-                    totalRowsBeforeLimit: 0
+                    totalRowsBeforeLimit: 0,
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
         $record = $service->getProcessedReport(
@@ -1369,7 +1369,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
 
         self::assertSame(0, $record->toArray()['pagination']['returned_rows']);
@@ -1386,11 +1386,11 @@ class ReportProcessedQueryServiceTest extends TestCase
                     0,
                     new \RuntimeException(
                         'These reports have no data, because the Segment you requested has not yet been '
-                        . 'processed by the system.'
-                    )
+                        . 'processed by the system.',
+                    ),
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1411,7 +1411,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1424,7 +1424,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 int $idSite,
                 string $period,
                 string $date,
-                ?string $segment
+                ?string $segment,
             ): bool {
                 $this->calls++;
                 return true;
@@ -1436,7 +1436,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             processedReportCaller: static function (): array {
                 throw new CoreApiRequestException('core failed', 0, new \RuntimeException('database timeout'));
             },
-            strictSegmentPolicy: $strictSegmentPolicy
+            strictSegmentPolicy: $strictSegmentPolicy,
         );
 
         $this->expectException(ToolCallException::class);
@@ -1458,7 +1458,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 idDimension: null,
                 idSubtable: null,
                 filterLimit: 10,
-                filterOffset: 0
+                filterOffset: 0,
             );
         } finally {
             self::assertSame(0, $strictSegmentPolicy->calls);
@@ -1473,10 +1473,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 throw new CoreApiRequestException(
                     'core failed',
                     0,
-                    new \RuntimeException('report data has not been pre-processed')
+                    new \RuntimeException('report data has not been pre-processed'),
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1497,7 +1497,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1509,13 +1509,13 @@ class ReportProcessedQueryServiceTest extends TestCase
                 throw new CoreApiRequestException(
                     'core failed',
                     0,
-                    new \RuntimeException('report data has not been pre-processed')
+                    new \RuntimeException('report data has not been pre-processed'),
                 );
             },
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(
                 false,
-                new \RuntimeException('boom')
-            )
+                new \RuntimeException('boom'),
+            ),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1536,7 +1536,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1547,7 +1547,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             processedReportCaller: static function (): array {
                 throw new ToolCallException('Original report failure.');
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1568,7 +1568,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1580,10 +1580,10 @@ class ReportProcessedQueryServiceTest extends TestCase
                 throw new CoreApiRequestException(
                     'core failed',
                     0,
-                    new \RuntimeException('report data has not been pre-processed')
+                    new \RuntimeException('report data has not been pre-processed'),
                 );
             },
-            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false)
+            strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
         $this->expectException(ToolCallException::class);
@@ -1604,7 +1604,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             idDimension: null,
             idSubtable: null,
             filterLimit: 10,
-            filterOffset: 0
+            filterOffset: 0,
         );
     }
 
@@ -1612,7 +1612,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         ?ReportMetadataQueryServiceInterface $metadataWrapper = null,
         ?callable $processedReportCaller = null,
         ?CoreApiModuleGatewayInterface $apiGateway = null,
-        ?StrictSegmentPolicyServiceInterface $strictSegmentPolicy = null
+        ?StrictSegmentPolicyServiceInterface $strictSegmentPolicy = null,
     ): ReportProcessedQueryService {
         $metadataWrapper = $metadataWrapper ?? $this->makeMetadataWrapper();
         $apiGateway = $apiGateway ?? new class () implements CoreApiModuleGatewayInterface {
@@ -1627,7 +1627,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 array $requestParameters,
                 int|string|null $idGoal,
                 ?int $idDimension,
-                ?int $idSubtable
+                ?int $idSubtable,
             ): array {
                 return ReportProcessedQueryServiceTest::makeProcessedReportPayload();
             }
@@ -1645,7 +1645,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             $apiGateway,
             $translatorRunner,
             $strictSegmentPolicy,
-            $processedReportCaller
+            $processedReportCaller,
         );
     }
 
@@ -1659,7 +1659,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         array $rows = [['label' => 'A']],
         array $rowMetadata = [['idsubdatatable' => 1]],
         ?int $totalRowsBeforeLimit = null,
-        array $columns = ['label' => 'Label']
+        array $columns = ['label' => 'Label'],
     ): array {
         $reportData = new DataTable();
         foreach ($rows as $rowColumns) {
@@ -1667,7 +1667,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         }
         $reportData->setMetadata(
             DataTable::TOTAL_ROWS_BEFORE_LIMIT_METADATA_NAME,
-            $totalRowsBeforeLimit ?? count($rows)
+            $totalRowsBeforeLimit ?? count($rows),
         );
 
         $reportMetadata = new DataTable();
@@ -1689,7 +1689,7 @@ class ReportProcessedQueryServiceTest extends TestCase
      */
     public static function makeProcessedReportMapPayload(
         array $rowsByTable,
-        array $totalRowsBeforeLimitByTable
+        array $totalRowsBeforeLimitByTable,
     ): array {
         $reportData = new Map();
         $reportMetadata = new Map();
@@ -1724,12 +1724,12 @@ class ReportProcessedQueryServiceTest extends TestCase
 
     private function makeStrictSegmentPolicyService(
         bool $shouldMapToStrictGuidance,
-        ?\Throwable $throwable = null
+        ?\Throwable $throwable = null,
     ): StrictSegmentPolicyServiceInterface {
         return new class ($shouldMapToStrictGuidance, $throwable) implements StrictSegmentPolicyServiceInterface {
             public function __construct(
                 private bool $shouldMapToStrictGuidance,
-                private ?\Throwable $throwable
+                private ?\Throwable $throwable,
             ) {
             }
 
@@ -1737,7 +1737,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 int $idSite,
                 string $period,
                 string $date,
-                ?string $segment
+                ?string $segment,
             ): bool {
                 if ($this->throwable !== null) {
                     throw $this->throwable;
@@ -1760,7 +1760,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Page URLs',
                     category: 'Actions',
                     parameters: [],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -1770,7 +1770,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 return new ReportMetadataRecord(
                     uniqueId: $apiModule . '_' . $apiAction,
@@ -1779,7 +1779,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Report',
                     category: 'Category',
                     parameters: $apiParameters,
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
@@ -1797,7 +1797,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Goal report',
                     category: 'Goals',
                     parameters: ['idGoal' => '1'],
-                    metadata: []
+                    metadata: [],
                 );
             }
 
@@ -1807,7 +1807,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                 string $apiAction,
                 array $apiParameters,
                 string $period,
-                string $date
+                string $date,
             ): ReportMetadataRecord {
                 return new ReportMetadataRecord(
                     uniqueId: $apiModule . '_' . $apiAction . '_idGoal--1',
@@ -1816,7 +1816,7 @@ class ReportProcessedQueryServiceTest extends TestCase
                     name: 'Goal report',
                     category: 'Goals',
                     parameters: ['idGoal' => '1'],
-                    metadata: []
+                    metadata: [],
                 );
             }
         };
