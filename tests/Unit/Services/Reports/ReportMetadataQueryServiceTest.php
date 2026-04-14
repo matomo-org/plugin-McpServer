@@ -65,6 +65,8 @@ class ReportMetadataQueryServiceTest extends TestCase
         self::assertSame('Page URLs', $actual['name']);
         self::assertSame('Actions', $actual['category']);
         self::assertSame(['idGoal' => '1'], $actual['parameters']);
+        self::assertFalse($actual['isSubtableReport']);
+        self::assertSame('Referrers.getSearchEnginesFromKeywordId', $actual['actionToLoadSubTables']);
         self::assertSame('Actions_getPageUrls', $actual['metadata']['uniqueId'] ?? null);
     }
 
@@ -158,6 +160,97 @@ class ReportMetadataQueryServiceTest extends TestCase
         );
 
         self::assertSame('Actions_getPageUrls', $record->uniqueId);
+    }
+
+    public function testGetReportMetadataByUniqueIdReturnsSubtableReport(): void
+    {
+        $metadata = $this->makeValidReportMetadataData();
+        $metadata['uniqueId'] = 'Referrers_getSearchEnginesFromKeywordId';
+        $metadata['module'] = 'Referrers';
+        $metadata['action'] = 'getSearchEnginesFromKeywordId';
+        $metadata['isSubtableReport'] = true;
+        unset($metadata['actionToLoadSubTables']);
+
+        $service = $this->makeService(
+            new class ($metadata) implements CoreProcessedReportGatewayInterface {
+                /**
+                 * @param array<string, mixed> $metadata
+                 */
+                public function __construct(private array $metadata)
+                {
+                }
+
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+                {
+                    return $this->metadata;
+                }
+
+                public function getReportMetadata(
+                    int $idSite,
+                    string $period,
+                    \Piwik\Date|string|bool $date,
+                    bool $hideMetricsDoc,
+                    bool $showSubtableReports,
+                ): array {
+                    return [$this->metadata];
+                }
+            },
+        );
+
+        $record = $service->getReportMetadataByUniqueId(1, 'Referrers_getSearchEnginesFromKeywordId');
+
+        self::assertSame('Referrers_getSearchEnginesFromKeywordId', $record->uniqueId);
+        self::assertTrue($record->isSubtableReport);
+        self::assertNull($record->actionToLoadSubTables);
+    }
+
+    public function testGetReportMetadataByModuleActionReturnsMatchingSubtableReport(): void
+    {
+        $metadata = $this->makeValidReportMetadataData();
+        $metadata['uniqueId'] = 'Referrers_getSearchEnginesFromKeywordId';
+        $metadata['module'] = 'Referrers';
+        $metadata['action'] = 'getSearchEnginesFromKeywordId';
+        $metadata['parameters'] = ['idKeyword' => '4'];
+        $metadata['isSubtableReports'] = '1';
+        unset($metadata['actionToLoadSubTables']);
+
+        $service = $this->makeService(
+            new class ($metadata) implements CoreProcessedReportGatewayInterface {
+                /**
+                 * @param array<string, mixed> $metadata
+                 */
+                public function __construct(private array $metadata)
+                {
+                }
+
+                public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): array
+                {
+                    return $this->metadata;
+                }
+
+                public function getReportMetadata(
+                    int $idSite,
+                    string $period,
+                    \Piwik\Date|string|bool $date,
+                    bool $hideMetricsDoc,
+                    bool $showSubtableReports,
+                ): array {
+                    return [$this->metadata];
+                }
+            },
+        );
+
+        $record = $service->getReportMetadataByModuleAction(
+            1,
+            'Referrers',
+            'getSearchEnginesFromKeywordId',
+            ['idKeyword' => '4'],
+            'day',
+            'today',
+        );
+
+        self::assertSame('Referrers_getSearchEnginesFromKeywordId', $record->uniqueId);
+        self::assertTrue($record->isSubtableReport);
     }
 
     public function testGetReportMetadataByModuleActionMapsInfrastructureDataFailureToInvalidMetadata(): void
@@ -356,6 +449,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             'name' => 'Page URLs',
             'category' => 'Actions',
             'parameters' => ['idGoal' => '1'],
+            'actionToLoadSubTables' => 'Referrers.getSearchEnginesFromKeywordId',
             'metrics' => ['nb_visits' => 'Visits'],
         ];
     }

@@ -56,6 +56,8 @@ class ReportMetadataTest extends TestCase
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
         self::assertSame('Actions', $actual['module']);
         self::assertSame('getPageUrls', $actual['action']);
+        self::assertSame(false, $actual['isSubtableReport']);
+        self::assertSame(null, $actual['actionToLoadSubTables']);
     }
 
     public function testGetReturnsRecordByModuleActionWithDefaults(): void

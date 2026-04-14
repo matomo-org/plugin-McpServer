@@ -25,12 +25,24 @@ final class ReportMetadataToolOutputSchema
                 'type' => 'object',
                 'additionalProperties' => true,
             ],
+            'isSubtableReport' => ['type' => 'boolean'],
+            'actionToLoadSubTables' => ['type' => ['string', 'null']],
             'metadata' => [
                 'type' => 'object',
                 'additionalProperties' => true,
             ],
         ],
-        'required' => ['uniqueId', 'module', 'action', 'name', 'category', 'parameters', 'metadata'],
+        'required' => [
+            'uniqueId',
+            'module',
+            'action',
+            'name',
+            'category',
+            'parameters',
+            'isSubtableReport',
+            'actionToLoadSubTables',
+            'metadata',
+        ],
         'additionalProperties' => false,
     ];
 }

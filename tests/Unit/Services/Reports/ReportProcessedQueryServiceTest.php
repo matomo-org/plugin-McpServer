@@ -32,6 +32,9 @@ use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
  */
 class ReportProcessedQueryServiceTest extends TestCase
 {
+    private const SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE =
+        'Selected subtable report requires idSubtable. '
+        . 'First query the parent report and use a returned row subtable ID.';
     private const STRICT_SEGMENT_ERROR_MESSAGE =
         'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
         . 'Use matomo_segment_list to select a saved segment definition.';
@@ -86,6 +89,128 @@ class ReportProcessedQueryServiceTest extends TestCase
             filterLimit: 50,
             filterOffset: 0,
         );
+    }
+
+    public function testRejectsSubtableReportByUniqueIdWithoutIdSubtableBeforeFetch(): void
+    {
+        $processedFetchCalls = 0;
+        $service = $this->makeService(
+            metadataWrapper: $this->makeSubtableMetadataWrapper(),
+            processedReportCaller: static function () use (&$processedFetchCalls): array {
+                $processedFetchCalls++;
+
+                return self::makeProcessedReportPayload();
+            },
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
+
+        try {
+            $service->getProcessedReport(
+                idSite: 1,
+                period: 'day',
+                date: 'today',
+                reportUniqueId: 'Referrers_getUrlsFromWebsiteId',
+                apiModule: null,
+                apiAction: null,
+                apiParameters: [],
+                goalMetricsMode: null,
+                goalMetricsProcessGoals: null,
+                segment: null,
+                idGoal: null,
+                idDimension: null,
+                idSubtable: null,
+                filterLimit: 50,
+                filterOffset: 0,
+            );
+        } finally {
+            self::assertSame(0, $processedFetchCalls);
+        }
+    }
+
+    public function testRejectsSubtableReportByModuleActionWithoutIdSubtableBeforeFetch(): void
+    {
+        $processedFetchCalls = 0;
+        $service = $this->makeService(
+            metadataWrapper: $this->makeSubtableMetadataWrapper(),
+            processedReportCaller: static function () use (&$processedFetchCalls): array {
+                $processedFetchCalls++;
+
+                return self::makeProcessedReportPayload();
+            },
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
+
+        try {
+            $service->getProcessedReport(
+                idSite: 1,
+                period: 'day',
+                date: 'today',
+                reportUniqueId: null,
+                apiModule: 'Referrers',
+                apiAction: 'getUrlsFromWebsiteId',
+                apiParameters: [],
+                goalMetricsMode: null,
+                goalMetricsProcessGoals: null,
+                segment: null,
+                idGoal: null,
+                idDimension: null,
+                idSubtable: null,
+                filterLimit: 50,
+                filterOffset: 0,
+            );
+        } finally {
+            self::assertSame(0, $processedFetchCalls);
+        }
+    }
+
+    public function testAllowsSubtableReportWhenIdSubtableIsProvided(): void
+    {
+        $receivedIdSubtable = null;
+        $service = $this->makeService(
+            metadataWrapper: $this->makeSubtableMetadataWrapper(),
+            processedReportCaller: static function (
+                int $idSite,
+                string $period,
+                string $date,
+                string $apiModule,
+                string $apiAction,
+                ?string $segment,
+                array $apiParameters,
+                array $requestParameters,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable,
+            ) use (&$receivedIdSubtable): array {
+                $receivedIdSubtable = $idSubtable;
+
+                return self::makeProcessedReportPayload();
+            },
+        );
+
+        $result = $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Referrers_getUrlsFromWebsiteId',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: 17,
+            filterLimit: 50,
+            filterOffset: 0,
+        );
+
+        self::assertSame(17, $receivedIdSubtable);
+        self::assertSame('Referrers_getUrlsFromWebsiteId', $result->uniqueId);
     }
 
     public function testRejectsInvalidPeriodDateBeforeUniqueIdLookupAndFetch(): void
@@ -1817,6 +1942,45 @@ class ReportProcessedQueryServiceTest extends TestCase
                     category: 'Goals',
                     parameters: ['idGoal' => '1'],
                     metadata: [],
+                );
+            }
+        };
+    }
+
+    private function makeSubtableMetadataWrapper(): ReportMetadataQueryServiceInterface
+    {
+        return new class () implements ReportMetadataQueryServiceInterface {
+            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
+            {
+                return new ReportMetadataRecord(
+                    uniqueId: $reportUniqueId,
+                    module: 'Referrers',
+                    action: 'getUrlsFromWebsiteId',
+                    name: 'URLs from Website',
+                    category: 'Referrers',
+                    parameters: [],
+                    metadata: [],
+                    isSubtableReport: true,
+                );
+            }
+
+            public function getReportMetadataByModuleAction(
+                int $idSite,
+                string $apiModule,
+                string $apiAction,
+                array $apiParameters,
+                string $period,
+                string $date,
+            ): ReportMetadataRecord {
+                return new ReportMetadataRecord(
+                    uniqueId: $apiModule . '_' . $apiAction,
+                    module: $apiModule,
+                    action: $apiAction,
+                    name: 'URLs from Website',
+                    category: 'Referrers',
+                    parameters: $apiParameters,
+                    metadata: [],
+                    isSubtableReport: true,
                 );
             }
         };

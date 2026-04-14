@@ -57,10 +57,6 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         }
 
         $metadataData = ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
-        if ($this->isSubtableReport($metadataData)) {
-            throw new ToolCallException('Report not found.');
-        }
-
         return $this->normalizeReportMetadataData($metadataData, 'Report metadata item');
     }
 
@@ -86,7 +82,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                         $normalizedPeriod,
                         $normalizedDate,
                         false,
-                        false,
+                        true,
                     );
                 },
             );
@@ -107,10 +103,6 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         /** @var list<array<string, mixed>> $reports */
         $matches = [];
         foreach ($reports as $report) {
-            if ($this->isSubtableReport($report)) {
-                continue;
-            }
-
             $module = $report['module'] ?? null;
             $action = $report['action'] ?? null;
 
@@ -166,6 +158,8 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             category: ToolDataNormalizer::requireStringField($report, 'category', $context),
             parameters: $parameters,
             metadata: $report,
+            isSubtableReport: $this->isSubtableReport($report),
+            actionToLoadSubTables: $this->normalizeOptionalStringField($report, 'actionToLoadSubTables', $context),
         );
     }
 
@@ -282,5 +276,22 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
         $alias = $report['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
+    }
+
+    /**
+     * @param array<string, mixed> $report
+     */
+    private function normalizeOptionalStringField(array $report, string $field, string $context): ?string
+    {
+        $value = $report[$field] ?? null;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_string($value)) {
+            throw new ToolCallException("{$context} is invalid (field '{$field}').");
+        }
+
+        return $value;
     }
 }

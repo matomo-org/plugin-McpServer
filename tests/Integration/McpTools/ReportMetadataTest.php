@@ -66,6 +66,8 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertIsArray($content['metadata']);
         self::assertArrayHasKey('parameters', $content);
         self::assertIsArray($content['parameters']);
+        self::assertArrayHasKey('isSubtableReport', $content);
+        self::assertArrayHasKey('actionToLoadSubTables', $content);
     }
 
     public function testReturnsReportByModuleActionAndParameters(): void
@@ -88,6 +90,59 @@ class ReportMetadataTest extends IntegrationTestCase
         );
 
         self::assertSame($reportUniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testReturnsSubtableReportByUniqueId(): void
+    {
+        $report = $this->findAnySubtableReportMetadata($this->idSite);
+        self::assertNotNull($report);
+
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            ['idSite' => $this->idSite, 'reportUniqueId' => $uniqueId],
+            __METHOD__,
+        );
+
+        self::assertSame($uniqueId, $content['uniqueId'] ?? null);
+        self::assertTrue($content['isSubtableReport'] ?? false);
+    }
+
+    public function testReturnsSubtableReportByModuleActionAndParameters(): void
+    {
+        $report = $this->findAnySubtableReportMetadata($this->idSite);
+        self::assertNotNull($report);
+
+        $module = $report['module'] ?? null;
+        $action = $report['action'] ?? null;
+        $parameters = $report['parameters'] ?? [];
+        self::assertIsString($module);
+        self::assertIsString($action);
+        self::assertIsArray($parameters);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => $module,
+                'apiAction' => $action,
+                'apiParameters' => $parameters,
+            ],
+            __METHOD__,
+        );
+
+        self::assertSame($report['uniqueId'] ?? null, $content['uniqueId'] ?? null);
+        self::assertTrue($content['isSubtableReport'] ?? false);
     }
 
     public function testSerializesEmptyParametersAsObjectInResponseBody(): void
@@ -550,6 +605,35 @@ class ReportMetadataTest extends IntegrationTestCase
             if (is_string($uniqueId) && $uniqueId !== '') {
                 return $uniqueId;
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findAnySubtableReportMetadata(int $idSite): ?array
+    {
+        $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, true, true);
+
+        foreach ($metadata as $report) {
+            if (!is_array($report) || !$this->isSubtableMetadataRow($report)) {
+                continue;
+            }
+
+            $uniqueId = $report['uniqueId'] ?? null;
+            $module = $report['module'] ?? null;
+            $action = $report['action'] ?? null;
+            $parameters = $report['parameters'] ?? [];
+            if (!is_string($uniqueId) || !is_string($module) || !is_string($action)) {
+                continue;
+            }
+            if (!is_array($parameters)) {
+                continue;
+            }
+
+            return $report;
         }
 
         return null;

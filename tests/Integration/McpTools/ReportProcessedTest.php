@@ -36,6 +36,9 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class ReportProcessedTest extends IntegrationTestCase
 {
+    private const SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE =
+        'Selected subtable report requires idSubtable. '
+        . 'First query the parent report and use a returned row subtable ID.';
     private const STRICT_SEGMENT_ERROR_MESSAGE =
         'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
         . 'Use matomo_segment_list to select a saved segment definition.';
@@ -72,6 +75,16 @@ class ReportProcessedTest extends IntegrationTestCase
         Fixture::checkResponse($tracker->doTrackPageView('page-b'));
         $tracker->setUrl('https://report-processed.test/page-c');
         Fixture::checkResponse($tracker->doTrackPageView('page-c'));
+
+        $tracker->setForceNewVisit();
+        $tracker->setUrlReferrer('https://somewebsite.com/');
+        $tracker->setUrl('https://report-processed.test/referrer-a');
+        Fixture::checkResponse($tracker->doTrackPageView('referrer-a'));
+
+        $tracker->setForceNewVisit();
+        $tracker->setUrlReferrer('http://somewebsite.com/');
+        $tracker->setUrl('https://report-processed.test/referrer-b');
+        Fixture::checkResponse($tracker->doTrackPageView('referrer-b'));
     }
 
     public function testReturnsProcessedReportWithPaginationMetadata(): void
@@ -308,6 +321,112 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertIsArray($resolvedReport);
 
         self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testRejectsSubtableReportByUniqueIdWithoutIdSubtable(): void
+    {
+        $report = $this->findSpecificReportMetadata($this->idSite, 'Referrers', 'getUrlsFromWebsiteId', true);
+        self::assertNotNull($report);
+
+        $uniqueId = $report['uniqueId'] ?? null;
+        self::assertIsString($uniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $uniqueId,
+            ],
+            self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE,
+            __METHOD__,
+        );
+    }
+
+    public function testRejectsSubtableReportByModuleActionAndParametersWithoutIdSubtable(): void
+    {
+        $report = $this->findSpecificReportMetadata($this->idSite, 'Referrers', 'getUrlsFromWebsiteId', true);
+        self::assertNotNull($report);
+
+        $module = $report['module'] ?? null;
+        $action = $report['action'] ?? null;
+        $parameters = $report['parameters'] ?? [];
+        self::assertIsString($module);
+        self::assertIsString($action);
+        self::assertIsArray($parameters);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'apiModule' => $module,
+                'apiAction' => $action,
+                'apiParameters' => $parameters,
+            ],
+            self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE,
+            __METHOD__,
+        );
+    }
+
+    public function testReturnsProcessedSubtableReportWhenIdSubtableIsProvided(): void
+    {
+        $subtableReport = $this->findSpecificReportMetadata($this->idSite, 'Referrers', 'getUrlsFromWebsiteId', true);
+        self::assertNotNull($subtableReport);
+        $parentReport = $this->findParentReportForSubtable($this->idSite, $subtableReport);
+        self::assertNotNull($parentReport);
+
+        $parentUniqueId = $parentReport['uniqueId'] ?? null;
+        $subtableUniqueId = $subtableReport['uniqueId'] ?? null;
+        self::assertIsString($parentUniqueId);
+        self::assertIsString($subtableUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $parentContent = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $parentUniqueId,
+            ],
+            __METHOD__ . '#parent',
+        );
+
+        $idSubtable = $this->extractFirstIdSubtableFromProcessedContent($parentContent);
+        self::assertNotNull($idSubtable);
+
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $subtableUniqueId,
+                'idSubtable' => $idSubtable,
+            ],
+            __METHOD__ . '#subtable',
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($subtableUniqueId, $resolvedReport['uniqueId'] ?? null);
+        self::assertIsArray($content['report'] ?? null);
     }
 
     public function testMasksNoAccessAsNotFound(): void
@@ -1126,6 +1245,107 @@ class ReportProcessedTest extends IntegrationTestCase
                     'action' => $action,
                     'uniqueId' => $uniqueId,
                 ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findSpecificReportMetadata(
+        int $idSite,
+        string $module,
+        string $action,
+        bool $includeSubtableReports,
+    ): ?array {
+        $metadata = ApiModuleApi::getInstance()->getReportMetadata(
+            (string) $idSite,
+            false,
+            false,
+            $includeSubtableReports,
+            $includeSubtableReports,
+        );
+
+        foreach ($metadata as $report) {
+            if (!is_array($report)) {
+                continue;
+            }
+
+            if (($report['module'] ?? null) !== $module || ($report['action'] ?? null) !== $action) {
+                continue;
+            }
+
+            return $report;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $subtableReport
+     * @return array<string, mixed>|null
+     */
+    private function findParentReportForSubtable(int $idSite, array $subtableReport): ?array
+    {
+        $module = $subtableReport['module'] ?? null;
+        $action = $subtableReport['action'] ?? null;
+        if (!is_string($module) || !is_string($action)) {
+            return null;
+        }
+
+        $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
+
+        foreach ($metadata as $report) {
+            if (!is_array($report) || $this->isSubtableMetadataRow($report)) {
+                continue;
+            }
+
+            if (($report['module'] ?? null) !== $module) {
+                continue;
+            }
+
+            if (($report['actionToLoadSubTables'] ?? null) !== $action) {
+                continue;
+            }
+
+            return $report;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     */
+    private function extractFirstIdSubtableFromProcessedContent(array $content): ?int
+    {
+        $report = $content['report'] ?? null;
+        if (!is_array($report)) {
+            return null;
+        }
+
+        $reportMetadata = $report['reportMetadata'] ?? null;
+        if (!is_array($reportMetadata)) {
+            return null;
+        }
+
+        foreach ($reportMetadata as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $idSubtable = $row['idsubdatatable'] ?? null;
+            if (is_int($idSubtable) && $idSubtable > 0) {
+                return $idSubtable;
+            }
+
+            if (is_string($idSubtable) && ctype_digit($idSubtable) && (int) $idSubtable > 0) {
+                return (int) $idSubtable;
             }
         }
 
