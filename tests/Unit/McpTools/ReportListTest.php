@@ -67,6 +67,8 @@ class ReportListTest extends TestCase
                     'name' => 'Page URLs',
                     'category' => 'Actions',
                     'parameters' => ['foo' => 'bar'],
+                    'isSubtableReport' => false,
+                    'actionToLoadSubTables' => null,
                 ],
                 [
                     'uniqueId' => 'VisitsSummary_get',
@@ -75,6 +77,8 @@ class ReportListTest extends TestCase
                     'name' => 'Overview',
                     'category' => 'Visits Summary',
                     'parameters' => new \stdClass(),
+                    'isSubtableReport' => false,
+                    'actionToLoadSubTables' => null,
                 ],
             ],
             'next_cursor' => null,

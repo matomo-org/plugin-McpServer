@@ -19,6 +19,8 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Reports;
  *     name: string,
  *     category: string,
  *     parameters: array<string, mixed>|\stdClass,
+ *     isSubtableReport: bool,
+ *     actionToLoadSubTables: string|null,
  * }
  */
 final class ReportSummaryRecord
@@ -33,6 +35,8 @@ final class ReportSummaryRecord
         public readonly string $name,
         public readonly string $category,
         public readonly array $parameters,
+        public readonly bool $isSubtableReport = false,
+        public readonly ?string $actionToLoadSubTables = null,
     ) {
     }
 
@@ -49,6 +53,8 @@ final class ReportSummaryRecord
             'category' => $this->category,
             // Preserve JSON object encoding for empty parameter maps on the MCP transport boundary.
             'parameters' => $this->parameters === [] ? new \stdClass() : $this->parameters,
+            'isSubtableReport' => $this->isSubtableReport,
+            'actionToLoadSubTables' => $this->actionToLoadSubTables,
         ];
     }
 }

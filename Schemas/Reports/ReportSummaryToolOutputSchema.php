@@ -25,8 +25,19 @@ final class ReportSummaryToolOutputSchema
                 'type' => 'object',
                 'additionalProperties' => true,
             ],
+            'isSubtableReport' => ['type' => 'boolean'],
+            'actionToLoadSubTables' => ['type' => ['string', 'null']],
         ],
-        'required' => ['uniqueId', 'module', 'action', 'name', 'category', 'parameters'],
+        'required' => [
+            'uniqueId',
+            'module',
+            'action',
+            'name',
+            'category',
+            'parameters',
+            'isSubtableReport',
+            'actionToLoadSubTables',
+        ],
         'additionalProperties' => false,
     ];
 

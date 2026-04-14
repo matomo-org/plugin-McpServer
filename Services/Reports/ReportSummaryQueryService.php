@@ -81,6 +81,8 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
             name: ToolDataNormalizer::requireStringField($report, 'name', $context),
             category: ToolDataNormalizer::requireStringField($report, 'category', $context),
             parameters: $parameters,
+            isSubtableReport: $this->isSubtableReport($report),
+            actionToLoadSubTables: $this->normalizeOptionalStringField($report, 'actionToLoadSubTables', $context),
         );
     }
 
@@ -101,11 +103,6 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         $result = [];
         foreach ($reports as $report) {
             $reportData = ToolDataNormalizer::requireStringKeyedArray($report, $invalidDataMessage);
-
-            if ($this->isSubtableReport($reportData)) {
-                continue;
-            }
-
             $result[] = $this->normalizeReportSummaryData($reportData, $context);
         }
 
@@ -124,6 +121,23 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
 
         $alias = $report['isSubtableReports'] ?? null;
         return $alias === true || $alias === 1 || $alias === '1';
+    }
+
+    /**
+     * @param array<string, mixed> $report
+     */
+    private function normalizeOptionalStringField(array $report, string $field, string $context): ?string
+    {
+        $value = $report[$field] ?? null;
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_string($value)) {
+            throw new ToolCallException("{$context} is invalid (field '{$field}').");
+        }
+
+        return $value;
     }
 
     private function isNoAccessLikeFailure(\Throwable $e): bool

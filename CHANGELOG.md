@@ -2,6 +2,7 @@
 
 ### Unreleased
 
+- Added support for exposing subtable reports through the MCP report tools.
 - Aligned `matomo_report_processed` so empty `resolvedReport.apiParameters` values serialize as `{}` rather than `[]`, matching the declared MCP output schema.
 - Updated `matomo_report_processed` and `matomo_report_metadata` to accept `apiParameters: []` as the empty-input compatibility form.
 - Added the full set of MCP tool annotations, including `destructiveHint`, to improve client compatibility and provide explicit tool metadata.

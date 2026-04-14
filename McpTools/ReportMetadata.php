@@ -37,7 +37,7 @@ class ReportMetadata
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: you need full metadata for one report in a site scope.\n"
+        description: "Use when: you need full metadata for one report in a site scope, including subtable reports.\n"
             . "Purpose: resolve one report by reportUniqueId (preferred) or module/action selector.\n"
             . "Next: use the returned metadata and parameters for reporting API calls.",
         annotations: new ToolAnnotations(

@@ -33,7 +33,7 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
             'period' => false,
             'date' => false,
             'hideMetricsDoc' => false,
-            'showSubtableReports' => false,
+            'showSubtableReports' => true,
         ]);
         $reports = $this->requireListOfStringKeyedArrays($reports, 'Report not found.');
 

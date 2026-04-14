@@ -40,6 +40,9 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     private const FILTER_LIMIT_MAX = 250;
     private const GOAL_COLUMNS_MODE_KEY = 'filter_update_columns_when_show_all_goals';
     private const GOAL_COLUMNS_PROCESS_GOALS_KEY = 'filter_show_goal_columns_process_goals';
+    private const SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE =
+        'Selected subtable report requires idSubtable. '
+        . 'First query the parent report and use a returned row subtable ID.';
     private const STRICT_SEGMENT_ERROR_MESSAGE =
         'Segment is not allowed in this Matomo configuration: only existing pre-archived segments can be used. '
         . 'Use matomo_segment_list to select a saved segment definition.';
@@ -123,6 +126,8 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $date,
             );
         }
+
+        $this->validateSubtableReportSelection($reportMetadata, $idSubtable);
 
         $reportUsesIdGoalSelector = $this->reportUsesIdGoalSelector($reportMetadata);
         $apiParametersForCall = $reportMetadata->parameters;
@@ -386,6 +391,21 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    private function validateSubtableReportSelection(
+        ReportMetadataRecord $reportMetadata,
+        ?int $idSubtable,
+    ): void {
+        if (!$reportMetadata->isSubtableReport) {
+            return;
+        }
+
+        if ($idSubtable !== null && $idSubtable > 0) {
+            return;
+        }
+
+        throw new ToolCallException(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
     }
 
     private function reportUsesIdGoalSelector(ReportMetadataRecord $reportMetadata): bool

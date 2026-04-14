@@ -61,6 +61,8 @@ class ReportSummaryQueryServiceTest extends TestCase
             'name' => 'Page URLs',
             'category' => 'Actions',
             'parameters' => ['idGoal' => '1'],
+            'isSubtableReport' => false,
+            'actionToLoadSubTables' => 'Referrers.getSearchEnginesFromKeywordId',
         ], $report->toArray());
     }
 
@@ -127,7 +129,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         );
     }
 
-    public function testNormalizeReportSummaryRowsExcludesSubtableRows(): void
+    public function testNormalizeReportSummaryRowsIncludesSubtableRows(): void
     {
         $service = $this->makeService();
 
@@ -141,11 +143,12 @@ class ReportSummaryQueryServiceTest extends TestCase
             'Report list item',
         );
 
-        self::assertCount(1, $actual);
-        self::assertSame('Actions_getPageUrls', $actual[0]->uniqueId);
+        self::assertCount(2, $actual);
+        self::assertSame('Actions_getPageUrlsSubtable', $actual[0]->uniqueId);
+        self::assertTrue($actual[0]->isSubtableReport);
     }
 
-    public function testNormalizeReportSummaryRowsExcludesSubtableRowsUsingLegacyPluralField(): void
+    public function testNormalizeReportSummaryRowsIncludesSubtableRowsUsingLegacyPluralField(): void
     {
         $service = $this->makeService();
 
@@ -159,8 +162,9 @@ class ReportSummaryQueryServiceTest extends TestCase
             'Report list item',
         );
 
-        self::assertCount(1, $actual);
-        self::assertSame('Actions_getPageUrls', $actual[0]->uniqueId);
+        self::assertCount(2, $actual);
+        self::assertSame('Actions_getPageUrlsSubtable', $actual[0]->uniqueId);
+        self::assertTrue($actual[0]->isSubtableReport);
     }
 
     private function makeService(): ReportSummaryQueryService
@@ -180,6 +184,7 @@ class ReportSummaryQueryServiceTest extends TestCase
             'name' => 'Page URLs',
             'category' => 'Actions',
             'parameters' => ['idGoal' => '1'],
+            'actionToLoadSubTables' => 'Referrers.getSearchEnginesFromKeywordId',
         ];
     }
 }

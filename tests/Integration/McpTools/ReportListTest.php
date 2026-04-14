@@ -75,7 +75,10 @@ class ReportListTest extends IntegrationTestCase
         self::assertArrayHasKey('name', $first);
         self::assertArrayHasKey('category', $first);
         self::assertArrayHasKey('parameters', $first);
+        self::assertArrayHasKey('isSubtableReport', $first);
+        self::assertArrayHasKey('actionToLoadSubTables', $first);
         self::assertIsArray($first['parameters']);
+        self::assertIsBool($first['isSubtableReport']);
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -231,46 +234,49 @@ class ReportListTest extends IntegrationTestCase
         );
     }
 
-    public function testOmitsSubtableReports(): void
+    public function testIncludesSubtableReports(): void
     {
         $source = ApiModuleApi::getInstance()->getReportMetadata((string) $this->idSite, false, false, true, true);
-        $subtableUniqueIds = [];
+        $subtableReport = null;
 
         foreach ($source as $report) {
             if (!is_array($report)) {
                 continue;
             }
 
-            $isSubtable = ($report['isSubtableReport'] ?? null) === true
-                || ($report['isSubtableReport'] ?? null) === 1
-                || ($report['isSubtableReport'] ?? null) === '1'
-                || ($report['isSubtableReports'] ?? null) === true
-                || ($report['isSubtableReports'] ?? null) === 1
-                || ($report['isSubtableReports'] ?? null) === '1';
-
-            if ($isSubtable && is_string($report['uniqueId'] ?? null)) {
-                $subtableUniqueIds[] = $report['uniqueId'];
+            if ($this->isSubtableMetadataRow($report) && is_string($report['uniqueId'] ?? null)) {
+                $subtableReport = $report;
+                break;
             }
         }
 
-        self::assertNotEmpty(
-            $subtableUniqueIds,
+        self::assertIsArray(
+            $subtableReport,
             'Expected fixture metadata to include at least one subtable report.',
         );
+        /** @var array<string, mixed> $subtableReport */
+        $subtableUniqueId = $subtableReport['uniqueId'];
+        self::assertIsString($subtableUniqueId);
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
         $reports = $this->collectAllReports($server, $sessionId, $this->idSite);
-        $toolUniqueIds = [];
         foreach ($reports as $report) {
             $uniqueId = $report['uniqueId'] ?? null;
             self::assertIsString($uniqueId);
-            $toolUniqueIds[] = $uniqueId;
+            if ($uniqueId !== $subtableUniqueId) {
+                continue;
+            }
+
+            self::assertTrue($report['isSubtableReport'] ?? false);
+            self::assertSame(
+                $subtableReport['actionToLoadSubTables'] ?? null,
+                $report['actionToLoadSubTables'] ?? null,
+            );
+            return;
         }
 
-        foreach ($subtableUniqueIds as $subtableUniqueId) {
-            self::assertNotContains($subtableUniqueId, $toolUniqueIds);
-        }
+        self::fail('Expected subtable report to be returned by matomo_report_list.');
     }
 
     public function testNamePaginationIncludesNewRowsAddedAfterFirstPageWhenTheySortAfterCursor(): void

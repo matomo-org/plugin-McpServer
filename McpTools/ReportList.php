@@ -44,9 +44,10 @@ class ReportList
      */
     #[McpTool(
         name: self::TOOL_NAME,
-        description: "Use when: you need a compact discovery list of available reports for a site.\n"
+        description: "Use when: you need a compact discovery list of available reports "
+            . "for a site, including subtable reports.\n"
             . "Purpose: return paginated report metadata for idSite.\n"
-            . "Next: choose module/action/parameters and call Matomo reporting APIs.",
+            . "Next: choose reportUniqueId or module/action/parameters and call Matomo reporting APIs.",
         annotations: new ToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
