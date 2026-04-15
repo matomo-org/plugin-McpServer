@@ -11,7 +11,7 @@
         "ConnectInClientTokenHelp": "In Matomo, go to: %1$sPersonal Settings -> Security -> Auth tokens%2$s. Create a token (or reuse an existing one) and use it as your %3$stoken_auth%4$s. %5$sLearn more about auth tokens%6$s.",
         "ConnectInClientTitle": "Connect Your MCP Client",
         "ConnectIntro": "Use this guide to connect any MCP client to your Matomo MCP Server.",
-        "ConnectMcpDisabledCanEnable": "MCP Server is currently disabled. %1$sEnable it in Plugin Settings%2$s to start accepting MCP requests.",
+        "ConnectMcpDisabledCanEnable": "MCP Server is currently disabled. %1$sEnable it in General Settings%2$s to start accepting MCP requests.",
         "ConnectMcpDisabledNoPermission": "MCP Server is currently disabled.",
         "ConnectPageTitle": "How to Connect to the MCP Server",
         "PlatformMenu": "MCP Server",

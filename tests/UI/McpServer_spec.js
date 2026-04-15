@@ -108,7 +108,7 @@ describe('McpServer', function () {
         expect(text).to.contain('How to Connect to the MCP Server');
         expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
         expect(text).to.contain('MCP Server is currently disabled.');
-        expect(text).to.contain('Enable it in Plugin Settings');
+        expect(text).to.contain('Enable it in General Settings');
         expect(text).to.not.contain('Use this endpoint for MCP over HTTP:');
         expect(text).to.not.contain('Connect Your MCP Client');
         expect(text).to.not.contain('Troubleshooting');
@@ -127,7 +127,7 @@ describe('McpServer', function () {
         expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
         expect(text).to.contain('MCP Server is currently disabled.');
         expect(text).to.contain('Please contact your Matomo administrator');
-        expect(text).to.not.contain('Enable it in Plugin Settings');
+        expect(text).to.not.contain('Enable it in General Settings');
         expect(text).to.not.contain('Use this endpoint for MCP over HTTP:');
         expect(text).to.not.contain('Connect Your MCP Client');
         expect(text).to.not.contain('Troubleshooting');
