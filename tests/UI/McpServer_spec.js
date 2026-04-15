@@ -23,6 +23,7 @@ describe('McpServer', function () {
         delete testEnvironment.idSitesWriteAccess;
         delete testEnvironment.idSitesAdminAccess;
         delete testEnvironment.idSitesCapabilities;
+        delete testEnvironment.mockOAuth2PluginEnabled;
         testEnvironment.testUseMockAuth = 1;
         testEnvironment.save();
     }
@@ -140,6 +141,37 @@ describe('McpServer', function () {
         await page.waitForSelector(`${connectSelector} .card-action`, { visible: true });
         await page.mouse.move(-10, -10);
 
+        const text = await getConnectText();
+
+        expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
+        expect(text).to.contain('A Matomo token_auth (used as a Bearer token)');
+        expect(text).to.not.contain('OAuth2 is the recommended way to connect.');
+        expect(text).to.not.contain('Recommended: Connect Using OAuth2');
+        expect(text).to.not.contain('Alternative: Connect Using token_auth');
+
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_enabled');
+    });
+
+    it('should display OAuth2 guidance when the OAuth2 plugin is enabled', async function () {
+        await setMcpEnabled(true);
+        testEnvironment.mockOAuth2PluginEnabled = 1;
+        testEnvironment.save();
+
+        await page.goto(connectUrl);
+        await page.waitForNetworkIdle();
+        await page.waitForSelector(connectSelector, { visible: true });
+        await page.mouse.move(-10, -10);
+
+        const text = await getConnectText();
+
+        expect(text).to.contain('OAuth2 is the recommended way to connect.');
+        expect(text).to.contain('Recommended: Connect Using OAuth2');
+        expect(text).to.contain('Alternative: Connect Using token_auth');
+        expect(text).to.contain('Choose an authentication method.');
+        expect(text).to.contain('If OAuth2 is enabled in your Matomo and supported by your MCP client');
+        expect(text).to.contain('If using OAuth2, verify the client completed authorization successfully');
+        expect(text).to.not.contain('Get a Matomo Token');
+
+        expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_oauth2');
     });
 });

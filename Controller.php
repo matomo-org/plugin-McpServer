@@ -30,6 +30,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $this->setBasicVariablesView($view);
 
         $view->assign('isMcpEnabled', $this->systemSettings->isMcpEnabled());
+        $view->assign('isOAuth2Enabled', $this->systemSettings->isOAuth2PluginEnabled());
         $view->assign('canEnableMcp', Access::getInstance()->hasSuperUserAccess());
         $view->assign('mcpApiEndpoint', $this->getMcpApiEndpointUrl());
         $view->assign('mcpSettingsUrl', $this->getMcpSettingsUrl());
