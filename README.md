@@ -1,17 +1,52 @@
 # Matomo MCP Server Plugin
 
+
 ## Description
 
-McpServer is an early preview plugin that adds a secure Model Context Protocol (MCP) endpoint to Matomo so AI assistants and MCP-compatible clients can work with analytics context directly from your Matomo instance.
+The MCP Server for Matomo lets you connect your Matomo analytics data to AI tools and large language models (LLMs) like ChatGPT, Claude, or custom AI assistants.
 
-It provides read-oriented tools for sites, reports, processed report data, goals, segments, and dimensions using the same Matomo authentication and access rules you already use in Matomo.
+Instead of digging through reports, you can simply ask questions in plain English and get answers based on your real analytics data.
 
-### Setup
+### What does it do?
 
-1. Install the plugin in Matomo.
-2. Activate **McpServer** in **Administration -> Plugins**.
-3. Enable MCP in **Administration -> System -> Plugin Settings -> McpServer**.
-4. Configure your MCP client with the endpoint and a Matomo `token_auth` that already has access to the data you want to expose.
+This plugin acts as a bridge between Matomo and AI tools. Once installed, it allows AI assistants to:
+
+* Access your Matomo data
+* Answer questions about your website performance
+* Generate insights, summaries, and reports automatically
+
+Think of it as giving your analytics a natural language interface.
+
+### What can you use it for?
+
+Here are a few examples of what you can do:
+
+#### Ask questions, get instant answers
+* “What were my top traffic sources last week?”
+* “Which campaigns drove the most conversions?”
+* “How is mobile traffic trending this month?”
+
+#### Generate reports in seconds
+* Weekly or monthly summaries
+* Marketing performance overviews
+* Executive-ready insights without manual work
+
+#### Build smarter workflows
+* Connect Matomo to internal AI tools
+* Power dashboards with AI-generated insights
+* Enable teams to explore data without needing analytics expertise
+
+### Why install this plugin?
+* Save time – no more manual report building
+* Make data accessible – anyone can ask questions, no training needed
+* Unlock AI use cases – bring your analytics into modern AI workflows
+
+### How do I set this plugin up?
+
+* Install the plugin in Matomo.
+* Activate **McpServer** in **Administration -> Plugins**.
+* Enable MCP in **Administration -> System -> General Settings -> McpServer**.
+* Configure your MCP client with the endpoint and a Matomo `token_auth` that already has access to the data you want to expose.
 
 For the recommended end-user setup flow, use the in-product connect guide at **Administration -> Platform -> MCP Server**.
 

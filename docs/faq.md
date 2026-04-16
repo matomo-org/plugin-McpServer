@@ -29,7 +29,7 @@ log_tool_call_parameters_full = 0
 
 ## Enabling MCP
 
-MCP access is disabled by default and must be enabled in **Administration -> System -> Plugin Settings -> McpServer**.
+MCP access is disabled by default and must be enabled in **Administration -> System -> General Settings -> McpServer**.
 
 When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp` behave as follows:
 
@@ -51,5 +51,5 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 ## Troubleshooting
 
 - `401 Unauthorized`: verify the Bearer token is present, active, and belongs to a user with access to the requested site data.
-- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> Plugin Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user has access to the requested site or report data.
+- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> General Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user has access to the requested site or report data.
 - `400 Bad Request`: verify the client is using the exact MCP endpoint and is not proxying requests through `API.getBulkRequest`.
