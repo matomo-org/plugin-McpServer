@@ -568,10 +568,6 @@ class ReportMetadataTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
-
             $uniqueId = $report['uniqueId'] ?? null;
             $module = $report['module'] ?? null;
             $action = $report['action'] ?? null;
@@ -590,9 +586,6 @@ class ReportMetadataTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
             if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
@@ -618,7 +611,7 @@ class ReportMetadataTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, true, true);
 
         foreach ($metadata as $report) {
-            if (!is_array($report) || !$this->isSubtableMetadataRow($report)) {
+            if (!$this->isSubtableMetadataRow($report)) {
                 continue;
             }
 
@@ -748,7 +741,7 @@ class ReportMetadataTest extends IntegrationTestCase
         $uniqueIds = [];
 
         foreach ($metadata as $report) {
-            if (!is_array($report) || $this->isSubtableMetadataRow($report)) {
+            if ($this->isSubtableMetadataRow($report)) {
                 continue;
             }
 

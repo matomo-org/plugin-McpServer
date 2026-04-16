@@ -51,15 +51,15 @@ class SiteGetTest extends IntegrationTestCase
         );
 
         $site = SitesManagerApi::getInstance()->getSiteFromId($this->idSite);
-        self::assertArrayHasKey('timezone_name', $site);
-        self::assertArrayHasKey('currency_name', $site);
-        self::assertIsString($site['timezone_name']);
-        self::assertIsString($site['currency_name']);
-        self::assertNotSame('', $site['timezone_name']);
-        self::assertNotSame('', $site['currency_name']);
+        $timezoneName = $site['timezone_name'] ?? null;
+        $currencyName = $site['currency_name'] ?? null;
+        self::assertIsString($timezoneName);
+        self::assertIsString($currencyName);
+        self::assertNotSame('', $timezoneName);
+        self::assertNotSame('', $currencyName);
 
-        $this->expectedTimezoneName = $site['timezone_name'];
-        $this->expectedCurrencyName = $site['currency_name'];
+        $this->expectedTimezoneName = $timezoneName;
+        $this->expectedCurrencyName = $currencyName;
     }
 
     public function testReturnsExpectedContent(): void

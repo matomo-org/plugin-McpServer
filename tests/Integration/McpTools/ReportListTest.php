@@ -240,10 +240,6 @@ class ReportListTest extends IntegrationTestCase
         $subtableReport = null;
 
         foreach ($source as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
-
             if ($this->isSubtableMetadataRow($report) && is_string($report['uniqueId'] ?? null)) {
                 $subtableReport = $report;
                 break;
@@ -552,9 +548,6 @@ class ReportListTest extends IntegrationTestCase
         $uniqueIds = [];
 
         foreach ($source as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
             if ($this->isSubtableMetadataRow($report)) {
                 continue;
             }
