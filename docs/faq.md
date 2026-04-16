@@ -9,6 +9,7 @@ Use the API endpoint:
 - `format=mcp` is required.
 - The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
 - Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
+- Authenticate with Matomo credentials by sending a Bearer token. If the optional `OAuth2` plugin is enabled and your MCP client supports it, OAuth2 is the recommended option. Otherwise use a Matomo `token_auth` as the Bearer token.
 
 ## Configuration
 
@@ -31,6 +32,8 @@ log_tool_call_parameters_full = 0
 
 MCP access is disabled by default and must be enabled in **Administration -> System -> General Settings -> McpServer**.
 
+The optional Matomo `OAuth2` plugin is not required to use McpServer. If it is installed and enabled, compatible MCP clients can connect with OAuth2 access tokens. Otherwise clients can connect with a Matomo `token_auth` as a Bearer token.
+
 When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp` behave as follows:
 
 - Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Bearer realm="mcp"`.
@@ -50,6 +53,6 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 
 ## Troubleshooting
 
-- `401 Unauthorized`: verify the Bearer token is present, active, and belongs to a user with access to the requested site data.
-- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> General Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user has access to the requested site or report data.
+- `401 Unauthorized`: verify the Bearer token is present and active. If you use OAuth2, verify the client completed authorization successfully and is sending a valid access token. If you use `token_auth`, verify you are sending `Authorization: Bearer <token_auth>` and that the token belongs to a user with access to the requested site data.
+- `403 Forbidden`: if MCP is disabled, enable MCP in **Administration -> System -> General Settings -> McpServer**. If MCP is already enabled, verify the authenticated Matomo user behind the OAuth2 access token or `token_auth` has access to the requested site or report data.
 - `400 Bad Request`: verify the client is using the exact MCP endpoint and is not proxying requests through `API.getBulkRequest`.
