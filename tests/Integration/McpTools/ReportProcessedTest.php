@@ -1154,9 +1154,6 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
             if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
@@ -1212,9 +1209,6 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
             if ($this->isSubtableMetadataRow($row)) {
                 continue;
             }
@@ -1272,10 +1266,6 @@ class ReportProcessedTest extends IntegrationTestCase
         );
 
         foreach ($metadata as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
-
             if (($report['module'] ?? null) !== $module || ($report['action'] ?? null) !== $action) {
                 continue;
             }
@@ -1301,7 +1291,7 @@ class ReportProcessedTest extends IntegrationTestCase
         $metadata = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
 
         foreach ($metadata as $report) {
-            if (!is_array($report) || $this->isSubtableMetadataRow($report)) {
+            if ($this->isSubtableMetadataRow($report)) {
                 continue;
             }
 

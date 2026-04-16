@@ -546,10 +546,6 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     {
         $reports = ApiModuleApi::getInstance()->getReportMetadata((string) $idSite, false, false, false, false);
         foreach ($reports as $report) {
-            if (!is_array($report)) {
-                continue;
-            }
-
             if (($report['module'] ?? null) !== $module || ($report['action'] ?? null) !== $action) {
                 continue;
             }
