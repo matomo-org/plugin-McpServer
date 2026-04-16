@@ -145,7 +145,7 @@ describe('McpServer', function () {
 
         expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
         expect(text).to.contain('A Matomo token_auth (used as a Bearer token)');
-        expect(text).to.not.contain('OAuth2 is the recommended way to connect.');
+        expect(text).to.not.contain('OAuth2 is available for this MCP Server and is the recommended way to connect.');
         expect(text).to.not.contain('Recommended: Connect Using OAuth2');
         expect(text).to.not.contain('Alternative: Connect Using token_auth');
 
@@ -164,11 +164,12 @@ describe('McpServer', function () {
 
         const text = await getConnectText();
 
-        expect(text).to.contain('OAuth2 is the recommended way to connect.');
+        expect(text).to.contain('OAuth2 is available for this MCP Server and is the recommended way to connect.');
         expect(text).to.contain('Recommended: Connect Using OAuth2');
         expect(text).to.contain('Alternative: Connect Using token_auth');
         expect(text).to.contain('Choose an authentication method.');
-        expect(text).to.contain('If OAuth2 is enabled in your Matomo and supported by your MCP client');
+        expect(text).to.contain('If your MCP client supports OAuth2, choose OAuth2 and complete the authorization flow using an OAuth2 client configured for your Matomo.');
+        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, create one in the OAuth2 plugin first.');
         expect(text).to.contain('If using OAuth2, verify the client completed authorization successfully');
         expect(text).to.not.contain('Get a Matomo Token');
 

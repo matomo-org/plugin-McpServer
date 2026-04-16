@@ -9,7 +9,7 @@ Use the API endpoint:
 - `format=mcp` is required.
 - The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
 - Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
-- Authenticate with Matomo credentials by sending a Bearer token. If the optional `OAuth2` plugin is enabled and your MCP client supports it, OAuth2 is the recommended option. Otherwise use a Matomo `token_auth` as the Bearer token.
+- Authenticate with Matomo credentials by sending a Bearer token. If your MCP client supports OAuth2 and the Matomo `OAuth2` plugin is installed and enabled, OAuth2 is the recommended option; create an OAuth2 client there if needed. Otherwise use a Matomo `token_auth` as the Bearer token.
 
 ## Configuration
 
@@ -32,7 +32,7 @@ log_tool_call_parameters_full = 0
 
 MCP access is disabled by default and must be enabled in **Administration -> System -> General Settings -> McpServer**.
 
-The optional Matomo `OAuth2` plugin is not required to use McpServer. If it is installed and enabled, compatible MCP clients can connect with OAuth2 access tokens. Otherwise clients can connect with a Matomo `token_auth` as a Bearer token.
+The Matomo `OAuth2` plugin is not required to use McpServer. If it is installed and enabled, OAuth2 is available for compatible MCP clients; create an OAuth2 client in that plugin if needed. Otherwise clients can connect with a Matomo `token_auth` as a Bearer token.
 
 When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp` behave as follows:
 
