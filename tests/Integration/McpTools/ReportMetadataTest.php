@@ -158,7 +158,7 @@ class ReportMetadataTest extends IntegrationTestCase
                 'idSite' => $this->idSite,
                 'apiModule' => 'Actions',
                 'apiAction' => 'getPageUrls',
-                'apiParameters' => [],
+                'apiParameters' => new \stdClass(),
             ],
             __METHOD__,
         );
@@ -465,12 +465,58 @@ class ReportMetadataTest extends IntegrationTestCase
 
     public function testRejectsModuleActionWithNonEmptyListApiParametersAtSchemaLevel(): void
     {
-        $this->assertInvalidSchemaArguments([
-            'idSite' => $this->idSite,
-            'apiModule' => 'Actions',
-            'apiAction' => 'getPageUrls',
-            'apiParameters' => ['flat'],
-        ]);
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $error = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => ['flat'],
+            ],
+            __METHOD__,
+        );
+
+        self::assertStringContainsString('Property \'/apiParameters\'', $error->message);
+    }
+
+    public function testRejectsStringApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaPayload(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'apiModule' => 'Actions',
+                    'apiAction' => 'getPageUrls',
+                    'apiParameters' => 'bad',
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    public function testRejectsNumericApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaPayload(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportMetadata::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'apiModule' => 'Actions',
+                    'apiAction' => 'getPageUrls',
+                    'apiParameters' => 123,
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
     }
 
     public function testMasksNoAccessAsNotFound(): void
@@ -558,6 +604,12 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertArrayNotHasKey('anyOf', $inputSchema);
         self::assertArrayHasKey('not', $inputSchema);
         self::assertIsArray($inputSchema['not']);
+
+        $properties = $inputSchema['properties'] ?? null;
+        self::assertIsArray($properties);
+        $apiParameters = $properties['apiParameters'] ?? null;
+        self::assertIsArray($apiParameters);
+        self::assertSame('object', $apiParameters['type'] ?? null);
     }
 
     /**

@@ -17,7 +17,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
-use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Log\LoggerInterface;
@@ -28,8 +27,11 @@ use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
  */
 final class ObservedCallToolHandler implements RequestHandlerInterface
 {
+    /**
+     * @param RequestHandlerInterface<mixed> $delegate
+     */
     public function __construct(
-        private readonly CallToolHandler $delegate,
+        private readonly RequestHandlerInterface $delegate,
         private readonly LoggerInterface $logger,
         private readonly ToolCallParameterFormatter $parameterFormatter,
         private readonly bool $fullParameterLoggingEnabled,
@@ -45,7 +47,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     /**
      * @param CallToolRequest $request
      *
-     * @return Response<CallToolResult>|Error
+     * @return Response<mixed>|Error
      */
     public function handle(Request $request, SessionInterface $session): Response|Error
     {
@@ -60,7 +62,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         ];
 
         $result = $this->delegate->handle($request, $session);
-        if ($result instanceof Response && !$result->result->isError) {
+        if ($result instanceof Response && $result->result instanceof CallToolResult && !$result->result->isError) {
             $responseSize = $this->estimateResponseBytes($result);
             $successContext = $baseContext;
             $successContext['mcp_response_bytes'] = $responseSize;
@@ -143,7 +145,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param Response<CallToolResult> $response
+     * @param Response<mixed> $response
      */
     private function estimateResponseBytes(Response $response): ?int
     {
@@ -160,7 +162,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param Response<CallToolResult>|Error $result
+     * @param Response<mixed>|Error $result
      */
     private function extractFailureMessage(Response|Error $result): string
     {
@@ -169,7 +171,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         }
 
         $callToolResult = $result->result;
-        if (!$callToolResult->isError) {
+        if (!$callToolResult instanceof CallToolResult || !$callToolResult->isError) {
             return 'Tool execution failed';
         }
 

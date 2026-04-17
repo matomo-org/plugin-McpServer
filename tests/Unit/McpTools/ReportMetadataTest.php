@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
@@ -198,9 +197,12 @@ class ReportMetadataTest extends TestCase
         self::assertSame('Actions_getPageUrls', $wrapper->captured['reportUniqueId']);
     }
 
-    public function testGetRejectsUniqueIdCombinedWithModuleActionOrApiParameters(): void
+    public function testGetAcceptsNestedObjectApiParameters(): void
     {
         $wrapper = new class () implements ReportMetadataQueryServiceInterface {
+            /** @var array<string, mixed> */
+            public array $captured = [];
+
             public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
             {
                 throw new \RuntimeException('unexpected');
@@ -214,51 +216,27 @@ class ReportMetadataTest extends TestCase
                 string $period,
                 string $date,
             ): ReportMetadataRecord {
-                throw new \RuntimeException('unexpected');
+                $this->captured = ['apiParameters' => $apiParameters];
+
+                return new ReportMetadataRecord(
+                    uniqueId: 'Actions_getPageUrls',
+                    module: $apiModule,
+                    action: $apiAction,
+                    name: 'Page URLs',
+                    category: 'Actions',
+                    parameters: $apiParameters,
+                    metadata: ['module' => $apiModule, 'action' => $apiAction],
+                );
             }
         };
-
-        $this->expectException(ToolCallException::class);
-        $this->expectExceptionMessage('Invalid parameter combination: reportUniqueId cannot be combined');
 
         (new ReportMetadata($wrapper))->get(
             idSite: 1,
-            reportUniqueId: 'Actions_getPageUrls',
             apiModule: 'Actions',
+            apiAction: 'getPageUrls',
+            apiParameters: ['filters' => ['segment' => 'countryCode==de']],
         );
-    }
 
-    public function testGetRejectsNonEmptyListApiParameters(): void
-    {
-        $wrapper = new class () implements ReportMetadataQueryServiceInterface {
-            public function getReportMetadataByUniqueId(int $idSite, string $reportUniqueId): ReportMetadataRecord
-            {
-                throw new \RuntimeException('unexpected');
-            }
-
-            public function getReportMetadataByModuleAction(
-                int $idSite,
-                string $apiModule,
-                string $apiAction,
-                array $apiParameters,
-                string $period,
-                string $date,
-            ): ReportMetadataRecord {
-                throw new \RuntimeException('unexpected');
-            }
-        };
-
-        $this->expectException(ToolCallException::class);
-        $this->expectExceptionMessage('apiParameters is invalid.');
-
-        $tool = new ReportMetadata($wrapper);
-        $method = new \ReflectionMethod($tool, 'get');
-
-        $method->invokeArgs($tool, [
-            'idSite' => 1,
-            'apiModule' => 'VisitsSummary',
-            'apiAction' => 'get',
-            'apiParameters' => ['flat'],
-        ]);
+        self::assertSame(['filters' => ['segment' => 'countryCode==de']], $wrapper->captured['apiParameters']);
     }
 }

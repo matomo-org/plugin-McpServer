@@ -15,15 +15,18 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\Session;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use PHPUnit\Framework\TestCase;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Log\NullLogger;
@@ -459,7 +462,7 @@ class ObservedCallToolHandlerTest extends TestCase
         string $logLevel = 'DEBUG',
     ): ObservedCallToolHandler {
         return new ObservedCallToolHandler(
-            $this->createSdkHandler($registry),
+            $this->createCompatibleHandler($registry),
             $logger,
             new ToolCallParameterFormatter(),
             $fullParameterLoggingEnabled,
@@ -467,15 +470,20 @@ class ObservedCallToolHandlerTest extends TestCase
         );
     }
 
+    /**
+     * @return RequestHandlerInterface<mixed>
+     */
+    private function createCompatibleHandler(Registry $registry): RequestHandlerInterface
+    {
+        return new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+    }
+
     private function createSdkHandler(Registry $registry): CallToolHandler
     {
         return new CallToolHandler($registry, new ReferenceHandler(), new NullLogger());
     }
 
-    /**
-     * @param Response<CallToolResult>|Error $message
-     */
-    private function encodeMessage(Response|Error $message): string
+    private function encodeMessage(MessageInterface $message): string
     {
         $encoded = json_encode(
             $message->jsonSerialize(),

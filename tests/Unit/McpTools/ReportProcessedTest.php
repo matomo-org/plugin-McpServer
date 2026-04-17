@@ -239,9 +239,12 @@ class ReportProcessedTest extends TestCase
         self::assertSame([], $wrapper->captured['apiParameters']);
     }
 
-    public function testGetRejectsNonEmptyListApiParameters(): void
+    public function testGetAcceptsNestedObjectApiParameters(): void
     {
         $wrapper = new class () implements ReportProcessedQueryServiceInterface {
+            /** @var array<string, mixed> */
+            public array $captured = [];
+
             /**
              * @param list<int|string>|null $goalMetricsProcessGoals
              */
@@ -262,23 +265,32 @@ class ReportProcessedTest extends TestCase
                 int $filterLimit,
                 int $filterOffset,
             ): ReportProcessedRecord {
-                throw new \RuntimeException('unexpected');
+                $this->captured = ['apiParameters' => $apiParameters];
+
+                return new ReportProcessedRecord(
+                    report: [],
+                    filterLimit: $filterLimit,
+                    filterOffset: $filterOffset,
+                    returnedRows: 0,
+                    totalRows: 0,
+                    hasMore: false,
+                    uniqueId: 'Actions_getPageUrls',
+                    apiModule: (string) $apiModule,
+                    apiAction: (string) $apiAction,
+                    apiParameters: $apiParameters ?? [],
+                );
             }
         };
 
-        $this->expectException(\Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException::class);
-        $this->expectExceptionMessage('apiParameters is invalid.');
+        (new ReportProcessed($wrapper))->get(
+            idSite: 3,
+            period: 'day',
+            date: 'today',
+            apiModule: 'Actions',
+            apiAction: 'getPageUrls',
+            apiParameters: ['filters' => ['segment' => 'countryCode==de']],
+        );
 
-        $tool = new ReportProcessed($wrapper);
-        $method = new \ReflectionMethod($tool, 'get');
-
-        $method->invokeArgs($tool, [
-            'idSite' => 3,
-            'period' => 'day',
-            'date' => 'today',
-            'apiModule' => 'VisitsSummary',
-            'apiAction' => 'get',
-            'apiParameters' => ['flat'],
-        ]);
+        self::assertSame(['filters' => ['segment' => 'countryCode==de']], $wrapper->captured['apiParameters']);
     }
 }
