@@ -82,18 +82,10 @@ class ReportMetadata
                 'description' => 'Date for module/action metadata lookup (default today).',
             ],
             'apiParameters' => [
-                'oneOf' => [
-                    [
-                        'type' => 'object',
-                        'description' => 'Optional report parameter object used with module/action lookup.',
-                        'additionalProperties' => true,
-                    ],
-                    [
-                        'type' => 'array',
-                        'maxItems' => 0,
-                        'description' => 'Empty array is accepted and normalized as no apiParameters.',
-                    ],
-                ],
+                'type' => 'object',
+                'description' => 'Optional report parameter object used with module/action lookup. '
+                    . 'An empty array is treated equivalently to an empty object.',
+                'additionalProperties' => true,
             ],
         ],
         'required' => ['idSite'],

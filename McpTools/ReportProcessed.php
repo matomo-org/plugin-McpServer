@@ -94,19 +94,11 @@ class ReportProcessed
                 'description' => 'Report API action when reportUniqueId is not used.',
             ],
             'apiParameters' => [
-                'oneOf' => [
-                    [
-                        'type' => 'object',
-                        'additionalProperties' => true,
-                        'description' => 'Optional report parameters '
-                            . '(safe generic params and report-specific selector params).',
-                    ],
-                    [
-                        'type' => 'array',
-                        'maxItems' => 0,
-                        'description' => 'Empty array is accepted and normalized as no apiParameters.',
-                    ],
-                ],
+                'type' => 'object',
+                'additionalProperties' => true,
+                'description' => 'Optional report parameters '
+                    . '(safe generic params and report-specific selector params). '
+                    . 'An empty array is treated equivalently to an empty object.',
             ],
             'goalMetricsMode' => [
                 'type' => 'string',

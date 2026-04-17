@@ -15,11 +15,11 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Server;
-use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
@@ -66,9 +66,13 @@ final class McpServerFactory
                 completions: false,
             ));
 
+        $callToolHandler = new CompatibleCallToolHandler(
+            $registry,
+            new ReferenceHandler($this->container),
+            new NullLogger(),
+        );
+
         if ($loggingConfig['logToolCalls']) {
-            $referenceHandler = new ReferenceHandler($this->container);
-            $callToolHandler = new CallToolHandler($registry, $referenceHandler, new NullLogger());
             $builder->addRequestHandler(new ObservedCallToolHandler(
                 $callToolHandler,
                 $this->logger,
@@ -76,6 +80,8 @@ final class McpServerFactory
                 $loggingConfig['logFullParameters'],
                 $loggingConfig['logLevel'],
             ));
+        } else {
+            $builder->addRequestHandler($callToolHandler);
         }
 
         return $builder->build();

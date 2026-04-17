@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Cache;
 use Piwik\Config;
@@ -613,6 +614,9 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertIsArray($properties);
         self::assertArrayHasKey('goalMetricsMode', $properties);
         self::assertArrayHasKey('goalMetricsProcessGoals', $properties);
+        $apiParameters = $properties['apiParameters'] ?? null;
+        self::assertIsArray($apiParameters);
+        self::assertSame('object', $apiParameters['type'] ?? null);
         $items = $properties['goalMetricsProcessGoals']['items']['oneOf'] ?? null;
         self::assertIsArray($items);
 
@@ -750,11 +754,64 @@ class ReportProcessedTest extends IntegrationTestCase
 
     public function testRejectsModuleActionWithNonEmptyListApiParametersAtSchemaLevel(): void
     {
-        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
-            'apiModule' => 'Actions',
-            'apiAction' => 'getPageUrls',
-            'apiParameters' => ['flat'],
-        ]);
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $error = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'apiModule' => 'Actions',
+                'apiAction' => 'getPageUrls',
+                'apiParameters' => ['flat'],
+            ],
+            __METHOD__,
+        );
+
+        self::assertStringContainsString('Property \'/apiParameters\'', $error->message);
+    }
+
+    public function testRejectsStringApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorPayloadAtSchemaLevel(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportProcessed::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'apiModule' => 'Actions',
+                    'apiAction' => 'getPageUrls',
+                    'apiParameters' => 'bad',
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    public function testRejectsNumericApiParametersAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorPayloadAtSchemaLevel(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => __METHOD__,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => ReportProcessed::TOOL_NAME,
+                'arguments' => [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                    'apiModule' => 'Actions',
+                    'apiAction' => 'getPageUrls',
+                    'apiParameters' => 123,
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
     }
 
     public function testReturnsStrictGuidanceForAdHocSegmentInStrictArchivingMode(): void
@@ -1198,6 +1255,19 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
             $error->message ?? '',
+        );
+    }
+
+    private function assertInvalidSelectorPayloadAtSchemaLevel(string $payload): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
+        $message = McpTestHelper::decodeError($response);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
+            $message->message ?? '',
         );
     }
 

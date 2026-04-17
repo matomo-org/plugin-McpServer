@@ -181,7 +181,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
                 'idSite' => $this->idSite,
                 'apiModule' => 'Actions',
                 'apiAction' => 'getPageUrls',
-                'apiParameters' => [],
+                'apiParameters' => new \stdClass(),
             ],
             __METHOD__,
         );
