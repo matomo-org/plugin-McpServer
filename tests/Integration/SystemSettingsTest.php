@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
+use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -26,7 +27,7 @@ class SystemSettingsTest extends IntegrationTestCase
     {
         parent::setUp();
 
-        $this->settings = new SystemSettings();
+        $this->settings = $this->createSettingsWithOAuth2Enabled(false);
     }
 
     public function testMcpIsDisabledByDefault(): void
@@ -40,5 +41,15 @@ class SystemSettingsTest extends IntegrationTestCase
         self::assertInstanceOf(SystemSettings::class, $this->settings);
         $this->settings->enableMcp->setValue(true);
         self::assertTrue($this->settings->isMcpEnabled());
+    }
+
+    private function createSettingsWithOAuth2Enabled(bool $oauth2Enabled): SystemSettings
+    {
+        $gateway = $this->createMock(PluginCapabilityGatewayInterface::class);
+        $gateway->method('isPluginActivated')
+            ->with('OAuth2')
+            ->willReturn($oauth2Enabled);
+
+        return new SystemSettings($gateway);
     }
 }

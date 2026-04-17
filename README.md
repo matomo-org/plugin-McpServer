@@ -46,14 +46,16 @@ Here are a few examples of what you can do:
 * Install the plugin in Matomo.
 * Activate **McpServer** in **Administration -> Plugins**.
 * Enable MCP in **Administration -> System -> General Settings -> McpServer**.
-* Configure your MCP client with the endpoint and a Matomo `token_auth` that already has access to the data you want to expose.
+* Configure your MCP client with the endpoint and one of these authentication methods:
+  * OAuth2, if your MCP client supports it and the Matomo `OAuth2` plugin is installed and enabled, with an OAuth2 client configured there.
+  * A Matomo `token_auth` used as a Bearer token otherwise.
 
 For the recommended end-user setup flow, use the in-product connect guide at **Administration -> Platform -> MCP Server**.
 
 ### Security And Access Model
 
 - MCP access is disabled by default.
-- The plugin uses Matomo authentication.
+- The plugin uses Matomo authentication, including OAuth2 when the Matomo `OAuth2` plugin is installed and enabled and an OAuth2 client is configured for the MCP client, or `token_auth` Bearer tokens otherwise.
 - Data access is limited to the same sites and reports the Matomo user can already access.
 - If features such as the Visitor Log are available to that user, MCP clients may access the same underlying data scope.
 

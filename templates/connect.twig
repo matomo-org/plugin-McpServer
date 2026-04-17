@@ -7,18 +7,30 @@
     <div class="card">
         <div class="card-content">
             <h2>{{ 'McpServer_ConnectPageTitle'|translate }}</h2>
-            <p>{{ 'McpServer_ConnectIntro'|translate }}</p>
+            <p>
+                {% if isOAuth2Enabled %}
+                    {{ 'McpServer_ConnectIntroOAuth2Preferred'|translate }}
+                {% else %}
+                    {{ 'McpServer_ConnectIntro'|translate }}
+                {% endif %}
+            </p>
             {% if isMcpEnabled %}
                 <h3>{{ 'McpServer_ConnectWhatYouNeedTitle'|translate }}</h3>
                 <ul class="browser-default">
                     <li>{{ 'McpServer_ConnectNeedEndpoint'|translate }}</li>
-                    <li>{{ 'McpServer_ConnectNeedToken'|translate('<code>', '</code>')|raw }}</li>
+                    {% if isOAuth2Enabled %}
+                        <li>{{ 'McpServer_ConnectNeedOAuth2Client'|translate }}</li>
+                        <li>{{ 'McpServer_ConnectNeedAuthMethod'|translate }}</li>
+                        <li>{{ 'McpServer_ConnectNeedTokenAlternative'|translate('<code>', '</code>')|raw }}</li>
+                    {% else %}
+                        <li>{{ 'McpServer_ConnectNeedToken'|translate('<code>', '</code>')|raw }}</li>
+                    {% endif %}
                 </ul>
             {% endif %}
             {% if not isMcpEnabled %}
                 <div class="alert alert-warning">
                     {% if canEnableMcp %}
-                        {{ 'McpServer_ConnectMcpDisabledCanEnable'|translate('<a href="' ~ mcpSettingsUrl ~ '">', '</a>')|raw }}
+                        {{ 'McpServer_ConnectMcpDisabledCanEnable'|translate('<a href="' ~ mcpSettingsUrl|escape('html_attr') ~ '">', '</a>')|raw }}
                     {% else %}
                         {{ 'McpServer_ConnectMcpDisabledNoPermission'|translate }} {{ 'General_PleaseContactYourPiwikAdministrator'|translate }}
                     {% endif %}
@@ -47,25 +59,47 @@
             <ol>
                 <li>{{ 'McpServer_ConnectInClientStepOpenSettings'|translate }}</li>
                 <li>{{ 'McpServer_ConnectInClientStepEndpoint'|translate }} <code class="mcpServerLongCode">{{ mcpApiEndpoint }}</code></li>
-                <li>
-                    {{ 'McpServer_ConnectInClientStepAuth'|translate }}
-                    <ul class="browser-default">
-                        <li>{{ 'McpServer_ConnectInClientAuthType'|translate('<strong>', '</strong>')|raw }}</li>
-                        <li>{{ 'McpServer_ConnectInClientAuthToken'|translate('<strong>', '</strong>', '<code>', '</code>')|raw }}</li>
-                    </ul>
-                </li>
+                {% if isOAuth2Enabled %}
+                    <li>{{ 'McpServer_ConnectInClientStepChooseAuth'|translate }}</li>
+                    <li>{{ 'McpServer_ConnectInClientStepAuthOAuth2Preferred'|translate }}</li>
+                    <li>{{ 'McpServer_ConnectInClientStepAuthTokenAlternative'|translate('<code>', '</code>')|raw }}</li>
+                {% else %}
+                    <li>
+                        {{ 'McpServer_ConnectInClientStepAuth'|translate }}
+                        <ul class="browser-default">
+                            <li>{{ 'McpServer_ConnectInClientAuthType'|translate('<strong>', '</strong>')|raw }}</li>
+                            <li>{{ 'McpServer_ConnectInClientAuthToken'|translate('<strong>', '</strong>', '<code>', '</code>')|raw }}</li>
+                        </ul>
+                    </li>
+                {% endif %}
                 <li>{{ 'McpServer_ConnectInClientStepInitialize'|translate }}</li>
             </ol>
-            <h3>{{ 'McpServer_ConnectTokenTitle'|translate }}</h3>
-            <p>{{ 'McpServer_ConnectInClientTokenHelp'|translate('<a href="' ~ userSecurityUrl ~ '">', '</a>', '<code>', '</code>', externallink('https://matomo.org/faq/general/faq_114/'), '</a>')|raw }}</p>
+            {% if isOAuth2Enabled %}
+                <h3>{{ 'McpServer_ConnectOAuth2Title'|translate }}</h3>
+                <p>{{ 'McpServer_ConnectOAuth2Help'|translate }}</p>
+                <h3>{{ 'McpServer_ConnectTokenAlternativeTitle'|translate }}</h3>
+                <p>{{ 'McpServer_ConnectInClientTokenHelpAlternative'|translate('<code>', '</code>', '<a href="' ~ userSecurityUrl|escape('html_attr') ~ '">', '</a>', '<code>', '</code>')|raw }}</p>
+            {% else %}
+                <h3>{{ 'McpServer_ConnectTokenTitle'|translate }}</h3>
+                <p>{{ 'McpServer_ConnectInClientTokenHelp'|translate('<a href="' ~ userSecurityUrl|escape('html_attr') ~ '">', '</a>', '<code>', '</code>', externallink('https://matomo.org/faq/general/faq_114/'), '</a>')|raw }}</p>
+            {% endif %}
         </div>
 
         <div vue-entry="CoreHome.ContentBlock" content-title="{{ 'McpServer_ConnectTroubleshootingTitle'|translate }}" anchor="troubleshooting">
             <ul class="browser-default">
                 <li>
-                    <strong><code>401</code></strong>: {{ 'McpServer_ConnectTroubleshooting401'|translate }}
+                    <strong><code>401</code></strong>:
+                    {% if isOAuth2Enabled %}
+                        {{ 'McpServer_ConnectTroubleshooting401OAuth2'|translate }}
+                    {% else %}
+                        {{ 'McpServer_ConnectTroubleshooting401'|translate }}
+                    {% endif %}
                     <br />
-                    {{ 'McpServer_ConnectTroubleshooting401Action'|translate('<code>', '</code>')|raw }}
+                    {% if isOAuth2Enabled %}
+                        {{ 'McpServer_ConnectTroubleshooting401ActionOAuth2'|translate('<code>', '</code>', '<code>', '</code>')|raw }}
+                    {% else %}
+                        {{ 'McpServer_ConnectTroubleshooting401Action'|translate('<code>', '</code>')|raw }}
+                    {% endif %}
                 </li>
                 <li>
                     <strong><code>403</code></strong>: {{ 'McpServer_ConnectTroubleshooting403'|translate }}

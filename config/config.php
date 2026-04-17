@@ -26,7 +26,6 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterfa
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
-use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
@@ -48,8 +47,6 @@ use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
-use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
-use Piwik\Plugins\McpServer\Tasks;
 
 return [
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
@@ -73,9 +70,4 @@ return [
     SiteDetailQueryServiceInterface::class => DI::autowire(SiteDetailQueryService::class),
     SiteSummaryQueryServiceInterface::class => DI::autowire(SiteSummaryQueryService::class),
     TranslatorContextRunnerInterface::class => DI::autowire(TranslatorContextRunner::class),
-
-    DbSessionStore::class => DI::autowire(),
-    McpServerFactory::class => DI::autowire(),
-    PaginatedCollectionResponder::class => DI::autowire(),
-    Tasks::class => DI::autowire(),
 ];
