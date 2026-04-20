@@ -90,12 +90,78 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
             },
         );
 
+        $partialAccessExamplesList = implode('', [
+            '<ul class="browser-default">',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleRead'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleCreate'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleUpdate'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleDelete'),
+            '</code>',
+            '</li>',
+            '</ul>',
+        ]);
+
+        $renderRawApiHelpSection = static function (string $heading, string $body): string {
+            return '<strong>' . $heading . '</strong><br>' . $body;
+        };
+
         $sharedRawApiInlineHelp = implode('<br><br>', [
-            Piwik::translate('McpServer_RawApiAccessHelpPurpose'),
-            Piwik::translate('McpServer_RawApiAccessHelpReadFallback'),
-            Piwik::translate('McpServer_RawApiAccessHelpDataScope'),
-            Piwik::translate('McpServer_RawApiAccessHelpDestructive'),
-            Piwik::translate('McpServer_RawApiAccessHelpPolicy'),
+            '<strong>' . Piwik::translate('McpServer_RawApiAccessHelpControlHeadline') . '</strong>',
+            Piwik::translate('McpServer_RawApiAccessHelpIntro'),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpNoAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpNoAccessBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpPartialAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpPartialAccessBody')
+                . $partialAccessExamplesList
+                . '<br>'
+                . Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExceptions', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpFullAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpFullAccessBody', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpAlwaysRestrictedHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpAlwaysRestrictedBody', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpDataExposureHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpDataExposureBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpReportToolsHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpReportToolsBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpBeforeEnablingHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpBeforeEnablingBody'),
+            ),
         ]);
 
         $this->rawApiAccessScope = $this->makeSetting(
