@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer;
 use Piwik\Access;
 use Piwik\Piwik;
 use Piwik\SettingsPiwik;
+use Piwik\Url;
 use Piwik\View;
 
 class Controller extends \Piwik\Plugin\ControllerAdmin
@@ -47,17 +48,34 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
 
     private function getUserSecurityUrl(): string
     {
-        return $this->getBaseUrl() . '/index.php?module=UsersManager&action=userSecurity#authtokens';
+        return $this->buildAdminUrl([
+            'module' => 'UsersManager',
+            'action' => 'userSecurity',
+        ]) . '#authtokens';
     }
 
     private function getMcpSettingsUrl(): string
     {
-        return $this->getBaseUrl() . '/index.php?module=CoreAdminHome&action=generalSettings#McpServer';
+        return $this->buildAdminUrl([
+            'module' => 'CoreAdminHome',
+            'action' => 'generalSettings',
+        ]) . '#/McpServer';
     }
 
     private function getOAuth2ClientManagementUrl(): string
     {
-        return $this->getBaseUrl() . '/index.php?module=OAuth2&action=index';
+        return $this->buildAdminUrl([
+            'module' => 'OAuth2',
+            'action' => 'index',
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     */
+    private function buildAdminUrl(array $parameters): string
+    {
+        return 'index.php' . Url::getCurrentQueryStringWithParametersModified($parameters);
     }
 
     private function getBaseUrl(): string

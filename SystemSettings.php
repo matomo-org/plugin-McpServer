@@ -18,6 +18,7 @@ use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Settings\FieldConfig;
 use Piwik\Settings\Setting;
 use Piwik\SettingsPiwik;
+use Piwik\Url;
 
 class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
@@ -287,7 +288,10 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     private function getConnectGuideUrl(): string
     {
-        return $this->getNormalizedBaseUrl() . '/index.php?module=McpServer&action=connect';
+        return 'index.php' . Url::getCurrentQueryStringWithParametersModified([
+            'module' => 'McpServer',
+            'action' => 'connect',
+        ]);
     }
 
     private function getNormalizedBaseUrl(): string
@@ -312,6 +316,9 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     private function getOAuth2ClientManagementUrl(): string
     {
-        return $this->getNormalizedBaseUrl() . '/index.php?module=OAuth2&action=index';
+        return 'index.php' . Url::getCurrentQueryStringWithParametersModified([
+            'module' => 'OAuth2',
+            'action' => 'index',
+        ]);
     }
 }
