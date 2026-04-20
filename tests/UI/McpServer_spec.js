@@ -169,6 +169,10 @@ describe('McpServer', function () {
         expect(await page.$eval(maximumMcpAccessLevelSelector, (el) => el.value)).to.equal('string:view');
         expect(await page.$eval(rawApiAccessScopeSelector, (el) => el.value)).to.equal('string:partial');
         expect(await page.$eval('input[name="raw_api_access_read"]', (el) => !!el.checked)).to.equal(true);
+        expect(await page.$eval(`${settingsSelector} a[href*="module=McpServer"][href*="action=connect"]`, (el) => el.getAttribute('href')))
+            .to.contain('idSite=1')
+            .and.to.contain('period=day')
+            .and.to.contain('date=yesterday');
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');
     });
 
@@ -183,6 +187,10 @@ describe('McpServer', function () {
         expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
         expect(text).to.contain('MCP Server is currently disabled.');
         expect(text).to.contain('Enable it in General Settings');
+        expect(await page.$eval(`${connectSelector} a[href*="module=CoreAdminHome"][href*="action=generalSettings"]`, (el) => el.getAttribute('href')))
+            .to.contain('idSite=1')
+            .and.to.contain('period=day')
+            .and.to.contain('date=yesterday');
         expect(text).to.not.contain('Use this endpoint for MCP over HTTP:');
         expect(text).to.not.contain('Connect Your MCP Client');
         expect(text).to.not.contain('Troubleshooting');
@@ -242,9 +250,18 @@ describe('McpServer', function () {
         expect(text).to.contain('Alternative: Connect Using token_auth');
         expect(text).to.contain('Choose an authentication method.');
         expect(text).to.contain('If your MCP client supports OAuth2, choose OAuth2 and complete the authorization flow using an OAuth2 client configured for your Matomo.');
-        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, create one in the OAuth2 plugin first.');
+        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, create one in Administration -> Platform -> OAuth2 Clients first.');
+        expect(text).to.contain('Administration -> Platform -> OAuth2 Clients');
         expect(text).to.contain('If using OAuth2, verify the client completed authorization successfully');
         expect(text).to.not.contain('Get a Matomo Token');
+        expect(await page.$eval(`${connectSelector} a[href*="module=OAuth2"][href*="action=index"]`, (el) => el.getAttribute('href')))
+            .to.contain('idSite=1')
+            .and.to.contain('period=day')
+            .and.to.contain('date=yesterday');
+        expect(await page.$eval(`${connectSelector} a[href*="module=UsersManager"][href*="action=userSecurity"]`, (el) => el.getAttribute('href')))
+            .to.contain('idSite=1')
+            .and.to.contain('period=day')
+            .and.to.contain('date=yesterday');
 
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_oauth2');
     });
