@@ -1,6 +1,6 @@
 ## Changelog
 
-### Unreleased
+### 5.0.2
 
 - Disabled anonymous access to the MCP API endpoint and connect guidance page.
 - Added raw Matomo API discovery and execution MCP tools, with administrator-controlled access modes and privilege limits.
