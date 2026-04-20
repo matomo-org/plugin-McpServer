@@ -14,11 +14,14 @@ namespace Piwik\Plugins\McpServer;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
@@ -65,6 +68,21 @@ final class McpServerFactory
                 logging: false,
                 completions: false,
             ));
+
+        $builder->addTool(
+            handler: [ReportProcessed::class, 'get'],
+            name: ReportProcessed::TOOL_NAME,
+            description: ReportProcessed::TOOL_DESCRIPTION,
+            annotations: new ToolAnnotations(
+                // Classify range aggregate materialization as non-mutational for MCP.
+                readOnlyHint: ReportProcessed::isReadOnlyInCurrentMatomoConfig(),
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            ),
+            inputSchema: ReportProcessed::INPUT_SCHEMA,
+            outputSchema: ReportProcessedToolOutputSchema::ITEM,
+        );
 
         $callToolHandler = new CompatibleCallToolHandler(
             $registry,

@@ -51,6 +51,10 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 - segments
 - dimensions
 
+`matomo_report_processed` is advertised to MCP clients as read-only only when Matomo is configured so report requests do not trigger browser-based archiving work. In practice, if browser-triggered archiving is enabled or browser-based segment archiving is available, MCP clients will see this tool as not read-only.
+
+To change how AI clients see this tool, adjust the Matomo archiving settings that control browser-triggered archiving and browser-based segment archiving. Even when the tool is advertised as read-only, Matomo may still materialize a cached range aggregate while serving the report, and this plugin treats that derived cache work as non-mutational for MCP classification. The tool is still not advertised as idempotent, because repeated calls can differ in internal processing effects and archive reuse.
+
 ## Troubleshooting
 
 - `401 Unauthorized`: verify the Bearer token is present and active. If you use OAuth2, verify the client completed authorization successfully and is sending a valid access token. If you use `token_auth`, verify you are sending `Authorization: Bearer <token_auth>` and that the token belongs to a user with access to the requested site data.
