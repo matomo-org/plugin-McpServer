@@ -11,12 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\ArchiveProcessor\Rules;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
-use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
 
@@ -29,37 +26,12 @@ class ReportProcessed
     public const FILTER_LIMIT_DEFAULT = 50;
     public const FILTER_LIMIT_MAX = 250;
     public const FILTER_OFFSET_DEFAULT = 0;
-
-    public function __construct(private ReportProcessedQueryServiceInterface $queryService)
-    {
-    }
-
-    /**
-     * @param array<string, mixed>|null $apiParameters
-     * @param list<int|string>|null $goalMetricsProcessGoals
-     * @return ReportProcessedArray
-     */
-    #[McpTool(
-        name: self::TOOL_NAME,
-        description: "Use when: you need tabular processed report data for a known report and date range.\n"
-            . "Purpose: resolve report selector, fetch processed report payload, "
-            . "and return stable pagination metadata.\n"
-            . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.",
-        // Processed report retrieval is classified as read-only for MCP client UX.
-        // Matomo may still materialize temporary/archive data internally while
-        // serving the report, but this tool does not expose a user-directed
-        // mutation beyond what the Matomo UI can already trigger interactively.
-        // Keep idempotentHint=false because identical calls can still differ in
-        // environmental effect when Matomo performs internal archive generation.
-        annotations: new ToolAnnotations(
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: false,
-            openWorldHint: false,
-        ),
-        outputSchema: ReportProcessedToolOutputSchema::ITEM,
-    )]
-    #[Schema(definition: [
+    public const TOOL_DESCRIPTION = "Use when: you need tabular processed report data "
+        . "for a known report and date range.\n"
+        . "Purpose: resolve report selector, fetch processed report payload, "
+        . "and return stable pagination metadata.\n"
+        . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.";
+    public const INPUT_SCHEMA = [
         'type' => 'object',
         'properties' => [
             'idSite' => [
@@ -157,11 +129,6 @@ class ReportProcessed
             ],
         ],
         'required' => ['idSite', 'period', 'date'],
-        // Selector truth table:
-        // valid:   reportUniqueId
-        // valid:   apiModule + apiAction
-        // invalid: no selector, partial module/action selector, or reportUniqueId combined
-        //          with apiModule/apiAction
         'not' => [
             'anyOf' => [
                 [
@@ -186,7 +153,23 @@ class ReportProcessed
             ],
         ],
         'additionalProperties' => false,
-    ])]
+    ];
+
+    public function __construct(private ReportProcessedQueryServiceInterface $queryService)
+    {
+    }
+
+    public static function isReadOnlyInCurrentMatomoConfig(): bool
+    {
+        return !Rules::isBrowserArchivingAvailableForSegments()
+            && !Rules::isBrowserTriggerEnabled();
+    }
+
+    /**
+     * @param array<string, mixed>|null $apiParameters
+     * @param list<int|string>|null $goalMetricsProcessGoals
+     * @return ReportProcessedArray
+     */
     public function get(
         int $idSite,
         string $period,
