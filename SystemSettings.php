@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer;
 
 use Piwik\Piwik;
-use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
+use Piwik\Plugin\Manager;
 use Piwik\Settings\FieldConfig;
 use Piwik\Settings\Setting;
 use Piwik\SettingsPiwik;
@@ -21,15 +21,6 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
     /** @var Setting */
     public $enableMcp;
-
-    private PluginCapabilityGatewayInterface $pluginCapabilityGateway;
-
-    public function __construct(PluginCapabilityGatewayInterface $pluginCapabilityGateway)
-    {
-        $this->pluginCapabilityGateway = $pluginCapabilityGateway;
-
-        parent::__construct();
-    }
 
     protected function init(): void
     {
@@ -76,6 +67,6 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 
     public function isOAuth2PluginEnabled(): bool
     {
-        return $this->pluginCapabilityGateway->isPluginActivated('OAuth2');
+        return Manager::getInstance()->isPluginActivated('OAuth2');
     }
 }
