@@ -116,7 +116,7 @@ class McpToolsContractTest extends IntegrationTestCase
                 'openWorldHint' => false,
             ],
             'matomo_report_processed' => [
-                'readOnlyHint' => false,
+                'readOnlyHint' => true,
                 'destructiveHint' => false,
                 'idempotentHint' => false,
                 'openWorldHint' => false,

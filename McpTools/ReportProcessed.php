@@ -45,15 +45,14 @@ class ReportProcessed
             . "Purpose: resolve report selector, fetch processed report payload, "
             . "and return stable pagination metadata.\n"
             . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.",
-        // Keep these conservative defaults for processed reports:
-        // - readOnlyHint=false because fetching a processed report can trigger
-        //   report generation / archiving side effects depending on runtime config.
-        // - destructiveHint=false because those effects are additive/cache-generation,
-        //   not destructive mutations.
-        // - idempotentHint=false because repeated identical calls cannot be guaranteed
-        //   to have no additional environmental effect across archive configurations.
+        // Processed report retrieval is classified as read-only for MCP client UX.
+        // Matomo may still materialize temporary/archive data internally while
+        // serving the report, but this tool does not expose a user-directed
+        // mutation beyond what the Matomo UI can already trigger interactively.
+        // Keep idempotentHint=false because identical calls can still differ in
+        // environmental effect when Matomo performs internal archive generation.
         annotations: new ToolAnnotations(
-            readOnlyHint: false,
+            readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: false,
             openWorldHint: false,
