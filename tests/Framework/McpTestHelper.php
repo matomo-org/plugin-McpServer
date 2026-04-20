@@ -35,6 +35,9 @@ use PHPUnit\Framework\Assert;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 /**
  * @phpstan-import-type ToolData from Tool
@@ -67,6 +70,62 @@ final class McpTestHelper
         Assert::assertNotSame('', $sessionId, 'Expected Mcp-Session-Id header on initialize response.');
 
         return $sessionId;
+    }
+
+    public static function getRawApiAccessMode(): string
+    {
+        return StaticContainer::get(SystemSettings::class)->getRawApiAccessMode();
+    }
+
+    public static function setRawApiAccessMode(string $rawApiAccessMode): void
+    {
+        $access = Access::getInstance();
+        $hadSuperUserAccess = $access->hasSuperUserAccess();
+        $access->setSuperUserAccess(true);
+
+        try {
+            $normalizedMode = RawApiAccessMode::normalize($rawApiAccessMode);
+            $systemSettings = StaticContainer::get(SystemSettings::class);
+            $systemSettings->rawApiAccessScope->setValue(match ($normalizedMode) {
+                RawApiAccessMode::FULL => 'full',
+                RawApiAccessMode::NONE => 'none',
+                default => 'partial',
+            });
+            $systemSettings->rawApiAccessRead->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::READ),
+            );
+            $systemSettings->rawApiAccessCreate->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::CREATE),
+            );
+            $systemSettings->rawApiAccessUpdate->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::UPDATE),
+            );
+            $systemSettings->rawApiAccessDelete->setValue(
+                RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::DELETE),
+            );
+        } finally {
+            $access->setSuperUserAccess($hadSuperUserAccess);
+        }
+    }
+
+    public static function getMaximumAllowedMcpAccessLevel(): string
+    {
+        return StaticContainer::get(SystemSettings::class)->getMaximumAllowedMcpAccessLevel();
+    }
+
+    public static function setMaximumAllowedMcpAccessLevel(string $maximumAllowedMcpAccessLevel): void
+    {
+        $access = Access::getInstance();
+        $hadSuperUserAccess = $access->hasSuperUserAccess();
+        $access->setSuperUserAccess(true);
+
+        try {
+            StaticContainer::get(SystemSettings::class)->maximumMcpAccessLevel->setValue(
+                McpAccessLevel::normalizeMaximumAllowed($maximumAllowedMcpAccessLevel),
+            );
+        } finally {
+            $access->setSuperUserAccess($hadSuperUserAccess);
+        }
     }
 
     /**

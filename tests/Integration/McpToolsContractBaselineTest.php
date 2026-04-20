@@ -15,6 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
+use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
+use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
@@ -27,6 +29,8 @@ use Piwik\Plugins\McpServer\McpTools\SegmentList;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
@@ -55,6 +59,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     private int $idDimension = 0;
     private int $idGoal = 0;
     private string $reportUniqueId = '';
+    private string $originalRawApiAccessMode = 'none';
 
     protected static function configureFixture($fixture): void
     {
@@ -66,6 +71,8 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     public function setUp(): void
     {
         parent::setUp();
+
+        $this->originalRawApiAccessMode = McpTestHelper::getRawApiAccessMode();
 
         $suffix = substr(hash('sha256', __METHOD__ . microtime(true)), 0, 8);
         $this->idSite = Fixture::createWebsite(
@@ -121,6 +128,13 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
         self::assertNotNull($reportUniqueId, 'Expected Actions/getPageUrls report in metadata.');
         $this->reportUniqueId = $reportUniqueId;
+    }
+
+    public function tearDown(): void
+    {
+        McpTestHelper::setRawApiAccessMode($this->originalRawApiAccessMode);
+
+        parent::tearDown();
     }
 
     /**
@@ -233,6 +247,58 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
 
         self::assertStringContainsString('"reports"', $body);
         self::assertStringContainsString('"parameters":{}', $body);
+    }
+
+    public function testApiListSuccessShapeInReadMode(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            'matomo_api_list',
+            ['limit' => 5],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::PAGINATED_LIST, $content);
+        self::assertNotEmpty($content['methods'] ?? []);
+    }
+
+    public function testApiGetSuccessShapeInReadMode(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::ITEM, $content);
+    }
+
+    public function testApiCallSuccessShapeInReadMode(): void
+    {
+        McpTestHelper::setRawApiAccessMode('read');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ApiCallRead::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion'],
+            __METHOD__,
+        );
+
+        ContractShapeAssert::assertMatchesSchema(ApiCallToolOutputSchema::ITEM, $content);
     }
 
     /**

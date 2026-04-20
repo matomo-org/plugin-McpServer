@@ -15,6 +15,8 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -130,6 +132,8 @@ class McpServerTest extends IntegrationTestCase
         $systemSettings = StaticContainer::get(SystemSettings::class);
         self::assertInstanceOf(SystemSettings::class, $systemSettings);
         $originalEnableMcpValue = (bool) $systemSettings->enableMcp->getValue();
+        $originalMaximumAllowedMcpAccessLevel = $systemSettings->getMaximumAllowedMcpAccessLevel();
+        $originalRawApiAccessMode = $systemSettings->getRawApiAccessMode();
 
         Access::getInstance()->setSuperUserAccess(true);
 
@@ -139,9 +143,58 @@ class McpServerTest extends IntegrationTestCase
 
             $systemSettings->enableMcp->setValue(true);
             self::assertTrue($systemSettings->isMcpEnabled());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::VIEW);
+            self::assertSame(McpAccessLevel::VIEW, $systemSettings->getMaximumAllowedMcpAccessLevel());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::WRITE);
+            self::assertSame(McpAccessLevel::WRITE, $systemSettings->getMaximumAllowedMcpAccessLevel());
+
+            $systemSettings->maximumMcpAccessLevel->setValue(McpAccessLevel::ADMIN);
+            self::assertSame(McpAccessLevel::ADMIN, $systemSettings->getMaximumAllowedMcpAccessLevel());
+
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::READ);
+            self::assertSame('read', $systemSettings->getRawApiAccessMode());
+
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::CREATE);
+            self::assertSame('create', $systemSettings->getRawApiAccessMode());
+
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::UPDATE);
+            self::assertSame('update', $systemSettings->getRawApiAccessMode());
+
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::DELETE);
+            self::assertSame('delete', $systemSettings->getRawApiAccessMode());
+
+            $this->applyRawApiAccessMode($systemSettings, RawApiAccessMode::FULL);
+            self::assertSame('full', $systemSettings->getRawApiAccessMode());
         } finally {
             $systemSettings->enableMcp->setValue($originalEnableMcpValue);
+            $systemSettings->maximumMcpAccessLevel->setValue($originalMaximumAllowedMcpAccessLevel);
+            $this->applyRawApiAccessMode($systemSettings, $originalRawApiAccessMode);
             Access::getInstance()->setSuperUserAccess(false);
         }
+    }
+
+    private function applyRawApiAccessMode(SystemSettings $systemSettings, string $mode): void
+    {
+        $normalizedMode = RawApiAccessMode::normalize($mode);
+
+        $systemSettings->rawApiAccessRead->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::READ),
+        );
+        $systemSettings->rawApiAccessCreate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::CREATE),
+        );
+        $systemSettings->rawApiAccessUpdate->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::UPDATE),
+        );
+        $systemSettings->rawApiAccessDelete->setValue(
+            RawApiAccessMode::allowsCategory($normalizedMode, RawApiAccessMode::DELETE),
+        );
+        $systemSettings->rawApiAccessScope->setValue(match ($normalizedMode) {
+            RawApiAccessMode::FULL => 'full',
+            RawApiAccessMode::NONE => 'none',
+            default => 'partial',
+        });
     }
 }

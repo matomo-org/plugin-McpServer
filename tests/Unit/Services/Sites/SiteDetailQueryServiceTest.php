@@ -13,8 +13,10 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -65,6 +67,38 @@ class SiteDetailQueryServiceTest extends TestCase
             'sitesearch' => true,
             'type' => 'website',
         ], $site->toArray());
+    }
+
+    public function testGetSiteDetailFromIdMapsMessageBasedAccessFailureToNotFoundOrAccessDenied(): void
+    {
+        $gateway = $this->createMock(CoreSitesManagerGatewayInterface::class);
+        $gateway->expects(self::once())
+            ->method('getSiteFromId')
+            ->with(3)
+            ->willThrowException(new \RuntimeException('CheckUserHasViewAccess failed'));
+
+        $service = new SiteDetailQueryService($gateway);
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Site not found or access denied.');
+        $service->getSiteDetailFromId(3);
+    }
+
+    public function testGetSiteDetailFromIdMapsTypeBasedAccessFailureWithEmptyMessageToNotFoundOrAccessDenied(): void
+    {
+        foreach ([new NoAccessException(''), new AccessDeniedLikeException('')] as $exception) {
+            $gateway = $this->createMock(CoreSitesManagerGatewayInterface::class);
+            $gateway->method('getSiteFromId')->willThrowException($exception);
+
+            $service = new SiteDetailQueryService($gateway);
+
+            try {
+                $service->getSiteDetailFromId(3);
+                self::fail('Expected ToolCallException was not thrown for ' . get_class($exception));
+            } catch (ToolCallException $e) {
+                self::assertSame('Site not found or access denied.', $e->getMessage());
+            }
+        }
     }
 
     /**

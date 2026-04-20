@@ -6,6 +6,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\DI;
+use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
+use Piwik\Plugins\McpServer\Contracts\Ports\Api\CoreApiCallGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
@@ -26,6 +29,9 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterfa
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
+use Piwik\Plugins\McpServer\Services\Api\ApiCallQueryService;
+use Piwik\Plugins\McpServer\Services\Api\ApiMethodSummaryQueryService;
+use Piwik\Plugins\McpServer\Services\Api\CoreApiCallGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
@@ -49,6 +55,9 @@ use Piwik\Plugins\McpServer\Services\System\PluginCapabilityGateway;
 use Piwik\Plugins\McpServer\Session\DbSessionStore;
 
 return [
+    ApiCallQueryServiceInterface::class => DI::autowire(ApiCallQueryService::class),
+    ApiMethodSummaryQueryServiceInterface::class => DI::autowire(ApiMethodSummaryQueryService::class),
+    CoreApiCallGatewayInterface::class => DI::autowire(CoreApiCallGateway::class),
     CoreApiModuleGatewayInterface::class => DI::autowire(CoreApiModuleGateway::class),
     CoreCustomDimensionsGatewayInterface::class => DI::autowire(CoreCustomDimensionsGateway::class),
     CoreGoalsGatewayInterface::class => DI::autowire(CoreGoalsGateway::class),

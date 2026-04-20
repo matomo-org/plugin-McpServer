@@ -13,14 +13,38 @@ namespace Piwik\Plugins\McpServer;
 
 use Piwik\Piwik;
 use Piwik\Plugin\Manager;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Settings\FieldConfig;
 use Piwik\Settings\Setting;
 use Piwik\SettingsPiwik;
 
 class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
 {
+    private const RAW_API_ACCESS_SCOPE_NONE = 'none';
+    private const RAW_API_ACCESS_SCOPE_PARTIAL = 'partial';
+    private const RAW_API_ACCESS_SCOPE_FULL = 'full';
+
     /** @var Setting */
     public $enableMcp;
+
+    /** @var Setting */
+    public $maximumMcpAccessLevel;
+
+    /** @var Setting */
+    public $rawApiAccessScope;
+
+    /** @var Setting */
+    public $rawApiAccessRead;
+
+    /** @var Setting */
+    public $rawApiAccessCreate;
+
+    /** @var Setting */
+    public $rawApiAccessUpdate;
+
+    /** @var Setting */
+    public $rawApiAccessDelete;
 
     protected function init(): void
     {
@@ -43,11 +67,211 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
             },
         );
+
+        $this->maximumMcpAccessLevel = $this->makeSetting(
+            'maximum_mcp_access_level',
+            McpAccessLevel::UNLIMITED,
+            FieldConfig::TYPE_STRING,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_MaximumMcpAccessLevelTitle');
+                $field->inlineHelp = implode('<br><br>', [
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpPurpose'),
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpTokens'),
+                    Piwik::translate('McpServer_MaximumMcpAccessLevelHelpSeparateUser'),
+                ]);
+                $field->uiControl = FieldConfig::UI_CONTROL_SINGLE_SELECT;
+                $field->condition = 'enable_mcp==1';
+                $field->availableValues = [
+                    McpAccessLevel::UNLIMITED => Piwik::translate('McpServer_MaximumMcpAccessLevelUnlimited'),
+                    McpAccessLevel::VIEW => Piwik::translate('McpServer_MaximumMcpAccessLevelView'),
+                    McpAccessLevel::WRITE => Piwik::translate('McpServer_MaximumMcpAccessLevelWrite'),
+                    McpAccessLevel::ADMIN => Piwik::translate('McpServer_MaximumMcpAccessLevelAdmin'),
+                ];
+            },
+        );
+
+        $partialAccessExamplesList = implode('', [
+            '<ul class="browser-default">',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleRead'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleCreate'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleUpdate'),
+            '</code>',
+            '</li>',
+            '<li>',
+            '<code>',
+            Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExampleDelete'),
+            '</code>',
+            '</li>',
+            '</ul>',
+        ]);
+
+        $renderRawApiHelpSection = static function (string $heading, string $body): string {
+            return '<strong>' . $heading . '</strong><br>' . $body;
+        };
+
+        $sharedRawApiInlineHelp = implode('<br><br>', [
+            '<strong>' . Piwik::translate('McpServer_RawApiAccessHelpControlHeadline') . '</strong>',
+            Piwik::translate('McpServer_RawApiAccessHelpIntro'),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpNoAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpNoAccessBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpPartialAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpPartialAccessBody')
+                . $partialAccessExamplesList
+                . '<br>'
+                . Piwik::translate('McpServer_RawApiAccessHelpPartialAccessExceptions', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpFullAccessHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpFullAccessBody', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpAlwaysRestrictedHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpAlwaysRestrictedBody', [
+                    '<code>',
+                    '</code>',
+                ]),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpDataExposureHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpDataExposureBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpReportToolsHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpReportToolsBody'),
+            ),
+            $renderRawApiHelpSection(
+                Piwik::translate('McpServer_RawApiAccessHelpBeforeEnablingHeading'),
+                Piwik::translate('McpServer_RawApiAccessHelpBeforeEnablingBody'),
+            ),
+        ]);
+
+        $this->rawApiAccessScope = $this->makeSetting(
+            'raw_api_access_scope',
+            self::RAW_API_ACCESS_SCOPE_NONE,
+            FieldConfig::TYPE_STRING,
+            function (FieldConfig $field) use ($sharedRawApiInlineHelp) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessScopeTitle');
+                $field->inlineHelp = $sharedRawApiInlineHelp;
+                $field->uiControl = FieldConfig::UI_CONTROL_SINGLE_SELECT;
+                $field->condition = 'enable_mcp==1';
+                $field->availableValues = [
+                    self::RAW_API_ACCESS_SCOPE_NONE => Piwik::translate('McpServer_RawApiAccessScopeNone'),
+                    self::RAW_API_ACCESS_SCOPE_PARTIAL => Piwik::translate('McpServer_RawApiAccessScopePartial'),
+                    self::RAW_API_ACCESS_SCOPE_FULL => Piwik::translate('McpServer_RawApiAccessScopeFull'),
+                ];
+            },
+        );
+
+        $this->rawApiAccessRead = $this->makeSetting(
+            'raw_api_access_read',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessReadTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessCreate = $this->makeSetting(
+            'raw_api_access_create',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessCreateTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessUpdate = $this->makeSetting(
+            'raw_api_access_update',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessUpdateTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
+
+        $this->rawApiAccessDelete = $this->makeSetting(
+            'raw_api_access_delete',
+            false,
+            FieldConfig::TYPE_BOOL,
+            function (FieldConfig $field) {
+                $field->title = Piwik::translate('McpServer_RawApiAccessDeleteTitle');
+                $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
+                $field->condition = 'enable_mcp==1 && raw_api_access_scope=="partial"';
+            },
+        );
     }
 
     public function isMcpEnabled(): bool
     {
         return (bool) $this->enableMcp->getValue();
+    }
+
+    public function getMaximumAllowedMcpAccessLevel(): string
+    {
+        return McpAccessLevel::normalizeMaximumAllowed($this->maximumMcpAccessLevel->getValue());
+    }
+
+    public function getRawApiAccessMode(): string
+    {
+        $scope = $this->normalizeRawApiAccessScope($this->rawApiAccessScope->getValue());
+        if ($scope === self::RAW_API_ACCESS_SCOPE_FULL) {
+            return RawApiAccessMode::FULL;
+        }
+
+        if ($scope !== self::RAW_API_ACCESS_SCOPE_PARTIAL) {
+            return RawApiAccessMode::NONE;
+        }
+
+        return RawApiAccessMode::fromBooleans(
+            (bool) $this->rawApiAccessRead->getValue(),
+            (bool) $this->rawApiAccessCreate->getValue(),
+            (bool) $this->rawApiAccessUpdate->getValue(),
+            (bool) $this->rawApiAccessDelete->getValue(),
+            false,
+        );
+    }
+
+    private function normalizeRawApiAccessScope(mixed $scope): string
+    {
+        if (!is_scalar($scope)) {
+            return self::RAW_API_ACCESS_SCOPE_NONE;
+        }
+
+        $normalizedScope = strtolower(trim((string) $scope));
+        if (
+            $normalizedScope !== self::RAW_API_ACCESS_SCOPE_NONE
+            && $normalizedScope !== self::RAW_API_ACCESS_SCOPE_PARTIAL
+            && $normalizedScope !== self::RAW_API_ACCESS_SCOPE_FULL
+        ) {
+            return self::RAW_API_ACCESS_SCOPE_NONE;
+        }
+
+        return $normalizedScope;
     }
 
     private function getMcpEndpointUrl(): string

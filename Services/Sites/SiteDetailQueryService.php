@@ -15,6 +15,7 @@ use Piwik\Exception\UnexpectedWebsiteFoundException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
+use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
 use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
@@ -72,15 +73,13 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
             return true;
         }
 
-        $message = strtolower(trim((string) $e->getMessage()));
-        if ($message === '') {
-            return false;
+        if (NoAccessLikeErrorDetector::isDetected($e)) {
+            return true;
         }
 
-        return str_contains($message, 'no access')
-            || str_contains($message, 'checkuserhasviewaccess')
-            || str_contains($message, 'view access')
-            || str_contains($message, 'does not exist')
+        $message = strtolower(trim((string) $e->getMessage()));
+
+        return str_contains($message, 'does not exist')
             || str_contains($message, 'website')
             || str_contains($message, 'not found');
     }

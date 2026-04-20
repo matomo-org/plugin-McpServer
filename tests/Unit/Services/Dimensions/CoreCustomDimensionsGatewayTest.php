@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -78,6 +79,21 @@ class CoreCustomDimensionsGatewayTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Custom dimensions data is invalid.');
+        $gateway->getConfiguredCustomDimensions(7);
+    }
+
+    public function testGetConfiguredCustomDimensionsMapsMessageBasedAccessFailure(): void
+    {
+        $api = $this->createMock(CustomDimensionsApi::class);
+        $api->expects(self::once())
+            ->method('getConfiguredCustomDimensions')
+            ->willThrowException(new \RuntimeException('CheckUserHasViewAccess failed'));
+        CustomDimensionsApi::setSingletonInstance($api);
+
+        $gateway = new CoreCustomDimensionsGateway();
+
+        $this->expectException(AccessDeniedLikeException::class);
+        $this->expectExceptionMessage('No access to this resource.');
         $gateway->getConfiguredCustomDimensions(7);
     }
 }

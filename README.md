@@ -36,6 +36,16 @@ Here are a few examples of what you can do:
 * Power dashboards with AI-generated insights
 * Enable teams to explore data without needing analytics expertise
 
+### Go beyond insights: take action with AI (optional)
+
+If you choose to enable it, the MCP Server can also perform actions in Matomo. This means your AI tools can for example:
+
+* Create and update segments
+* Automate repetitive analytics tasks
+* Integrate Matomo into internal workflows
+
+All actions are controlled by your permissions and configuration.
+
 ### Why install this plugin?
 * Save time – no more manual report building
 * Make data accessible – anyone can ask questions, no training needed
@@ -55,13 +65,18 @@ For the recommended end-user setup flow, use the in-product connect guide at **A
 ### Security And Access Model
 
 - MCP access is disabled by default.
+- Raw Matomo API discovery and execution tools are separately disabled by default and must be enabled by an administrator.
 - The plugin uses Matomo authentication, including OAuth2 when the Matomo `OAuth2` plugin is installed and enabled and an OAuth2 client is configured for the MCP client, or `token_auth` Bearer tokens otherwise.
 - Data access is limited to the same sites and reports the Matomo user can already access.
+- Data access can be limited to specific permissions/roles and what type of methods can be accessed.
+- Administrators can optionally restrict MCP usage to users or tokens at or below a configured privilege level.
+- When raw API access is enabled, MCP clients can access the same Matomo API surface available to the authenticated user, including state-changing methods if an administrator has allowed them.
 - If features such as the Visitor Log are available to that user, MCP clients may access the same underlying data scope.
+- Review privacy, security, and compliance requirements before enabling raw API access.
 
 ### Additional Documentation
 
-The FAQ includes additional technical documentation for endpoint details, configuration, MCP enablement behavior, supported capabilities, and troubleshooting.
+The FAQ includes additional technical documentation for endpoint details, configuration, MCP enablement behavior, raw API access guidance, supported capabilities, and troubleshooting.
 
 ## Support
 

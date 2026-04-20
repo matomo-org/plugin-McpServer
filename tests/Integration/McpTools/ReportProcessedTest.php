@@ -610,6 +610,10 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertArrayHasKey('not', $inputSchema);
         self::assertIsArray($inputSchema['not']);
 
+        $notSchema = $inputSchema['not'];
+        self::assertArrayHasKey('anyOf', $notSchema);
+        self::assertIsArray($notSchema['anyOf']);
+
         $properties = $inputSchema['properties'] ?? null;
         self::assertIsArray($properties);
         self::assertArrayHasKey('goalMetricsMode', $properties);

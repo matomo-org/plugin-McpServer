@@ -605,6 +605,10 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertArrayHasKey('not', $inputSchema);
         self::assertIsArray($inputSchema['not']);
 
+        $notSchema = $inputSchema['not'];
+        self::assertArrayHasKey('anyOf', $notSchema);
+        self::assertIsArray($notSchema['anyOf']);
+
         $properties = $inputSchema['properties'] ?? null;
         self::assertIsArray($properties);
         $apiParameters = $properties['apiParameters'] ?? null;

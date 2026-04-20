@@ -20,6 +20,7 @@ use Piwik\API\Request as ApiRequest;
 use Piwik\Http\BadRequestException;
 use Piwik\NoAccessException;
 use Piwik\Piwik;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
@@ -96,6 +97,10 @@ class API extends \Piwik\Plugin\API
             return $this->createDisabledResponse($requestMetadata['topLevelRequestId']);
         }
 
+        if (!$this->isCurrentUserPrivilegeLevelAllowed()) {
+            return $this->createPrivilegeTooHighResponse($requestMetadata['topLevelRequestId']);
+        }
+
         try {
             $server = $this->factory->createServer();
             $transport = new StreamableHttpTransport($request);
@@ -137,6 +142,14 @@ class API extends \Piwik\Plugin\API
         return $this->systemSettings->isMcpEnabled();
     }
 
+    protected function isCurrentUserPrivilegeLevelAllowed(): bool
+    {
+        return !McpAccessLevel::exceedsMaximumAllowed(
+            McpAccessLevel::resolveCurrentUserLevel(),
+            $this->systemSettings->getMaximumAllowedMcpAccessLevel(),
+        );
+    }
+
     protected function isCurrentApiRequestRoot(): bool
     {
         return ApiRequest::isCurrentApiRequestTheRootApiRequest();
@@ -172,6 +185,20 @@ class API extends \Piwik\Plugin\API
             403,
             JsonRpcError::INVALID_REQUEST,
             McpEndpointSpec::DISABLED_ERROR,
+            $topLevelRequestId,
+        );
+    }
+
+    protected function createPrivilegeTooHighResponse(string|int|null $topLevelRequestId): ResponseInterface
+    {
+        if ($topLevelRequestId === null) {
+            return (new Psr17Factory())->createResponse(403);
+        }
+
+        return $this->jsonRpcErrorResponseFactory->create(
+            403,
+            JsonRpcError::INVALID_REQUEST,
+            McpAccessLevel::createTooHighPrivilegeMessage($this->systemSettings->getMaximumAllowedMcpAccessLevel()),
             $topLevelRequestId,
         );
     }

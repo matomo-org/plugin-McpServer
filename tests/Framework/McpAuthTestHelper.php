@@ -65,41 +65,45 @@ final class McpAuthTestHelper
 
     public static function asViewUserForSite(int $idSite, callable $callback): mixed
     {
-        $originalTokenAuth = self::captureCurrentTokenAuth();
-        $previousForcedTokenAuth = self::$forcedTokenAuth;
-        $fixture = self::createViewUserFixture($idSite);
-        self::$forcedTokenAuth = $fixture['tokenAuth'];
-        self::switchToTokenAuth($fixture['tokenAuth']);
-        $callbackError = null;
-        $result = null;
+        return self::asUserWithAccess(
+            $callback,
+            ['view' => [$idSite]],
+            'MCP view access test token',
+            'mcp_view_user',
+        );
+    }
 
-        try {
-            $result = $callback();
-        } catch (\Throwable $e) {
-            $callbackError = $e;
-        } finally {
-            $cleanupError = null;
+    public static function asWriteUserForSite(int $idSite, callable $callback): mixed
+    {
+        return self::asUserWithAccess(
+            $callback,
+            ['write' => [$idSite]],
+            'MCP write access test token',
+            'mcp_write_user',
+        );
+    }
 
-            self::switchToSuperUser();
-            try {
-                self::cleanupNoAccessUserFixture($fixture);
-            } catch (\Throwable $e) {
-                $cleanupError = $e;
-            }
+    public static function asAdminUserForSite(int $idSite, callable $callback): mixed
+    {
+        return self::asUserWithAccess(
+            $callback,
+            ['admin' => [$idSite]],
+            'MCP admin access test token',
+            'mcp_admin_user',
+        );
+    }
 
-            self::restoreAuth($originalTokenAuth);
-            self::$forcedTokenAuth = $previousForcedTokenAuth;
-
-            if ($callbackError !== null) {
-                throw $callbackError;
-            }
-
-            if ($cleanupError !== null) {
-                throw new \RuntimeException('Failed cleaning up view-access user fixture.', 0, $cleanupError);
-            }
-        }
-
-        return $result;
+    /**
+     * @param array<string, list<int>> $accessByLevel
+     */
+    public static function asUserWithSiteAccessLevels(array $accessByLevel, callable $callback): mixed
+    {
+        return self::asUserWithAccess(
+            $callback,
+            $accessByLevel,
+            'MCP custom access test token',
+            'mcp_access_user',
+        );
     }
 
     public static function getForcedTokenAuth(): ?string
@@ -123,30 +127,6 @@ final class McpAuthTestHelper
             'MCP no access test token',
             Date::now()->getDatetime(),
         );
-
-        return [
-            'login' => $login,
-            'tokenAuth' => $tokenAuth,
-        ];
-    }
-
-    /**
-     * @return array{login: string, tokenAuth: string}
-     */
-    private static function createViewUserFixture(int $idSite, ?string $suffix = null): array
-    {
-        $unique = $suffix ?? substr(hash('sha256', uniqid('', true)), 0, 12);
-        $login = 'mcp_view_user_' . $unique;
-        $tokenAuth = (new UsersManagerModel())->generateRandomTokenAuth();
-
-        UsersManagerApi::getInstance()->addUser($login, 'mcp-view-password', $login . '@example.test');
-        (new UsersManagerModel())->addTokenAuth(
-            $login,
-            $tokenAuth,
-            'MCP view access test token',
-            Date::now()->getDatetime(),
-        );
-        UsersManagerApi::getInstance()->setUserAccess($login, 'view', [$idSite]);
 
         return [
             'login' => $login,
@@ -207,5 +187,87 @@ final class McpAuthTestHelper
         $access = Access::getInstance();
         $access->setSuperUserAccess(true);
         $access->reloadAccess(StaticContainer::get('Piwik\Auth'));
+    }
+
+    /**
+     * @param array<string, list<int>> $accessByLevel
+     */
+    private static function asUserWithAccess(
+        callable $callback,
+        array $accessByLevel,
+        string $tokenDescription,
+        string $loginPrefix,
+    ): mixed {
+        $originalTokenAuth = self::captureCurrentTokenAuth();
+        $previousForcedTokenAuth = self::$forcedTokenAuth;
+        $fixture = self::createUserFixture($accessByLevel, $tokenDescription, $loginPrefix);
+        self::$forcedTokenAuth = $fixture['tokenAuth'];
+        self::switchToTokenAuth($fixture['tokenAuth']);
+        $callbackError = null;
+        $result = null;
+
+        try {
+            $result = $callback();
+        } catch (\Throwable $e) {
+            $callbackError = $e;
+        } finally {
+            $cleanupError = null;
+
+            self::switchToSuperUser();
+            try {
+                self::cleanupNoAccessUserFixture($fixture);
+            } catch (\Throwable $e) {
+                $cleanupError = $e;
+            }
+
+            self::restoreAuth($originalTokenAuth);
+            self::$forcedTokenAuth = $previousForcedTokenAuth;
+
+            if ($callbackError !== null) {
+                throw $callbackError;
+            }
+
+            if ($cleanupError !== null) {
+                throw new \RuntimeException('Failed cleaning up user access fixture.', 0, $cleanupError);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<string, list<int>> $accessByLevel
+     * @return array{login: string, tokenAuth: string}
+     */
+    private static function createUserFixture(
+        array $accessByLevel,
+        string $tokenDescription,
+        string $loginPrefix,
+        ?string $suffix = null,
+    ): array {
+        $unique = $suffix ?? substr(hash('sha256', uniqid('', true)), 0, 12);
+        $login = $loginPrefix . '_' . $unique;
+        $tokenAuth = (new UsersManagerModel())->generateRandomTokenAuth();
+
+        UsersManagerApi::getInstance()->addUser($login, 'mcp-access-password', $login . '@example.test');
+        (new UsersManagerModel())->addTokenAuth(
+            $login,
+            $tokenAuth,
+            $tokenDescription,
+            Date::now()->getDatetime(),
+        );
+
+        foreach ($accessByLevel as $accessLevel => $idSites) {
+            if ($idSites === []) {
+                continue;
+            }
+
+            UsersManagerApi::getInstance()->setUserAccess($login, $accessLevel, $idSites);
+        }
+
+        return [
+            'login' => $login,
+            'tokenAuth' => $tokenAuth,
+        ];
     }
 }

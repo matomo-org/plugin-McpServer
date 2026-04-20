@@ -30,6 +30,7 @@ use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\CoreApiRequestException;
 use Piwik\Plugins\McpServer\Support\Errors\InfrastructureDataException;
+use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
 use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
@@ -583,7 +584,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $rootCause,
                 'Report not found.',
                 'Report retrieval failed.',
-                fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                static fn(\Throwable $error): bool => NoAccessLikeErrorDetector::isDetected($error)
                     && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
             );
         } catch (ToolCallException $e) {
@@ -593,7 +594,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $e,
                 'Report not found.',
                 'Report retrieval failed.',
-                fn(\Throwable $error): bool => $this->isNoAccessLikeFailure($error)
+                static fn(\Throwable $error): bool => NoAccessLikeErrorDetector::isDetected($error)
                     && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
             );
         }
@@ -805,23 +806,6 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $idSubtable,
         );
     }
-
-    private function isNoAccessLikeFailure(\Throwable $e): bool
-    {
-        if ($e instanceof NoAccessException) {
-            return true;
-        }
-
-        $message = strtolower(trim((string) $e->getMessage()));
-        if ($message === '') {
-            return false;
-        }
-
-        return str_contains($message, 'no access')
-            || str_contains($message, 'checkuserhasviewaccess')
-            || str_contains($message, 'view access');
-    }
-
     private function isStrictSegmentRestrictionLikeFailure(\Throwable $e): bool
     {
         $current = $e;

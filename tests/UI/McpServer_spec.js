@@ -14,6 +14,8 @@ describe('McpServer', function () {
     const connectUrl = '?module=McpServer&action=connect&idSite=1&period=day&date=yesterday';
     const settingsSelector = '#McpServerPluginSettings';
     const enabledCheckboxSelector = 'input[name="enable_mcp"]';
+    const maximumMcpAccessLevelSelector = 'select[name="maximum_mcp_access_level"]';
+    const rawApiAccessScopeSelector = 'select[name="raw_api_access_scope"]';
     const settingsSaveButtonSelector = `${settingsSelector} .pluginsSettingsSubmit`;
     const connectSelector = '.mcpServerConnect';
 
@@ -55,18 +57,78 @@ describe('McpServer', function () {
         await page.waitForNetworkIdle();
     }
 
-    async function setMcpEnabled(enabled)
+    async function isRawApiAccessScopeVisible()
+    {
+        return page.evaluate((selector) => {
+            const element = document.querySelector(selector);
+
+            if (!element) {
+                return false;
+            }
+
+            return !!(element.offsetWidth || element.offsetHeight || element.getClientRects().length);
+        }, rawApiAccessScopeSelector);
+    }
+
+    async function configureMcp(
+        enabled,
+        maximumMcpAccessLevel = 'string:unlimited',
+        rawApiAccessScope = 'string:partial',
+        rawApiAccessLevels = []
+    )
     {
         resetUserToSuperUser();
         await page.goto(settingsUrl);
         await waitForSettingsSection();
 
-        const isChecked = await page.$eval(enabledCheckboxSelector, (el) => !!el.checked);
+        const isEnabled = await page.$eval(enabledCheckboxSelector, (el) => !!el.checked);
 
-        if (isChecked !== enabled) {
+        if (isEnabled !== enabled) {
             await page.click(`${enabledCheckboxSelector} + span`);
             await page.waitForTimeout(250);
             await saveSettings();
+
+            await page.goto(settingsUrl);
+            await waitForSettingsSection();
+        }
+
+        if (enabled) {
+            await page.waitForSelector(maximumMcpAccessLevelSelector, { visible: true });
+            await page.waitForSelector(rawApiAccessScopeSelector, { visible: true });
+            const currentMaximumMcpAccessLevel = await page.$eval(maximumMcpAccessLevelSelector, (el) => el.value);
+            const currentRawApiAccessScope = await page.$eval(rawApiAccessScopeSelector, (el) => el.value);
+            let didChangeSetting = false;
+
+            if (currentMaximumMcpAccessLevel !== maximumMcpAccessLevel) {
+                await page.select(maximumMcpAccessLevelSelector, maximumMcpAccessLevel);
+                didChangeSetting = true;
+            }
+
+            if (currentRawApiAccessScope !== rawApiAccessScope) {
+                await page.select(rawApiAccessScopeSelector, rawApiAccessScope);
+                didChangeSetting = true;
+            }
+
+            if (didChangeSetting) {
+                await page.waitForTimeout(250);
+                await saveSettings();
+            }
+
+            if (rawApiAccessScope === 'string:partial') {
+                for (const level of ['read', 'create', 'update', 'delete']) {
+                    const selector = `input[name="raw_api_access_${level}"]`;
+                    const shouldBeEnabled = rawApiAccessLevels.includes(level);
+
+                    await page.waitForSelector(selector, { visible: true });
+                    const isEnabled = await page.$eval(selector, (el) => !!el.checked);
+
+                    if (isEnabled !== shouldBeEnabled) {
+                        await page.click(`${selector} + span`);
+                        await page.waitForTimeout(250);
+                        await saveSettings();
+                    }
+                }
+            }
         }
 
         await page.goto(settingsUrl);
@@ -93,14 +155,25 @@ describe('McpServer', function () {
         resetUserToSuperUser();
     });
 
-    it('should display the plugin settings', async function () {
-        await setMcpEnabled(false);
+    it('should only show the enable checkbox when MCP is disabled', async function () {
+        await configureMcp(false);
 
+        expect(await page.$eval(enabledCheckboxSelector, (el) => !!el.checked)).to.equal(false);
+        expect(await isRawApiAccessScopeVisible()).to.equal(false);
+    });
+
+    it('should display the plugin settings when MCP is enabled with partial API access', async function () {
+        await configureMcp(true, 'string:view', 'string:partial', ['read']);
+
+        expect(await isRawApiAccessScopeVisible()).to.equal(true);
+        expect(await page.$eval(maximumMcpAccessLevelSelector, (el) => el.value)).to.equal('string:view');
+        expect(await page.$eval(rawApiAccessScopeSelector, (el) => el.value)).to.equal('string:partial');
+        expect(await page.$eval('input[name="raw_api_access_read"]', (el) => !!el.checked)).to.equal(true);
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');
     });
 
     it('should show connect guidance for superusers when MCP is disabled', async function () {
-        await setMcpEnabled(false);
+        await configureMcp(false);
         await page.goto(connectUrl);
         await page.waitForNetworkIdle();
 
@@ -116,7 +189,7 @@ describe('McpServer', function () {
     });
 
     it('should show contact-admin guidance for view users when MCP is disabled', async function () {
-        await setMcpEnabled(false);
+        await configureMcp(false);
         setViewUser();
 
         await page.goto(connectUrl);
@@ -135,10 +208,10 @@ describe('McpServer', function () {
     });
 
     it('should display the connect page when MCP is enabled', async function () {
-        await setMcpEnabled(true);
+        await configureMcp(true);
         await page.goto(connectUrl);
         await page.waitForNetworkIdle();
-        await page.waitForSelector(`${connectSelector} .card-action`, { visible: true });
+        await page.waitForSelector(connectSelector, { visible: true });
         await page.mouse.move(-10, -10);
 
         const text = await getConnectText();
@@ -153,7 +226,7 @@ describe('McpServer', function () {
     });
 
     it('should display OAuth2 guidance when the OAuth2 plugin is enabled', async function () {
-        await setMcpEnabled(true);
+        await configureMcp(true);
         testEnvironment.mockOAuth2PluginEnabled = 1;
         testEnvironment.save();
 

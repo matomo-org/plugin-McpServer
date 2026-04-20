@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
+use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
 /**
  * @group McpServer
@@ -68,6 +69,19 @@ class CoreSegmentEditorGatewayTest extends TestCase
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Segment data is invalid.');
+        $gateway->getAll(9);
+    }
+
+    public function testGetAllMapsMessageBasedAccessFailure(): void
+    {
+        $gateway = new CoreSegmentEditorGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): mixed {
+                throw new \RuntimeException('No access to this resource');
+            },
+        );
+
+        $this->expectException(AccessDeniedLikeException::class);
+        $this->expectExceptionMessage('No access to this resource.');
         $gateway->getAll(9);
     }
 }

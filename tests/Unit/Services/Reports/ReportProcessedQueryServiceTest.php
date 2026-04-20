@@ -1590,6 +1590,41 @@ class ReportProcessedQueryServiceTest extends TestCase
         }
     }
 
+    public function testMapsMessageBasedAccessLikeCoreFailureToReportNotFound(): void
+    {
+        $service = $this->makeService(
+            metadataWrapper: $this->makeMetadataWrapper(),
+            processedReportCaller: static function (): array {
+                throw new CoreApiRequestException(
+                    'core failed',
+                    0,
+                    new \RuntimeException('CheckUserHasViewAccess failed'),
+                );
+            },
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Report not found.');
+
+        $service->getProcessedReport(
+            idSite: 1,
+            period: 'day',
+            date: 'today',
+            reportUniqueId: 'Actions_getPageUrls',
+            apiModule: null,
+            apiAction: null,
+            apiParameters: [],
+            goalMetricsMode: null,
+            goalMetricsProcessGoals: null,
+            segment: null,
+            idGoal: null,
+            idDimension: null,
+            idSubtable: null,
+            filterLimit: 10,
+            filterOffset: 0,
+        );
+    }
+
     public function testKeepsGenericFailureWhenSegmentIsPreprocessedInStrictMode(): void
     {
         $service = $this->makeService(
