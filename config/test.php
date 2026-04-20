@@ -6,31 +6,30 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Piwik\Container\Container;
 use Piwik\DI;
-use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
+use Piwik\Plugins\McpServer\SystemSettings;
 
 return [
-    PluginCapabilityGatewayInterface::class => DI::decorate(
-        function (PluginCapabilityGatewayInterface $previous, Container $container): PluginCapabilityGatewayInterface {
+    SystemSettings::class => DI::decorate(
+        function (SystemSettings $previous, Container $container): SystemSettings {
             $mockOAuth2PluginEnabled = $container->get('test.vars.mockOAuth2PluginEnabled');
 
             if ($mockOAuth2PluginEnabled === null || $mockOAuth2PluginEnabled === '') {
                 return $previous;
             }
 
-            return new class ($previous, (bool) $mockOAuth2PluginEnabled) implements PluginCapabilityGatewayInterface {
+            return new class ((bool) $mockOAuth2PluginEnabled) extends SystemSettings {
+                /** @var string */
+                protected $pluginName = 'McpServer';
+
                 public function __construct(
-                    private PluginCapabilityGatewayInterface $previous,
                     private bool $mockOAuth2PluginEnabled,
                 ) {
+                    parent::__construct();
                 }
 
-                public function isPluginActivated(string $pluginName): bool
+                public function isOAuth2PluginEnabled(): bool
                 {
-                    if ($pluginName === 'OAuth2') {
-                        return $this->mockOAuth2PluginEnabled;
-                    }
-
-                    return $this->previous->isPluginActivated($pluginName);
+                    return $this->mockOAuth2PluginEnabled;
                 }
             };
         },
