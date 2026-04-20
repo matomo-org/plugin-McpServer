@@ -54,7 +54,7 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
             FieldConfig::TYPE_BOOL,
             function (FieldConfig $field) {
                 $field->title = Piwik::translate('McpServer_EnableMcpTitle');
-                $field->inlineHelp = implode('<br><br>', [
+                $field->inlineHelp = implode('<br><br>', array_filter([
                     Piwik::translate('McpServer_EnableMcpHelpPurpose'),
                     Piwik::translate('McpServer_EnableMcpHelpDataScope'),
                     Piwik::translate('McpServer_EnableMcpHelpPolicy'),
@@ -63,7 +63,8 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
                         'McpServer_EnableMcpHelpConnectGuide',
                         ['<a href="' . $this->getConnectGuideUrl() . '">', '</a>'],
                     ),
-                ]);
+                    $this->getOAuth2InlineHelp(),
+                ]));
                 $field->uiControl = FieldConfig::UI_CONTROL_CHECKBOX;
             },
         );
@@ -274,6 +275,11 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
         return $normalizedScope;
     }
 
+    public function isOAuth2PluginEnabled(): bool
+    {
+        return Manager::getInstance()->isPluginActivated('OAuth2');
+    }
+
     private function getMcpEndpointUrl(): string
     {
         return $this->getNormalizedBaseUrl() . '/index.php?module=API&method=McpServer.mcp&format=mcp';
@@ -289,8 +295,23 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
         return rtrim((string) SettingsPiwik::getPiwikUrl(), '/');
     }
 
-    public function isOAuth2PluginEnabled(): bool
+    private function getOAuth2InlineHelp(): string
     {
-        return Manager::getInstance()->isPluginActivated('OAuth2');
+        if (!$this->isOAuth2PluginEnabled()) {
+            return '';
+        }
+
+        return Piwik::translate(
+            'McpServer_EnableMcpHelpOAuth2ClientLink',
+            [
+                '<a href="' . $this->getOAuth2ClientManagementUrl() . '">',
+                '</a>',
+            ],
+        );
+    }
+
+    private function getOAuth2ClientManagementUrl(): string
+    {
+        return $this->getNormalizedBaseUrl() . '/index.php?module=OAuth2&action=index';
     }
 }

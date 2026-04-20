@@ -34,6 +34,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $view->assign('canEnableMcp', Access::getInstance()->hasSuperUserAccess());
         $view->assign('mcpApiEndpoint', $this->getMcpApiEndpointUrl());
         $view->assign('mcpSettingsUrl', $this->getMcpSettingsUrl());
+        $view->assign('oauth2ClientManagementUrl', $this->getOAuth2ClientManagementUrl());
         $view->assign('userSecurityUrl', $this->getUserSecurityUrl());
 
         return $view->render();
@@ -52,6 +53,11 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
     private function getMcpSettingsUrl(): string
     {
         return $this->getBaseUrl() . '/index.php?module=CoreAdminHome&action=generalSettings#McpServer';
+    }
+
+    private function getOAuth2ClientManagementUrl(): string
+    {
+        return $this->getBaseUrl() . '/index.php?module=OAuth2&action=index';
     }
 
     private function getBaseUrl(): string

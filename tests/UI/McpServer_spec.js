@@ -242,9 +242,11 @@ describe('McpServer', function () {
         expect(text).to.contain('Alternative: Connect Using token_auth');
         expect(text).to.contain('Choose an authentication method.');
         expect(text).to.contain('If your MCP client supports OAuth2, choose OAuth2 and complete the authorization flow using an OAuth2 client configured for your Matomo.');
-        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, create one in the OAuth2 plugin first.');
+        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, create one in Administration -> Platform -> OAuth2 Clients first.');
+        expect(text).to.contain('Administration -> Platform -> OAuth2 Clients');
         expect(text).to.contain('If using OAuth2, verify the client completed authorization successfully');
         expect(text).to.not.contain('Get a Matomo Token');
+        expect(await page.$(`${connectSelector} a[href*="module=OAuth2"][href*="action=index"]`)).to.not.equal(null);
 
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_oauth2');
     });
