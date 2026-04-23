@@ -2,6 +2,7 @@
     "McpServer": {
         "ConnectEndpointDescription": "Use this endpoint for MCP over HTTP:",
         "ConnectEndpointTitle": "Endpoint",
+        "ConnectGeneralSettingsHelp": "Manage MCP Server settings in %1$sGeneral Settings%2$s.",
         "ConnectInClientAuthToken": "%1$sToken:%2$s your Matomo %3$stoken_auth%4$s",
         "ConnectInClientAuthType": "%1$sType:%2$s Bearer token",
         "ConnectInClientStepAuth": "Configure authentication.",
