@@ -45,9 +45,39 @@ class NoAccessLikeErrorDetectorTest extends TestCase
         );
     }
 
+    public function testDetectsAccessDenialWording(): void
+    {
+        self::assertTrue(
+            NoAccessLikeErrorDetector::isDetected(new \RuntimeException('Access denied for user anonymous.')),
+        );
+        self::assertTrue(
+            NoAccessLikeErrorDetector::isDetected(new \RuntimeException('Permission denied.')),
+        );
+        self::assertTrue(
+            NoAccessLikeErrorDetector::isDetected(
+                new \RuntimeException('You are not authorized to perform this action.'),
+            ),
+        );
+        self::assertTrue(
+            NoAccessLikeErrorDetector::isDetected(new \RuntimeException('Unauthorized')),
+        );
+    }
+
     public function testRejectsEmptyOrUnrelatedMessage(): void
     {
         self::assertFalse(NoAccessLikeErrorDetector::isDetected(new \RuntimeException('')));
         self::assertFalse(NoAccessLikeErrorDetector::isDetected(new \RuntimeException('timeout')));
+    }
+
+    public function testRejectsUnauthorizedWordInValidationProse(): void
+    {
+        self::assertFalse(
+            NoAccessLikeErrorDetector::isDetected(new \RuntimeException('unauthorized character in input')),
+        );
+        self::assertFalse(
+            NoAccessLikeErrorDetector::isDetected(
+                new \RuntimeException('Please remove unauthorized values from the list.'),
+            ),
+        );
     }
 }

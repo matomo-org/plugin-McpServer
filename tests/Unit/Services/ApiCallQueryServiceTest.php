@@ -213,20 +213,11 @@ class ApiCallQueryServiceTest extends TestCase
         $service->callApi($resolvedMethod);
     }
 
-    public function testCallApiSurfacesSanitizedValidationFailureDetail(): void
+    public function testCallApiAppendsUpstreamValidationFailureDetail(): void
     {
         $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            new class () implements CoreApiCallGatewayInterface {
-                public function call(string $method, array $parameters): mixed
-                {
-                    throw new CoreApiRequestException(
-                        'failed',
-                        0,
-                        new \RuntimeException("Parameter 'userLogin' missing or invalid."),
-                    );
-                }
-            },
+            self::gatewayThrowingWrapped(new \RuntimeException("Parameter 'userLogin' missing or invalid.")),
         );
 
         $this->expectException(ToolCallException::class);
@@ -235,20 +226,106 @@ class ApiCallQueryServiceTest extends TestCase
         $service->callApi($resolvedMethod);
     }
 
-    public function testCallApiKeepsGenericFailureForUnsafeUpstreamDetail(): void
+    public function testCallApiAppendsSegmentGuidanceMessageVerbatim(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('SegmentEditor', 'add', 'SegmentEditor.add', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(
+                new \RuntimeException('Real time segments are disabled. You need to enable auto archiving.'),
+            ),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(
+            'Matomo API request failed: Real time segments are disabled. You need to enable auto archiving.',
+        );
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiAppendsSessionAdjacentGuidanceMessageVerbatim(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord(
+            'HeatmapSessionRecording',
+            'getRecordedSessions',
+            'HeatmapSessionRecording.getRecordedSessions',
+            [],
+        );
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Session recording is not enabled for this site.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(
+            'Matomo API request failed: Session recording is not enabled for this site.',
+        );
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiAppendsValidationDetailWithSqlVerbInProse(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('SitesManager', 'getSite', 'SitesManager.getSite', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Please select a valid idSite.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed: Please select a valid idSite.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiAppendsValidationDetailWithDeleteVerbInProse(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'deleteUser', 'UsersManager.deleteUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Failed to delete user because it does not exist.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage(
+            'Matomo API request failed: Failed to delete user because it does not exist.',
+        );
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiAppendsValidationDetailWithCallToInProse(): void
     {
         $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
-            new class () implements CoreApiCallGatewayInterface {
-                public function call(string $method, array $parameters): mixed
-                {
-                    throw new CoreApiRequestException(
-                        'failed',
-                        0,
-                        new \RuntimeException('SQLSTATE[42S02]: Base table or view not found'),
-                    );
-                }
-            },
+            self::gatewayThrowingWrapped(new \RuntimeException('Call to action required before saving.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed: Call to action required before saving.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiAppendsValidationDetailWithStrayBackslashNotClassShaped(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Invalid escape sequence \\d in pattern.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed: Invalid escape sequence \\d in pattern.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForRawSqlSelectFrom(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(
+                new \RuntimeException(
+                    "You have an error in your SQL syntax near 'SELECT 1 FROM log_visit WHERE idsite=1'",
+                ),
+            ),
         );
 
         $this->expectException(ToolCallException::class);
@@ -257,7 +334,137 @@ class ApiCallQueryServiceTest extends TestCase
         $service->callApi($resolvedMethod);
     }
 
-    public function testCallApiKeepsGenericFailureWhenNoSafeDetailExists(): void
+    public function testCallApiKeepsGenericFailureForSqlInternalDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('SQLSTATE[42S02]: Base table or view not found')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForTokenAuthDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('The token_auth parameter is invalid or missing.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForBearerDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Bearer token missing or invalid.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForSessionDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(
+                new \RuntimeException('A valid session token or force_api_session flag is required.'),
+            ),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForNestedSegmentValidationDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('SegmentEditor', 'add', 'SegmentEditor.add', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(
+                new \RuntimeException(
+                    'The specified segment is invalid: Segment term `foo` is not valid for the requested site.',
+                ),
+            ),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForFilesystemPathDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord(
+            'ScheduledReports',
+            'generateReport',
+            'ScheduledReports.generateReport',
+            [],
+        );
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(
+                new \RuntimeException("The report file wasn't found in /tmp/scheduled/report.pdf"),
+            ),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForSanityCheckClassDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('Referrers', 'getReferrerType', 'Referrers.getReferrerType', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Unexpected DataTable type: Piwik\\DataTable\\Map')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForNamespacedClassTokenDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('The value must be an instance of Piwik\\Foo.')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureForCallToUndefinedMethodDetail(): void
+    {
+        $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
+        $service = new ApiCallQueryService(
+            self::gatewayThrowingWrapped(new \RuntimeException('Call to undefined method fooBar')),
+        );
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('Matomo API request failed.');
+
+        $service->callApi($resolvedMethod);
+    }
+
+    public function testCallApiKeepsGenericFailureWhenNoPreviousFailureDetailExists(): void
     {
         $resolvedMethod = new ApiMethodSummaryRecord('UsersManager', 'addUser', 'UsersManager.addUser', []);
         $service = new ApiCallQueryService(
@@ -305,5 +512,19 @@ class ApiCallQueryServiceTest extends TestCase
         } finally {
             fclose($resource);
         }
+    }
+
+    private static function gatewayThrowingWrapped(\Throwable $previous): CoreApiCallGatewayInterface
+    {
+        return new class ($previous) implements CoreApiCallGatewayInterface {
+            public function __construct(private \Throwable $previous)
+            {
+            }
+
+            public function call(string $method, array $parameters): mixed
+            {
+                throw new CoreApiRequestException('failed', 0, $this->previous);
+            }
+        };
     }
 }

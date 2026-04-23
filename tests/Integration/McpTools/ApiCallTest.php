@@ -280,7 +280,7 @@ class ApiCallTest extends IntegrationTestCase
         );
     }
 
-    public function testFullModeAttemptsMutatingMethodCall(): void
+    public function testFullModeReturnsDetailedValidationErrorForAddUser(): void
     {
         McpTestHelper::setRawApiAccessMode('full');
 
@@ -295,17 +295,33 @@ class ApiCallTest extends IntegrationTestCase
         );
 
         McpTestHelper::assertToolError($result);
-        $content = $result->content[0] ?? null;
-        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
-        $errorText = $content->text;
-        self::assertIsString($errorText);
-        self::assertTrue(
-            $errorText === 'Matomo API request failed.'
-            || str_starts_with($errorText, 'Matomo API request failed: '),
+        $this->assertIsDetailedMissingParameterError($result);
+    }
+
+    public function testFullModeSuppressesNestedSegmentValidationError(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiCallFull::TOOL_NAME,
+            [
+                'method' => 'SegmentEditor.add',
+                'parameters' => [
+                    'name' => 'Broken Segment',
+                    'definition' => 'invalidSegmentDefinition==value',
+                    'idSite' => $this->idSite,
+                ],
+            ],
+            'Matomo API request failed.',
+            __METHOD__,
         );
     }
 
-    public function testCreateModeAttemptsCreateMethodCall(): void
+    public function testCreateModeReturnsDetailedValidationErrorForAddUser(): void
     {
         McpTestHelper::setRawApiAccessMode('create');
 
@@ -320,11 +336,10 @@ class ApiCallTest extends IntegrationTestCase
         );
 
         McpTestHelper::assertToolError($result);
-        $content = $result->content[0] ?? null;
-        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
+        $this->assertIsDetailedMissingParameterError($result);
     }
 
-    public function testDeleteModeAttemptsDeleteMethodCall(): void
+    public function testDeleteModeReturnsDetailedValidationErrorForDeleteSite(): void
     {
         McpTestHelper::setRawApiAccessMode('delete');
 
@@ -339,17 +354,10 @@ class ApiCallTest extends IntegrationTestCase
         );
 
         McpTestHelper::assertToolError($result);
-        $content = $result->content[0] ?? null;
-        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
-        $errorText = $content->text;
-        self::assertIsString($errorText);
-        self::assertTrue(
-            $errorText === 'Matomo API request failed.'
-            || str_starts_with($errorText, 'Matomo API request failed: '),
-        );
+        $this->assertIsDetailedMissingParameterError($result);
     }
 
-    public function testUpdateModeAttemptsUpdateMethodCall(): void
+    public function testUpdateModeReturnsDetailedValidationErrorForUpdateUser(): void
     {
         McpTestHelper::setRawApiAccessMode('update');
 
@@ -364,14 +372,7 @@ class ApiCallTest extends IntegrationTestCase
         );
 
         McpTestHelper::assertToolError($result);
-        $content = $result->content[0] ?? null;
-        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
-        $errorText = $content->text;
-        self::assertIsString($errorText);
-        self::assertTrue(
-            $errorText === 'Matomo API request failed.'
-            || str_starts_with($errorText, 'Matomo API request failed: '),
-        );
+        $this->assertIsDetailedMissingParameterError($result);
     }
 
     public function testRejectsReservedParameterKeys(): void
@@ -529,5 +530,15 @@ class ApiCallTest extends IntegrationTestCase
         $result = McpTestHelper::parseListTools($message);
 
         return array_values(array_map(static fn($tool) => $tool->name, $result->tools));
+    }
+
+    private function assertIsDetailedMissingParameterError(
+        \Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult $result,
+    ): void {
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(\Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent::class, $content);
+        self::assertIsString($content->text);
+        self::assertStringStartsWith('Matomo API request failed: ', $content->text);
+        self::assertStringContainsString('General_PleaseSpecifyValue', $content->text);
     }
 }
