@@ -72,46 +72,91 @@ class ApiMethodOperationClassifierTest extends TestCase
 
     public function testClassifyUsesMediumConfidencePrefixes(): void
     {
-        $setClassification = ApiMethodOperationClassifier::classify(
-            'SitesManager.setDefaultTimezone',
-            'setDefaultTimezone',
-        );
-        self::assertSame(ApiMethodOperationClassifier::CATEGORY_UPDATE, $setClassification['operationCategory']);
-        self::assertSame(
-            ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
-            $setClassification['classificationConfidence'],
-        );
-        self::assertSame('action-prefix:set', $setClassification['classificationReason']);
+        $cases = [
+            [
+                'SitesManager.setDefaultTimezone',
+                'setDefaultTimezone',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:set',
+            ],
+            [
+                'UsersManager.inviteUser',
+                'inviteUser',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                'action-prefix:invite',
+            ],
+            [
+                'LanguagesManager.uses12HourClockForUser',
+                'uses12HourClockForUser',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                'action-prefix:uses',
+            ],
+            [
+                'CustomJsTracker.doesIncludePluginTrackersAutomatically',
+                'doesIncludePluginTrackersAutomatically',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                'action-prefix:does',
+            ],
+            [
+                'Example.startAction',
+                'startAction',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:start',
+            ],
+            [
+                'Example.finishAction',
+                'finishAction',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:finish',
+            ],
+            [
+                'Example.mergeAction',
+                'mergeAction',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:merge',
+            ],
+            [
+                'Example.unmergeAction',
+                'unmergeAction',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:unmerge',
+            ],
+            [
+                'Example.duplicateEntity',
+                'duplicateEntity',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                'action-prefix:duplicate',
+            ],
+            [
+                'Example.testAction',
+                'testAction',
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                'action-prefix:test',
+            ],
+            [
+                'Example.duplicateResource',
+                'duplicateResource',
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                'action-prefix:duplicate',
+            ],
+            [
+                'Example.rotateCredential',
+                'rotateCredential',
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                'action-prefix:rotate',
+            ],
+        ];
 
-        $inviteClassification = ApiMethodOperationClassifier::classify('UsersManager.inviteUser', 'inviteUser');
-        self::assertSame(ApiMethodOperationClassifier::CATEGORY_CREATE, $inviteClassification['operationCategory']);
-        self::assertSame(
-            ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
-            $inviteClassification['classificationConfidence'],
-        );
-        self::assertSame('action-prefix:invite', $inviteClassification['classificationReason']);
+        foreach ($cases as [$method, $action, $expectedCategory, $expectedReason]) {
+            $classification = ApiMethodOperationClassifier::classify($method, $action);
 
-        $usesClassification = ApiMethodOperationClassifier::classify(
-            'LanguagesManager.uses12HourClockForUser',
-            'uses12HourClockForUser',
-        );
-        self::assertSame(ApiMethodOperationClassifier::CATEGORY_READ, $usesClassification['operationCategory']);
-        self::assertSame(
-            ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
-            $usesClassification['classificationConfidence'],
-        );
-        self::assertSame('action-prefix:uses', $usesClassification['classificationReason']);
-
-        $doesClassification = ApiMethodOperationClassifier::classify(
-            'CustomJsTracker.doesIncludePluginTrackersAutomatically',
-            'doesIncludePluginTrackersAutomatically',
-        );
-        self::assertSame(ApiMethodOperationClassifier::CATEGORY_READ, $doesClassification['operationCategory']);
-        self::assertSame(
-            ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
-            $doesClassification['classificationConfidence'],
-        );
-        self::assertSame('action-prefix:does', $doesClassification['classificationReason']);
+            self::assertSame($expectedCategory, $classification['operationCategory']);
+            self::assertSame(
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                $classification['classificationConfidence'],
+            );
+            self::assertSame($expectedReason, $classification['classificationReason']);
+        }
     }
 
     public function testClassifyUsesExistsSuffixAsReadFallback(): void
@@ -133,6 +178,18 @@ class ApiMethodOperationClassifierTest extends TestCase
         self::assertNull($classification['operationCategory']);
         self::assertSame(ApiMethodOperationClassifier::CONFIDENCE_LOW, $classification['classificationConfidence']);
         self::assertSame('unsupported-action-prefix:send', $classification['classificationReason']);
+    }
+
+    public function testClassifyLeavesImportPrefixUnclassified(): void
+    {
+        $classification = ApiMethodOperationClassifier::classify(
+            'Example.importThing',
+            'importThing',
+        );
+
+        self::assertNull($classification['operationCategory']);
+        self::assertSame(ApiMethodOperationClassifier::CONFIDENCE_LOW, $classification['classificationConfidence']);
+        self::assertSame('unsupported-action-prefix:import', $classification['classificationReason']);
     }
 
     public function testClassifyLeavesMissingActionPrefixUnclassified(): void

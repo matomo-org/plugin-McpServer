@@ -165,7 +165,12 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
 
         self::assertSame(
-            ['API.getMatomoVersion', 'SitesManager.isSiteNameUnique', 'UsersManager.getUsers'],
+            [
+                'API.getMatomoVersion',
+                'SitesManager.isSiteNameUnique',
+                'UsersManager.getUsers',
+                'Example.testAction',
+            ],
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
         );
     }
@@ -216,7 +221,11 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $readRecords)),
         );
         self::assertSame(
-            ['UsersManager.addUser'],
+            [
+                'UsersManager.addUser',
+                'Example.duplicateEntity',
+                'Example.duplicateResource',
+            ],
             array_values(array_map(
                 static fn(ApiMethodSummaryRecord $record): string => $record->method,
                 $createRecords,
@@ -228,6 +237,9 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
                 'SitesManager.isSiteNameUnique',
                 'UsersManager.addUser',
                 'UsersManager.getUsers',
+                'Example.duplicateEntity',
+                'Example.testAction',
+                'Example.duplicateResource',
             ],
             array_values(array_map(
                 static fn(ApiMethodSummaryRecord $record): string => $record->method,
@@ -317,45 +329,70 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
     }
 
-    public function testFilterRecordsAppliesOperationCategoryFilter(): void
-    {
+    /**
+     * @dataProvider provideOperationCategoryFilters
+     *
+     * @param list<string> $expectedMethods
+     */
+    public function testFilterRecordsAppliesOperationCategoryFilter(
+        string $operationCategory,
+        array $expectedMethods,
+    ): void {
         $service = new ApiMethodSummaryQueryService();
 
         $records = $service->filterRecords(
             $this->createMethodRecords(),
-            ApiMethodSummaryQueryRecord::fromInputs('full', null, null, 'update'),
+            ApiMethodSummaryQueryRecord::fromInputs('full', null, null, $operationCategory),
         );
 
         self::assertSame(
-            ['SitesManager.setDefaultTimezone'],
+            $expectedMethods,
             array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
         );
     }
 
-    public function testFilterRecordsAppliesUncategorizedOperationCategoryFilter(): void
+    /**
+     * @return array<string, array{0: string, 1: list<string>}>
+     */
+    public function provideOperationCategoryFilters(): array
     {
-        $service = new ApiMethodSummaryQueryService();
-
-        $records = $service->filterRecords(
-            [
-                ...$this->createMethodRecords(),
-                new ApiMethodSummaryRecord(
-                    'ScheduledReports',
-                    'sendReport',
-                    'ScheduledReports.sendReport',
-                    [],
-                    null,
-                    ApiMethodOperationClassifier::CONFIDENCE_LOW,
-                    'unsupported-action-prefix:send',
-                ),
+        return [
+            'update' => [
+                'update',
+                [
+                    'SitesManager.setDefaultTimezone',
+                    'Example.finishAction',
+                    'Example.startAction',
+                    'Example.mergeAction',
+                    'Example.unmergeAction',
+                    'Example.rotateCredential',
+                ],
             ],
-            ApiMethodSummaryQueryRecord::fromInputs('full', null, null, 'uncategorized'),
-        );
-
-        self::assertSame(
-            ['ScheduledReports.sendReport'],
-            array_values(array_map(static fn(ApiMethodSummaryRecord $record): string => $record->method, $records)),
-        );
+            'create' => [
+                'create',
+                [
+                    'UsersManager.addUser',
+                    'Example.duplicateEntity',
+                    'Example.duplicateResource',
+                ],
+            ],
+            'read' => [
+                'read',
+                [
+                    'API.getMatomoVersion',
+                    'SitesManager.isSiteNameUnique',
+                    'UsersManager.getUsers',
+                    'Example.testAction',
+                ],
+            ],
+            'uncategorized' => [
+                'uncategorized',
+                [
+                    'Example.importThing',
+                    'ScheduledReports.sendReport',
+                ],
+            ],
+        ];
     }
 
     public function testFindApiMethodSummaryRecordMatchesMethodCaseInsensitively(): void
@@ -457,6 +494,96 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
                 ApiMethodOperationClassifier::CATEGORY_UPDATE,
                 ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
                 'action-prefix:set',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'finishAction',
+                'Example.finishAction',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:finish',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'startAction',
+                'Example.startAction',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:start',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'mergeAction',
+                'Example.mergeAction',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:merge',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'unmergeAction',
+                'Example.unmergeAction',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:unmerge',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'duplicateEntity',
+                'Example.duplicateEntity',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:duplicate',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'testAction',
+                'Example.testAction',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_READ,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:test',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'duplicateResource',
+                'Example.duplicateResource',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_CREATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:duplicate',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'importThing',
+                'Example.importThing',
+                [],
+                null,
+                ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                'unsupported-action-prefix:import',
+            ),
+            new ApiMethodSummaryRecord(
+                'Example',
+                'rotateCredential',
+                'Example.rotateCredential',
+                [],
+                ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                ApiMethodOperationClassifier::CONFIDENCE_MEDIUM,
+                'action-prefix:rotate',
+            ),
+            new ApiMethodSummaryRecord(
+                'ScheduledReports',
+                'sendReport',
+                'ScheduledReports.sendReport',
+                [],
+                null,
+                ApiMethodOperationClassifier::CONFIDENCE_LOW,
+                'unsupported-action-prefix:send',
             ),
         ];
     }
