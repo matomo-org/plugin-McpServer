@@ -225,12 +225,33 @@ describe('McpServer', function () {
         const text = await getConnectText();
 
         expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
+        expect(text).to.contain('Manage MCP Server settings in General Settings.');
         expect(text).to.contain('A Matomo token_auth (used as a Bearer token)');
         expect(text).to.not.contain('OAuth2 is available for this MCP Server and is the recommended way to connect.');
         expect(text).to.not.contain('Recommended: Connect Using OAuth2');
         expect(text).to.not.contain('Alternative: Connect Using token_auth');
+        expect(await page.$eval(`${connectSelector} a[href*="module=CoreAdminHome"][href*="action=generalSettings"]`, (el) => el.getAttribute('href')))
+            .to.contain('idSite=1')
+            .and.to.contain('period=day')
+            .and.to.contain('date=yesterday');
 
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_enabled');
+    });
+
+    it('should hide the General Settings link for view users when MCP is enabled', async function () {
+        await configureMcp(true);
+        setViewUser();
+
+        await page.goto(connectUrl);
+        await page.waitForNetworkIdle();
+        await page.waitForSelector(connectSelector, { visible: true });
+
+        const text = await getConnectText();
+
+        expect(text).to.contain('Use this guide to connect any MCP client to your Matomo MCP Server.');
+        expect(text).to.not.contain('Manage MCP Server settings in General Settings.');
+        expect(text).to.contain('A Matomo token_auth (used as a Bearer token)');
+        expect(await page.$(`${connectSelector} a[href*="module=CoreAdminHome"][href*="action=generalSettings"]`)).to.equal(null);
     });
 
     it('should display OAuth2 guidance when the OAuth2 plugin is enabled', async function () {

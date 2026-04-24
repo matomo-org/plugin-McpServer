@@ -14,6 +14,11 @@
                     {{ 'McpServer_ConnectIntro'|translate }}
                 {% endif %}
             </p>
+            {% if isMcpEnabled and canAccessMcpSettings %}
+                <p>
+                    {{ 'McpServer_ConnectGeneralSettingsHelp'|translate('<a href="' ~ mcpSettingsUrl|escape('html_attr') ~ '">', '</a>')|raw }}
+                </p>
+            {% endif %}
             {% if isMcpEnabled %}
                 <h3>{{ 'McpServer_ConnectWhatYouNeedTitle'|translate }}</h3>
                 <ul class="browser-default">
@@ -29,7 +34,7 @@
             {% endif %}
             {% if not isMcpEnabled %}
                 <div class="alert alert-warning">
-                    {% if canEnableMcp %}
+                    {% if canAccessMcpSettings %}
                         {{ 'McpServer_ConnectMcpDisabledCanEnable'|translate('<a href="' ~ mcpSettingsUrl|escape('html_attr') ~ '">', '</a>')|raw }}
                     {% else %}
                         {{ 'McpServer_ConnectMcpDisabledNoPermission'|translate }} {{ 'General_PleaseContactYourPiwikAdministrator'|translate }}
