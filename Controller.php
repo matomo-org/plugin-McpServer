@@ -25,6 +25,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
 
     public function connect(): string
     {
+        Piwik::checkUserIsNotAnonymous();
         Piwik::checkUserHasSomeViewAccess();
 
         $view = new View('@McpServer/connect');

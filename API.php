@@ -79,6 +79,7 @@ class API extends \Piwik\Plugin\API
         }
 
         try {
+            $this->checkUserIsNotAnonymous();
             $this->checkUserHasSomeViewAccess();
         } catch (\Throwable $e) {
             if ($this->isUnauthorizedLike($e)) {
@@ -124,6 +125,11 @@ class API extends \Piwik\Plugin\API
     protected function checkUserHasSomeViewAccess(): void
     {
         Piwik::checkUserHasSomeViewAccess();
+    }
+
+    protected function checkUserIsNotAnonymous(): void
+    {
+        Piwik::checkUserIsNotAnonymous();
     }
 
     protected function createUnauthorizedResponse(string|int $requestId = ''): ResponseInterface
