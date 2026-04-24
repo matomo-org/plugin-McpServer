@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Access;
 use Piwik\API\Request as ApiRequest;
 use Piwik\Container\StaticContainer;
+use Piwik\Date;
 use Piwik\FrontController;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
@@ -28,6 +29,7 @@ use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
+use Piwik\Plugins\UsersManager\Model as UsersManagerModel;
 use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -47,6 +49,10 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
     private bool $originalEnableMcpValue = false;
 
     private string $originalMaximumAllowedMcpAccessLevel = McpAccessLevel::UNLIMITED;
+
+    private ?string $anonymousAccessBackup = null;
+
+    private bool $createdAnonymousUser = false;
 
     private int $idSite = 0;
 
@@ -75,6 +81,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $_GET = $this->originalGet;
         $this->setMcpEnabled($this->originalEnableMcpValue);
         $this->setMaximumAllowedMcpAccessLevel($this->originalMaximumAllowedMcpAccessLevel);
+        $this->restoreAnonymousAccessForSite($this->idSite);
         $this->setNestedApiInvocationCount($this->originalNestedApiInvocationCount);
         ApiRequest::setIsRootRequestApiRequest($this->originalRootApiMethod);
         Access::getInstance()->setSuperUserAccess(false);
@@ -221,6 +228,35 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
         self::assertSame(McpEndpointSpec::UNAUTHORIZED_ERROR, $error->message);
         self::assertSame('disabled-auth-1', $error->id);
+    }
+
+    public function testAnonymousWithViewAccessIsRejectedBeforeMcpEnabledCheck(): void
+    {
+        $this->setMcpEnabled(true);
+        $this->setAnonymousAccessForSite($this->idSite, 'view');
+        $originalTokenAuth = McpAuthTestHelper::captureCurrentTokenAuth();
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        try {
+            McpAuthTestHelper::switchToAnonymous();
+
+            $api = $this->createApiWithRequest(
+                $this->createRequest(McpTestHelper::makeInitializeRequest('anonymous-view-1')),
+            );
+            $response = $api->mcp();
+            $error = McpTestHelper::decodeError($response);
+
+            self::assertSame(401, $response->getStatusCode());
+            self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
+            self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+            self::assertSame(McpEndpointSpec::UNAUTHORIZED_ERROR, $error->message);
+            self::assertSame('anonymous-view-1', $error->id);
+        } finally {
+            McpAuthTestHelper::restoreAuth($originalTokenAuth);
+        }
     }
 
     public function testDisabledMcpReturnsForbiddenWithEmptyBodyWhenTopLevelIdMissing(): void
@@ -460,5 +496,44 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         } finally {
             Access::getInstance()->setSuperUserAccess($hadSuperUserAccess);
         }
+    }
+
+    private function setAnonymousAccessForSite(int $idSite, string $access): void
+    {
+        $model = new UsersManagerModel();
+        if (!$model->userExists('anonymous')) {
+            $model->addUser('anonymous', 'not_a_hash', 'anonymous@example.com', Date::now()->getDatetime());
+            $this->createdAnonymousUser = true;
+        }
+
+        if ($this->anonymousAccessBackup === null) {
+            $usersAccess = $model->getUsersAccessFromSite($idSite);
+            $this->anonymousAccessBackup = $usersAccess['anonymous'] ?? 'noaccess';
+        }
+
+        $model->deleteUserAccess('anonymous', [$idSite]);
+        if ($access !== 'noaccess') {
+            $model->addUserAccess('anonymous', $access, [$idSite]);
+        }
+    }
+
+    private function restoreAnonymousAccessForSite(int $idSite): void
+    {
+        if ($this->anonymousAccessBackup === null) {
+            return;
+        }
+
+        $model = new UsersManagerModel();
+        $model->deleteUserAccess('anonymous', [$idSite]);
+        if ($this->anonymousAccessBackup !== 'noaccess') {
+            $model->addUserAccess('anonymous', $this->anonymousAccessBackup, [$idSite]);
+        }
+
+        if ($this->createdAnonymousUser) {
+            $model->deleteUser('anonymous');
+            $this->createdAnonymousUser = false;
+        }
+
+        $this->anonymousAccessBackup = null;
     }
 }

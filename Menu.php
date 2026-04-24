@@ -18,7 +18,7 @@ class Menu extends \Piwik\Plugin\Menu
 {
     public function configureAdminMenu(MenuAdmin $menu): void
     {
-        if (Piwik::isUserHasSomeViewAccess()) {
+        if (!Piwik::isUserIsAnonymous() && Piwik::isUserHasSomeViewAccess()) {
             $menu->addPlatformItem('McpServer_PlatformMenu', $this->urlForAction('connect'), 42);
         }
     }

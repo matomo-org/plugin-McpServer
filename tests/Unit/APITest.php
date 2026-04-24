@@ -165,6 +165,7 @@ class APITest extends TestCase
                 'createRequestFromGlobals',
                 'isCurrentApiRequestRoot',
                 'getRootApiRequestMethod',
+                'checkUserIsNotAnonymous',
                 'checkUserHasSomeViewAccess',
             ])
             ->getMock();
@@ -211,6 +212,7 @@ class APITest extends TestCase
                 'createRequestFromGlobals',
                 'isCurrentApiRequestRoot',
                 'getRootApiRequestMethod',
+                'checkUserIsNotAnonymous',
                 'checkUserHasSomeViewAccess',
             ])
             ->getMock();
@@ -225,6 +227,52 @@ class APITest extends TestCase
             ->willThrowException(
                 new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access')),
             );
+
+        $result = $api->mcp();
+
+        self::assertSame(401, $result->getStatusCode());
+        self::assertSame('Bearer realm="mcp"', $result->getHeaderLine('WWW-Authenticate'));
+        $message = McpTestHelper::decodeError($result);
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $message->code);
+        self::assertSame('Authentication required.', $message->message);
+        self::assertSame('init-1', $message->id);
+    }
+
+    public function testMcpReturnsUnauthorizedChallengeWhenUserIsAnonymous(): void
+    {
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $factory = $this->createFactory();
+
+        $api = $this
+            ->getMockBuilder(API::class)
+            ->setConstructorArgs([
+                $factory,
+                new McpEndpointGuard(),
+                new JsonRpcErrorResponseFactory(),
+                new JsonRpcRequestIdExtractor(),
+                $this->createMock(SystemSettings::class),
+            ])
+            ->onlyMethods([
+                'createRequestFromGlobals',
+                'isCurrentApiRequestRoot',
+                'getRootApiRequestMethod',
+                'checkUserIsNotAnonymous',
+                'checkUserHasSomeViewAccess',
+            ])
+            ->getMock();
+
+        $api->method('createRequestFromGlobals')
+            ->willReturn($this->createRequest());
+        $api->method('isCurrentApiRequestRoot')
+            ->willReturn(true);
+        $api->method('getRootApiRequestMethod')
+            ->willReturn('McpServer.mcp');
+        $api->method('checkUserIsNotAnonymous')
+            ->willThrowException(new \Piwik\NoAccessException('You must be logged in.'));
+        $api->expects(self::never())->method('checkUserHasSomeViewAccess');
 
         $result = $api->mcp();
 
