@@ -115,7 +115,7 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
 
     private function buildFailureMessage(CoreApiRequestException $e): string
     {
-        $detail = $this->extractSafeFailureDetail($e);
+        $detail = $this->extractFailureDetail($e);
         if ($detail === null) {
             return self::GENERIC_FAILURE_MESSAGE;
         }
@@ -123,7 +123,7 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
         return self::DETAILED_FAILURE_PREFIX . $detail;
     }
 
-    private function extractSafeFailureDetail(CoreApiRequestException $e): ?string
+    private function extractFailureDetail(CoreApiRequestException $e): ?string
     {
         $previous = $e->getPrevious();
         if (!$previous instanceof \Throwable) {
@@ -140,73 +140,74 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
             return null;
         }
 
-        if (!$this->isSafeFailureDetail($message)) {
+        if ($this->shouldSuppressFailureDetail($message)) {
             return null;
         }
 
         return $message . '.';
     }
 
-    private function isSafeFailureDetail(string $message): bool
+    private function shouldSuppressFailureDetail(string $message): bool
     {
-        if (strlen($message) > 160) {
-            return false;
-        }
-
         $normalized = strtolower($message);
+
         $unsafeFragments = [
+            // Secret/session-token wording. Access-denial phrasing is routed
+            // via NoAccessLikeErrorDetector before this denylist runs.
+            'token_auth',
+            'bearer ',
+            'session token',
+            'session id',
+            'phpsessid',
+            'force_api_session',
+
+            // SQL internals. Verb+clause SQL is handled by the regex below.
             'sqlstate',
-            'select ',
-            'insert ',
-            'update ',
-            'delete ',
             'create table',
             'drop table',
             'alter table',
-            'exception',
-            'stack trace',
-            ' in /',
-            ' at /',
-            '/var/www/',
-            '\\',
-            '<',
-            '>',
-            'token_auth',
-            'bearer ',
-            'session',
-            'permission denied',
-            'call to ',
-            'uncaught ',
+
+            // PHP runtime crash wording. "Uncaught"/"Stack trace" live in
+            // getTraceAsString(), not getMessage(), so they are not listed.
+            'call to undefined ',
+
+            // Internal invariant/class-name failures.
+            'sanity check:',
+            'unknown datatable type',
+            'unexpected datatable type',
+
+            // Filesystem path leakage.
+            "wasn't found in ",
+
+            // SegmentEditor wraps nested parser/validator exception text verbatim.
+            'the specified segment is invalid:',
         ];
 
         foreach ($unsafeFragments as $fragment) {
             if (str_contains($normalized, $fragment)) {
-                return false;
-            }
-        }
-
-        if (preg_match('/#\d+/', $message) === 1) {
-            return false;
-        }
-
-        $safeSignals = [
-            'parameter',
-            'missing',
-            'invalid',
-            'must be',
-            'required',
-            'expected',
-            'unknown value',
-            'not supported',
-            'out of range',
-        ];
-
-        foreach ($safeSignals as $signal) {
-            if (str_contains($normalized, $signal)) {
                 return true;
             }
         }
 
-        return false;
+        // Raw SQL leakage: verb + matching clause keyword. The clause context
+        // avoids suppressing prose like "please select a value" or
+        // "failed to delete user".
+        if (
+            preg_match(
+                '/\bselect\b.{0,200}\bfrom\b|\binsert\s+into\b|\bupdate\b.{0,200}\bset\b|\bdelete\s+from\b/s',
+                $normalized,
+            ) === 1
+        ) {
+            return true;
+        }
+
+        // Namespaced class-like tokens ("Piwik\DataTable\Map"). Require two
+        // PascalCase segments so stray escapes like "\n" or "\d" do not match.
+        if (preg_match('/\b[A-Z][A-Za-z0-9_]+(?:\\\\[A-Z][A-Za-z0-9_]*){1,}/', $message) === 1) {
+            return true;
+        }
+
+        // Absolute filesystem paths.
+        return preg_match('~(?:^|[\s(])/(?:[^/\s]+/)+[^/\s)]+~', $message) === 1;
     }
 }
