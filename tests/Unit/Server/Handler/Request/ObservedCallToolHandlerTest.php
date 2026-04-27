@@ -447,7 +447,7 @@ class ObservedCallToolHandlerTest extends TestCase
      */
     private function createTool(string $name, array $inputSchema): \Matomo\Dependencies\McpServer\Mcp\Schema\Tool
     {
-        return new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool($name, $inputSchema, null, null);
+        return new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool($name, null, $inputSchema, null, null);
     }
 
     private function createSession(string $uuid): Session

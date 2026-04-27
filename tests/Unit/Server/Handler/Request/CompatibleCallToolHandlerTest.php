@@ -91,7 +91,7 @@ class CompatibleCallToolHandlerTest extends TestCase
 
     private function createTool(string $name): \Matomo\Dependencies\McpServer\Mcp\Schema\Tool
     {
-        return new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool($name, [
+        return new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool($name, null, [
             'type' => 'object',
             'properties' => [
                 'idSite' => ['type' => 'integer'],

@@ -11,6 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\DocBlockParser;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaGenerator;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
@@ -28,7 +31,18 @@ use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
 use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\McpTools\ApiList;
+use Piwik\Plugins\McpServer\McpTools\DimensionGet;
+use Piwik\Plugins\McpServer\McpTools\DimensionList;
+use Piwik\Plugins\McpServer\McpTools\GoalGet;
+use Piwik\Plugins\McpServer\McpTools\GoalList;
+use Piwik\Plugins\McpServer\McpTools\ReportList;
+use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\McpTools\SegmentGet;
+use Piwik\Plugins\McpServer\McpTools\SegmentList;
+use Piwik\Plugins\McpServer\McpTools\SiteGet;
+use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiGetToolInputSchema;
@@ -70,7 +84,6 @@ final class McpServerFactory
             ->setRegistry($registry)
             ->setSession($this->sessionStore)
             ->setContainer($this->container)
-            ->setDiscovery(__DIR__, ['McpTools'])
             ->setCapabilities(new ServerCapabilities(
                 tools: true,
                 // Use null to avoid advertising listChanged capabilities we don't implement.
@@ -83,6 +96,8 @@ final class McpServerFactory
                 logging: false,
                 completions: false,
             ));
+
+        $this->registerAttributeTools($builder);
 
         $builder->addTool(
             handler: [ReportProcessed::class, 'get'],
@@ -107,6 +122,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiGet::class, 'get'],
                 ApiGet::TOOL_NAME,
+                null,
                 "Use when: you already know the Matomo API method name and need its exact signature.\n"
                     . "Purpose: return one authoritative API method summary with parameter metadata.\n"
                     . "Do not use: for broad discovery across APIs; use " . ApiList::TOOL_NAME . ' instead.',
@@ -124,6 +140,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiList::class, 'list'],
                 ApiList::TOOL_NAME,
+                null,
                 "Use when: you need discoverable Matomo API methods and parameter metadata.\n"
                     . "Purpose: return paginated API method summaries aligned with Matomo API docs visibility.\n"
                     . "Next: choose a method and map parameters for subsequent raw API tooling.",
@@ -161,12 +178,68 @@ final class McpServerFactory
         return $builder->build();
     }
 
+    private function registerAttributeTools(Builder $builder): void
+    {
+        $schemaGenerator = new SchemaGenerator(new DocBlockParser());
+
+        $tools = [
+            [DimensionGet::class, 'get'],
+            [DimensionList::class, 'list'],
+            [GoalGet::class, 'get'],
+            [GoalList::class, 'list'],
+            [ReportList::class, 'list'],
+            [ReportMetadata::class, 'get'],
+            [SegmentGet::class, 'get'],
+            [SegmentList::class, 'list'],
+            [SiteGet::class, 'get'],
+            [SiteList::class, 'list'],
+            [SiteSearch::class, 'search'],
+        ];
+
+        foreach ($tools as [$className, $methodName]) {
+            $this->registerAttributeTool($builder, $schemaGenerator, $className, $methodName);
+        }
+    }
+
+    /**
+     * @param class-string $className
+     */
+    private function registerAttributeTool(
+        Builder $builder,
+        SchemaGenerator $schemaGenerator,
+        string $className,
+        string $methodName,
+    ): void {
+        $method = new \ReflectionMethod($className, $methodName);
+        $attribute = $method->getAttributes(McpTool::class, \ReflectionAttribute::IS_INSTANCEOF)[0] ?? null;
+
+        if ($attribute === null) {
+            throw new \LogicException(sprintf('Missing McpTool attribute on %s::%s.', $className, $methodName));
+        }
+
+        /** @var McpTool $tool */
+        $tool = $attribute->newInstance();
+
+        $builder->addTool(
+            [$className, $methodName],
+            $tool->name,
+            $tool->title,
+            $tool->description,
+            $tool->annotations,
+            $schemaGenerator->generate($method),
+            $tool->icons,
+            $tool->meta,
+            $schemaGenerator->generateOutputSchema($method),
+        );
+    }
+
     private function registerRawApiCallTools(Builder $builder, string $rawApiAccessMode): void
     {
         if (RawApiAccessMode::allowsCategory($rawApiAccessMode, RawApiAccessMode::READ)) {
             $builder->addTool(
                 [ApiCallRead::class, 'call'],
                 ApiCallRead::TOOL_NAME,
+                null,
                 "Use when: you need to execute a known read-only Matomo API method directly.\n"
                     . "Purpose: call one allowed read method and return its result plus the resolved method metadata.\n"
                     . "Next: use " . ApiGet::TOOL_NAME . ' or ' . ApiList::TOOL_NAME
@@ -188,6 +261,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiCallCreate::class, 'call'],
                 ApiCallCreate::TOOL_NAME,
+                null,
                 "Use when: you need to execute a known create-style Matomo API method directly.\n"
                     . "Purpose: call one allowed create method and return its result plus the"
                     . " resolved method metadata.\n"
@@ -210,6 +284,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiCallUpdate::class, 'call'],
                 ApiCallUpdate::TOOL_NAME,
+                null,
                 "Use when: you need to execute a known update-style Matomo API method directly.\n"
                     . "Purpose: call one allowed update method and return its result plus the"
                     . " resolved method metadata.\n"
@@ -232,6 +307,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiCallDelete::class, 'call'],
                 ApiCallDelete::TOOL_NAME,
+                null,
                 "Use when: you need to execute a known delete-style Matomo API method directly.\n"
                     . "Purpose: call one allowed delete method and return its result plus the"
                     . " resolved method metadata.\n"
@@ -254,6 +330,7 @@ final class McpServerFactory
             $builder->addTool(
                 [ApiCallFull::class, 'call'],
                 ApiCallFull::TOOL_NAME,
+                null,
                 "Use when: you need to execute a known Matomo API method directly and"
                     . " it is not safely covered by one CRUD-specific tool.\n"
                     . "Purpose: call one allowed full-access API method and return its result"
