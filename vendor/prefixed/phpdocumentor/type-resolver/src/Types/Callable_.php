@@ -12,6 +12,7 @@ declare (strict_types=1);
 namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types;
 
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
+use function implode;
 /**
  * Value Object representing a Callable type.
  *
@@ -19,6 +20,8 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
  */
 final class Callable_ implements Type
 {
+    /** @var string */
+    private $identifier;
     /** @var Type|null */
     private $returnType;
     /** @var CallableParameter[] */
@@ -26,10 +29,15 @@ final class Callable_ implements Type
     /**
      * @param CallableParameter[] $parameters
      */
-    public function __construct(array $parameters = [], ?Type $returnType = null)
+    public function __construct(string $identifier = 'callable', array $parameters = [], ?Type $returnType = null)
     {
+        $this->identifier = $identifier;
         $this->parameters = $parameters;
         $this->returnType = $returnType;
+    }
+    public function getIdentifier() : string
+    {
+        return $this->identifier;
     }
     /** @return CallableParameter[] */
     public function getParameters() : array
@@ -45,6 +53,14 @@ final class Callable_ implements Type
      */
     public function __toString() : string
     {
-        return 'callable';
+        if (!$this->parameters && $this->returnType === null) {
+            return $this->identifier;
+        }
+        if ($this->returnType instanceof self) {
+            $returnType = '(' . (string) $this->returnType . ')';
+        } else {
+            $returnType = (string) $this->returnType;
+        }
+        return $this->identifier . '(' . implode(', ', $this->parameters) . '): ' . $returnType;
     }
 }

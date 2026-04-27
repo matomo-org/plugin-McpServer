@@ -3,11 +3,11 @@
 declare (strict_types=1);
 namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory;
 
-use Matomo\Dependencies\McpServer\Doctrine\Deprecations\Deprecation;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\DescriptionFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Param;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Exception\ParserException;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\TypeResolver;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Context;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\InvalidTagValueNode;
@@ -18,7 +18,6 @@ use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNo
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\Type\OffsetAccessTypeNode;
 use Matomo\Dependencies\McpServer\Webmozart\Assert\Assert;
 use function is_string;
-use function sprintf;
 use function trim;
 /**
  * @internal This class is not part of the BC promise of this library.
@@ -36,8 +35,7 @@ final class ParamFactory implements PHPStanFactory
     {
         $tagValue = $node->value;
         if ($tagValue instanceof InvalidTagValueNode) {
-            Deprecation::trigger('phpdocumentor/reflection-docblock', 'https://github.com/phpDocumentor/ReflectionDocBlock/issues/362', sprintf('Param tag value "%s" is invalid, falling back to legacy parsing. Please update your docblocks.', $tagValue->value));
-            return Param::create($tagValue->value, $this->typeResolver, $this->descriptionFactory, $context);
+            return InvalidTag::create($tagValue->value, 'param')->withError(ParserException::from($tagValue->exception));
         }
         Assert::isInstanceOfAny($tagValue, [ParamTagValueNode::class, TypelessParamTagValueNode::class]);
         if (($tagValue->type ?? null) instanceof OffsetAccessTypeNode) {

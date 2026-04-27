@@ -11,24 +11,13 @@ declare (strict_types=1);
  */
 namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags;
 
-use Matomo\Dependencies\McpServer\Doctrine\Deprecations\Deprecation;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Description;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\DescriptionFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\TypeResolver;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Context as TypeContext;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Utils;
 use Matomo\Dependencies\McpServer\Webmozart\Assert\Assert;
-use function array_shift;
-use function array_unshift;
-use function implode;
-use function strpos;
-use function substr;
-use const PREG_SPLIT_DELIM_CAPTURE;
 /**
  * Reflection class for a {@}property tag in a Docblock.
  */
-final class Property extends TagWithType implements Factory\StaticMethod
+final class Property extends TagWithType
 {
     protected ?string $variableName = null;
     public function __construct(?string $variableName, ?Type $type = null, ?Description $description = null)
@@ -38,40 +27,6 @@ final class Property extends TagWithType implements Factory\StaticMethod
         $this->variableName = $variableName;
         $this->type = $type;
         $this->description = $description;
-    }
-    /**
-     * @deprecated Create using static factory is deprecated,
-     *  this method should not be called directly by library consumers
-     */
-    public static function create(string $body, ?TypeResolver $typeResolver = null, ?DescriptionFactory $descriptionFactory = null, ?TypeContext $context = null) : self
-    {
-        Deprecation::triggerIfCalledFromOutside('phpdocumentor/reflection-docblock', 'https://github.com/phpDocumentor/ReflectionDocBlock/issues/361', 'Create using static factory is deprecated, this method should not be called directly
-             by library consumers');
-        Assert::stringNotEmpty($body);
-        Assert::notNull($typeResolver);
-        Assert::notNull($descriptionFactory);
-        [$firstPart, $body] = self::extractTypeFromBody($body);
-        $type = null;
-        $parts = Utils::pregSplit('/(\\s+)/Su', $body, 2, PREG_SPLIT_DELIM_CAPTURE);
-        $variableName = '';
-        // if the first item that is encountered is not a variable; it is a type
-        if ($firstPart && $firstPart[0] !== '$') {
-            $type = $typeResolver->resolve($firstPart, $context);
-        } else {
-            // first part is not a type; we should prepend it to the parts array for further processing
-            array_unshift($parts, $firstPart);
-        }
-        // if the next item starts with a $ it must be the variable name
-        if (isset($parts[0]) && strpos($parts[0], '$') === 0) {
-            $variableName = array_shift($parts);
-            if ($type) {
-                array_shift($parts);
-            }
-            Assert::notNull($variableName);
-            $variableName = substr($variableName, 1);
-        }
-        $description = $descriptionFactory->create(implode('', $parts), $context);
-        return new static($variableName, $type, $description);
     }
     /**
      * Returns the variable's name.

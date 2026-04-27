@@ -23,6 +23,7 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ResourceReference;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ResourceTemplateReference;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ToolReference;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ExceptionInterface;
+use Matomo\Dependencies\McpServer\Mcp\Exception\RuntimeException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Prompt;
 use Matomo\Dependencies\McpServer\Mcp\Schema\PromptArgument;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Resource;
@@ -30,8 +31,8 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Matomo\Dependencies\McpServer\Symfony\Component\Finder\Finder;
-use Matomo\Dependencies\McpServer\Symfony\Component\Finder\SplFileInfo;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 /**
  * @phpstan-type DiscoveredCount array{
  *     tools: int,
@@ -48,6 +49,9 @@ final class Discoverer implements DiscovererInterface
 {
     public function __construct(private readonly LoggerInterface $logger = new NullLogger(), private ?DocBlockParser $docBlockParser = null, private ?SchemaGeneratorInterface $schemaGenerator = null)
     {
+        if (!class_exists(Finder::class)) {
+            throw new RuntimeException('File-based discovery requires symfony/finder. Run: composer require symfony/finder');
+        }
         $this->docBlockParser = $docBlockParser ?? new DocBlockParser(logger: $this->logger);
         $this->schemaGenerator = $schemaGenerator ?? new SchemaGenerator($this->docBlockParser);
     }
@@ -174,7 +178,7 @@ final class Discoverer implements DiscovererInterface
                     $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
                     $inputSchema = $this->schemaGenerator->generate($method);
                     $outputSchema = $this->schemaGenerator->generateOutputSchema($method);
-                    $tool = new Tool($name, $inputSchema, $description, $instance->annotations, $instance->icons, $instance->meta, $outputSchema);
+                    $tool = new Tool(name: $name, title: $instance->title, inputSchema: $inputSchema, description: $description, annotations: $instance->annotations, icons: $instance->icons, meta: $instance->meta, outputSchema: $outputSchema);
                     $tools[$name] = new ToolReference($tool, [$className, $methodName], \false);
                     ++$discoveredCount['tools'];
                     break;
@@ -200,7 +204,7 @@ final class Discoverer implements DiscovererInterface
                         $paramTag = $paramTags['$' . $param->getName()] ?? null;
                         $arguments[] = new PromptArgument($param->getName(), $paramTag ? trim((string) $paramTag->getDescription()) : null, !$param->isOptional() && !$param->isDefaultValueAvailable());
                     }
-                    $prompt = new Prompt($name, $description, $arguments, $instance->icons, $instance->meta);
+                    $prompt = new Prompt($name, $instance->title, $description, $arguments, $instance->icons, $instance->meta);
                     $completionProviders = $this->getCompletionProviders($method);
                     $prompts[$name] = new PromptReference($prompt, [$className, $methodName], \false, $completionProviders);
                     ++$discoveredCount['prompts'];

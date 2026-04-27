@@ -4,7 +4,7 @@ namespace Matomo\Dependencies\McpServer\Http\Discovery;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Exception\DiscoveryFailedException;
 use Matomo\Dependencies\McpServer\Http\Discovery\Exception\NotFoundException as RealNotFoundException;
-use Psr\Http\Client\ClientInterface;
+use Matomo\Dependencies\McpServer\Psr\Http\Client\ClientInterface;
 /**
  * Finds a PSR-18 HTTP Client.
  *

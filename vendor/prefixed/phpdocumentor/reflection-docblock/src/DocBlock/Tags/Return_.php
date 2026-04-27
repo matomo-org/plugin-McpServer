@@ -11,37 +11,17 @@ declare (strict_types=1);
  */
 namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags;
 
-use Matomo\Dependencies\McpServer\Doctrine\Deprecations\Deprecation;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Description;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\DescriptionFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\TypeResolver;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Context as TypeContext;
-use Matomo\Dependencies\McpServer\Webmozart\Assert\Assert;
 /**
  * Reflection class for a {@}return tag in a Docblock.
  */
-final class Return_ extends TagWithType implements Factory\StaticMethod
+final class Return_ extends TagWithType
 {
     public function __construct(Type $type, ?Description $description = null)
     {
         $this->name = 'return';
         $this->type = $type;
         $this->description = $description;
-    }
-    /**
-     * @deprecated Create using static factory is deprecated,
-     *  this method should not be called directly by library consumers
-     */
-    public static function create(string $body, ?TypeResolver $typeResolver = null, ?DescriptionFactory $descriptionFactory = null, ?TypeContext $context = null) : self
-    {
-        Deprecation::triggerIfCalledFromOutside('phpdocumentor/reflection-docblock', 'https://github.com/phpDocumentor/ReflectionDocBlock/issues/361', 'Create using static factory is deprecated, this method should not be called directly
-             by library consumers');
-        Assert::notNull($typeResolver);
-        Assert::notNull($descriptionFactory);
-        [$type, $description] = self::extractTypeFromBody($body);
-        $type = $typeResolver->resolve($type, $context);
-        $description = $descriptionFactory->create($description, $context);
-        return new static($type, $description);
     }
 }

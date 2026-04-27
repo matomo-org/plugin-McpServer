@@ -21,7 +21,9 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\ArrayLoader;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\DiscoveryLoader;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\LoaderInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Annotations;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
@@ -35,14 +37,15 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInter
 use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SessionSubscriptionManager;
 use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SubscriptionManagerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionFactory;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionFactoryInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionManager;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionManagerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Psr\SimpleCache\CacheInterface;
+use Symfony\Component\Finder\Finder;
 /**
  * @phpstan-import-type Handler from ElementReference
  *
@@ -58,10 +61,10 @@ final class Builder
     private ?EventDispatcherInterface $eventDispatcher = null;
     private ?ContainerInterface $container = null;
     private ?SchemaGeneratorInterface $schemaGenerator = null;
+    private ?ReferenceHandlerInterface $referenceHandler = null;
     private ?DiscovererInterface $discoverer = null;
-    private ?SessionFactoryInterface $sessionFactory = null;
+    private ?SessionManagerInterface $sessionManager = null;
     private ?SessionStoreInterface $sessionStore = null;
-    private int $sessionTtl = 3600;
     private int $paginationLimit = 50;
     private ?string $instructions = null;
     private ?ProtocolVersion $protocolVersion = null;
@@ -77,6 +80,7 @@ final class Builder
      * @var array{
      *     handler: Handler,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     annotations: ?ToolAnnotations,
      *     icons: ?Icon[],
@@ -247,6 +251,11 @@ final class Builder
         $this->schemaGenerator = $schemaGenerator;
         return $this;
     }
+    public function setReferenceHandler(ReferenceHandlerInterface $referenceHandler) : self
+    {
+        $this->referenceHandler = $referenceHandler;
+        return $this;
+    }
     public function setDiscoverer(DiscovererInterface $discoverer) : self
     {
         $this->discoverer = $discoverer;
@@ -257,11 +266,13 @@ final class Builder
         $this->subscriptionManager = $subscriptionManager;
         return $this;
     }
-    public function setSession(SessionStoreInterface $sessionStore, SessionFactoryInterface $sessionFactory = new SessionFactory(), int $ttl = 3600) : self
+    public function setSession(?SessionStoreInterface $sessionStore = null, ?SessionManagerInterface $sessionManager = null) : self
     {
-        $this->sessionFactory = $sessionFactory;
         $this->sessionStore = $sessionStore;
-        $this->sessionTtl = $ttl;
+        $this->sessionManager = $sessionManager;
+        if (null !== $sessionManager && null !== $sessionStore) {
+            throw new InvalidArgumentException('Cannot set both SessionStore and SessionManager. Set only one or the other.');
+        }
         return $this;
     }
     /**
@@ -285,14 +296,15 @@ final class Builder
      * Manually registers a tool handler.
      *
      * @param Handler                   $handler
+     * @param ?string                   $title        Optional human-readable title for display in UI
      * @param array<string, mixed>|null $inputSchema
      * @param ?Icon[]                   $icons
      * @param array<string, mixed>|null $meta
      * @param array<string, mixed>|null $outputSchema
      */
-    public function addTool(callable|array|string $handler, ?string $name = null, ?string $description = null, ?ToolAnnotations $annotations = null, ?array $inputSchema = null, ?array $icons = null, ?array $meta = null, ?array $outputSchema = null) : self
+    public function addTool(callable|array|string $handler, ?string $name = null, ?string $title = null, ?string $description = null, ?ToolAnnotations $annotations = null, ?array $inputSchema = null, ?array $icons = null, ?array $meta = null, ?array $outputSchema = null) : self
     {
-        $this->tools[] = compact('handler', 'name', 'description', 'annotations', 'inputSchema', 'icons', 'meta', 'outputSchema');
+        $this->tools[] = compact('handler', 'name', 'title', 'description', 'annotations', 'inputSchema', 'icons', 'meta', 'outputSchema');
         return $this;
     }
     /**
@@ -325,9 +337,9 @@ final class Builder
      * @param ?Icon[]                   $icons
      * @param array<string, mixed>|null $meta
      */
-    public function addPrompt(\Closure|array|string $handler, ?string $name = null, ?string $description = null, ?array $icons = null, ?array $meta = null) : self
+    public function addPrompt(\Closure|array|string $handler, ?string $name = null, ?string $title = null, ?string $description = null, ?array $icons = null, ?array $meta = null) : self
     {
-        $this->prompts[] = compact('handler', 'name', 'description', 'icons', 'meta');
+        $this->prompts[] = compact('handler', 'name', 'title', 'description', 'icons', 'meta');
         return $this;
     }
     /**
@@ -358,12 +370,14 @@ final class Builder
         $registry = $this->registry ?? new Registry($this->eventDispatcher, $logger);
         $subscriptionManager = $this->subscriptionManager ?? new SessionSubscriptionManager($logger);
         $loaders = [...$this->loaders, new ArrayLoader($this->tools, $this->resources, $this->resourceTemplates, $this->prompts, $logger, $this->schemaGenerator)];
-        $sessionTtl = $this->sessionTtl ?? 3600;
-        $sessionFactory = $this->sessionFactory ?? new SessionFactory();
-        $sessionStore = $this->sessionStore ?? new InMemorySessionStore($sessionTtl);
+        $sessionManager = $this->sessionManager ?? new SessionManager($this->sessionStore ?? new InMemorySessionStore(), $logger);
         if (null !== $this->discoveryBasePath) {
-            $discoverer = $this->discoverer ?? $this->createDiscoverer($logger);
-            $loaders[] = new DiscoveryLoader($this->discoveryBasePath, $this->discoveryScanDirs, $this->discoveryExcludeDirs, $discoverer);
+            if (null !== $this->discoverer || class_exists(Finder::class)) {
+                $discoverer = $this->discoverer ?? $this->createDiscoverer($logger);
+                $loaders[] = new DiscoveryLoader($this->discoveryBasePath, $this->discoveryScanDirs, $this->discoveryExcludeDirs, $discoverer);
+            } else {
+                $logger->warning('File-based discovery requires symfony/finder. Skipping automatic discovery. Run: composer require symfony/finder');
+            }
         }
         foreach ($loaders as $loader) {
             $loader->load($registry);
@@ -372,10 +386,10 @@ final class Builder
         $capabilities = $this->serverCapabilities ?? new ServerCapabilities(tools: $registry->hasTools(), toolsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, resources: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesSubscribe: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, prompts: $registry->hasPrompts(), promptsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, logging: \true, completions: \true);
         $serverInfo = $this->serverInfo ?? new Implementation();
         $configuration = new Configuration($serverInfo, $capabilities, $this->paginationLimit, $this->instructions, $this->protocolVersion);
-        $referenceHandler = new ReferenceHandler($container);
+        $referenceHandler = $this->referenceHandler ?? new ReferenceHandler($container);
         $requestHandlers = array_merge($this->requestHandlers, [new Handler\Request\CallToolHandler($registry, $referenceHandler, $logger), new Handler\Request\CompletionCompleteHandler($registry, $container), new Handler\Request\GetPromptHandler($registry, $referenceHandler, $logger), new Handler\Request\InitializeHandler($configuration), new Handler\Request\ListPromptsHandler($registry, $this->paginationLimit), new Handler\Request\ListResourcesHandler($registry, $this->paginationLimit), new Handler\Request\ListResourceTemplatesHandler($registry, $this->paginationLimit), new Handler\Request\ListToolsHandler($registry, $this->paginationLimit), new Handler\Request\PingHandler(), new Handler\Request\ReadResourceHandler($registry, $referenceHandler, $logger), new Handler\Request\ResourceSubscribeHandler($registry, $subscriptionManager, $logger), new Handler\Request\ResourceUnsubscribeHandler($registry, $subscriptionManager, $logger), new Handler\Request\SetLogLevelHandler()]);
         $notificationHandlers = array_merge($this->notificationHandlers, [new Handler\Notification\InitializedHandler()]);
-        $protocol = new Protocol(requestHandlers: $requestHandlers, notificationHandlers: $notificationHandlers, messageFactory: $messageFactory, sessionFactory: $sessionFactory, sessionStore: $sessionStore, logger: $logger, eventDispatcher: $this->eventDispatcher);
+        $protocol = new Protocol(requestHandlers: $requestHandlers, notificationHandlers: $notificationHandlers, messageFactory: $messageFactory, sessionManager: $sessionManager, logger: $logger, eventDispatcher: $this->eventDispatcher);
         return new Server($protocol, $logger);
     }
     private function createDiscoverer(LoggerInterface $logger) : DiscovererInterface

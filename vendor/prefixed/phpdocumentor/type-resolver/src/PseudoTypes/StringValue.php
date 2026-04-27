@@ -17,7 +17,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\String_;
 use function sprintf;
 /** @psalm-immutable */
-class StringValue implements PseudoType
+class StringValue extends String_ implements PseudoType
 {
     /** @var string */
     private $value;

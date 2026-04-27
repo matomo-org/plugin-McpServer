@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\String_;
 /**
- * Value Object representing the type 'string'.
+ * Value Object representing the type 'literal-string'.
  *
  * @psalm-immutable
  */

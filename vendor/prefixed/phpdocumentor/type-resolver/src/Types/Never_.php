@@ -20,7 +20,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
  *
  * @psalm-immutable
  */
-final class Never_ implements Type
+class Never_ implements Type
 {
     /**
      * Returns a rendered output of the Type as it would be used in a DocBlock.

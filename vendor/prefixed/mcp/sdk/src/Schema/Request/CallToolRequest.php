@@ -49,6 +49,6 @@ final class CallToolRequest extends Request
      */
     protected function getParams() : array
     {
-        return ['name' => $this->name, 'arguments' => $this->arguments];
+        return ['name' => $this->name, 'arguments' => $this->arguments ?: new \stdClass()];
     }
 }

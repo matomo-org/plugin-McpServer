@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Integer;
 /**
- * Value Object representing the type 'int'.
+ * Value Object representing the type 'negative-int'.
  *
  * @psalm-immutable
  */

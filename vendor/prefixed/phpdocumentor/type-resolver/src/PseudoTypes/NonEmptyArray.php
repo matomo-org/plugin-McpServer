@@ -14,7 +14,6 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Array_;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Mixed_;
 /**
  * Value Object representing the type 'non-empty-array'.
  *
@@ -31,11 +30,11 @@ final class NonEmptyArray extends Array_ implements PseudoType
      */
     public function __toString() : string
     {
-        if ($this->keyType) {
-            return 'non-empty-array<' . $this->keyType . ',' . $this->valueType . '>';
-        }
-        if ($this->valueType instanceof Mixed_) {
+        if ($this->valueType === null) {
             return 'non-empty-array';
+        }
+        if ($this->keyType) {
+            return 'non-empty-array<' . $this->keyType . ', ' . $this->valueType . '>';
         }
         return 'non-empty-array<' . $this->valueType . '>';
     }

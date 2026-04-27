@@ -17,7 +17,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
  *
  * @psalm-immutable
  */
-final class Resource_ implements Type
+class Resource_ implements Type
 {
     /**
      * Returns a rendered output of the Type as it would be used in a DocBlock.

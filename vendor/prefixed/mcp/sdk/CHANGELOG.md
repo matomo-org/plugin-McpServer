@@ -2,11 +2,29 @@
 
 All notable changes to `mcp/sdk` will be documented in this file.
 
+0.5.0
+-----
+
+* Add built-in authentication middleware for HTTP transport using OAuth
+* Add client component for building MCP clients
+* Add `Builder::setReferenceHandler()` to allow custom `ReferenceHandlerInterface` implementations (e.g. authorization decorators)
+* Add elicitation enum schema types per SEP-1330: `TitledEnumSchemaDefinition`, `MultiSelectEnumSchemaDefinition`, `TitledMultiSelectEnumSchemaDefinition`
+* [BC break] Make Symfony Finder component optional. Users would need to install `symfony/finder` now themselves
+* Add `LenientOidcDiscoveryMetadataPolicy` for identity providers that omit `code_challenge_methods_supported` (e.g. FusionAuth, Microsoft Entra ID)
+* Add OAuth 2.0 Dynamic Client Registration middleware (RFC 7591)
+* Add optional `title` field to `Prompt` and `McpPrompt` for MCP spec compliance
+* [BC Break] `Builder::addPrompt()` signature changed — `$title` parameter added between `$name` and `$description`. Callers using positional arguments for `$description` must switch to named arguments.
+* Add optional `title` field to `Tool` and `McpTool` for MCP spec compliance
+* [BC Break] `Tool::__construct()` signature changed — `$title` parameter added between `$name` and `$inputSchema`. Callers using positional arguments must switch to named arguments or pass `null` for `$title`.
+* [BC Break] `McpTool` attribute signature changed — `$title` parameter added between `$name` and `$description`. Callers using positional arguments for `$description` must switch to named arguments.
+* [BC Break] `Builder::addTool()` signature changed — `$title` parameter added between `$name` and `$description`. Callers using positional arguments for `$description` must switch to named arguments.
+
 0.4.0
 -----
 
 * Rename `Mcp\Server\Session\Psr16StoreSession` to `Mcp\Server\Session\Psr16SessionStore`
 * Add missing handlers for resource subscribe/unsubscribe and persist subscriptions via session
+* Introduce `SessionManager` to encapsulate session handling (replaces `SessionFactory`) and move garbage collection logic from `Protocol`.
 
 0.3.0
 -----

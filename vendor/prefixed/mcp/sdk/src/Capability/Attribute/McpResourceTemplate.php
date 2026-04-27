@@ -18,7 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Annotations;
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS)]
-final class McpResourceTemplate
+class McpResourceTemplate
 {
     /**
      * @param string                $uriTemplate the URI template string (RFC 6570)

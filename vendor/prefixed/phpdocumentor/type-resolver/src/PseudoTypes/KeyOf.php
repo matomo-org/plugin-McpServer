@@ -14,7 +14,6 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes;
 
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\ArrayKey;
 /**
  * Value Object representing the `key-of` type.
  *
