@@ -1,8 +1,9 @@
 ## Changelog
 
-### Unreleased
+### 5.0.2
 
 - Disabled anonymous access to the MCP API endpoint and connect guidance page.
+- Added raw Matomo API discovery and execution MCP tools, with administrator-controlled access modes and privilege limits.
 - Added support for exposing subtable reports through the MCP report tools.
 - Aligned `matomo_report_processed` so empty `resolvedReport.apiParameters` values serialize as `{}` rather than `[]`, matching the declared MCP output schema.
 - Updated `matomo_report_processed` and `matomo_report_metadata` to accept `apiParameters: []` as the empty-input compatibility form.
