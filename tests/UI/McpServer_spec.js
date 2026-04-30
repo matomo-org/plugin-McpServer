@@ -254,7 +254,7 @@ describe('McpServer', function () {
         expect(await page.$(`${connectSelector} a[href*="module=CoreAdminHome"][href*="action=generalSettings"]`)).to.equal(null);
     });
 
-    it('should display OAuth2 guidance when the OAuth2 plugin is enabled', async function () {
+    it('should display OAuth2 client management guidance for superusers when the OAuth2 plugin is enabled', async function () {
         await configureMcp(true);
         testEnvironment.mockOAuth2PluginEnabled = 1;
         testEnvironment.save();
@@ -285,5 +285,25 @@ describe('McpServer', function () {
             .and.to.contain('date=yesterday');
 
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_oauth2');
+    });
+
+    it('should display contact-superuser OAuth2 guidance for view users when the OAuth2 plugin is enabled', async function () {
+        await configureMcp(true);
+        testEnvironment.mockOAuth2PluginEnabled = 1;
+        testEnvironment.save();
+        setViewUser();
+
+        await page.goto(connectUrl);
+        await page.waitForNetworkIdle();
+        await page.waitForSelector(connectSelector, { visible: true });
+
+        const text = await getConnectText();
+
+        expect(text).to.contain('OAuth2 is available for this MCP Server and is the recommended way to connect.');
+        expect(text).to.contain('Recommended: Connect Using OAuth2');
+        expect(text).to.contain('An OAuth2 client configured by a Matomo superuser if you want to connect using OAuth2');
+        expect(text).to.contain('If you do not already have an OAuth2 client for your MCP client, ask a Matomo superuser to create one for you.');
+        expect(text).to.not.contain('If you do not already have an OAuth2 client for your MCP client, create one in Administration -> Platform -> OAuth2 Clients first.');
+        expect(await page.$(`${connectSelector} a[href*="module=OAuth2"][href*="action=index"]`)).to.equal(null);
     });
 });

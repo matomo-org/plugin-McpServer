@@ -24,7 +24,11 @@
                 <ul class="browser-default">
                     <li>{{ 'McpServer_ConnectNeedEndpoint'|translate }}</li>
                     {% if isOAuth2Enabled %}
-                        <li>{{ 'McpServer_ConnectNeedOAuth2Client'|translate }}</li>
+                        {% if canManageOAuth2Clients %}
+                            <li>{{ 'McpServer_ConnectNeedOAuth2Client'|translate }}</li>
+                        {% else %}
+                            <li>{{ 'McpServer_ConnectNeedOAuth2ClientNoPermission'|translate }}</li>
+                        {% endif %}
                         <li>{{ 'McpServer_ConnectNeedAuthMethod'|translate }}</li>
                         <li>{{ 'McpServer_ConnectNeedTokenAlternative'|translate('<code>', '</code>')|raw }}</li>
                     {% else %}
@@ -82,7 +86,11 @@
             {% if isOAuth2Enabled %}
                 <h3>{{ 'McpServer_ConnectOAuth2Title'|translate }}</h3>
                 <p>
-                    {{ 'McpServer_ConnectOAuth2HelpLink'|translate('<a href="' ~ oauth2ClientManagementUrl|escape('html_attr') ~ '">', '</a>')|raw }}
+                    {% if canManageOAuth2Clients %}
+                        {{ 'McpServer_ConnectOAuth2HelpLink'|translate('<a href="' ~ oauth2ClientManagementUrl|escape('html_attr') ~ '">', '</a>')|raw }}
+                    {% else %}
+                        {{ 'McpServer_ConnectOAuth2HelpNoPermission'|translate }}
+                    {% endif %}
                 </p>
                 <h3>{{ 'McpServer_ConnectTokenAlternativeTitle'|translate }}</h3>
                 <p>{{ 'McpServer_ConnectInClientTokenHelpAlternative'|translate('<code>', '</code>', '<a href="' ~ userSecurityUrl|escape('html_attr') ~ '">', '</a>', '<code>', '</code>')|raw }}</p>

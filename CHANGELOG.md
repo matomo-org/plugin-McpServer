@@ -1,5 +1,9 @@
 ## Changelog
 
+### Unreleased
+
+- Updated the connect guidance so only superusers see the OAuth2 client management link, while other users are told to contact a superuser.
+
 ### 5.0.2
 
 - Disabled anonymous access to the MCP API endpoint and connect guidance page.
