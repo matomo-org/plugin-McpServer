@@ -1,7 +1,8 @@
 ## Changelog
 
-### Unreleased
+### 5.0.3
 
+- Added the missing PHP version requirement to `plugin.json` to reflect the plugin's actual runtime requirement.
 - Updated the connect guidance so only superusers see the OAuth2 client management link, while other users are told to contact a superuser.
 
 ### 5.0.2
