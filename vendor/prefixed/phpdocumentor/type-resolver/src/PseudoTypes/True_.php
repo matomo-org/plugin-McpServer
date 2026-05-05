@@ -14,7 +14,6 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Boolean;
-use function class_alias;
 /**
  * Value Object representing the PseudoType 'False', which is a Boolean type.
  *
@@ -31,4 +30,3 @@ final class True_ extends Boolean implements PseudoType
         return 'true';
     }
 }
-class_alias(True_::class, 'Matomo\\Dependencies\\McpServer\\phpDocumentor\\Reflection\\Types\\True_', \false);

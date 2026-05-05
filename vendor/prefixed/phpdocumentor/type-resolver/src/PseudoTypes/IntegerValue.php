@@ -16,7 +16,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Integer;
 /** @psalm-immutable */
-final class IntegerValue implements PseudoType
+final class IntegerValue extends Integer implements PseudoType
 {
     /** @var int */
     private $value;

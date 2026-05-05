@@ -2,7 +2,7 @@
 
 namespace Matomo\Dependencies\McpServer\Http\Discovery;
 
-use Psr\Http\Client\ClientInterface;
+use Matomo\Dependencies\McpServer\Psr\Http\Client\ClientInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\RequestFactoryInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\RequestInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseFactoryInterface;

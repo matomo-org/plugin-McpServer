@@ -17,20 +17,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\DescriptionF
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\StandardTagFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\TagFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\AbstractPHPStanFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ExtendsFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\Factory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ImplementsFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\MethodFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ParamFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyReadFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyWriteFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ReturnFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\TemplateExtendsFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\TemplateFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\TemplateImplementsFactory;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\VarFactory;
 use Matomo\Dependencies\McpServer\Webmozart\Assert\Assert;
 use function array_shift;
 use function count;
@@ -63,24 +50,8 @@ final class DocBlockFactory implements DocBlockFactoryInterface
     public static function createInstance(array $additionalTags = []) : DocBlockFactoryInterface
     {
         $fqsenResolver = new FqsenResolver();
-        $tagFactory = new StandardTagFactory($fqsenResolver);
+        $tagFactory = StandardTagFactory::createInstance($fqsenResolver);
         $descriptionFactory = new DescriptionFactory($tagFactory);
-        $typeResolver = new TypeResolver($fqsenResolver);
-        $phpstanTagFactory = new AbstractPHPStanFactory(new ParamFactory($typeResolver, $descriptionFactory), new VarFactory($typeResolver, $descriptionFactory), new ReturnFactory($typeResolver, $descriptionFactory), new PropertyFactory($typeResolver, $descriptionFactory), new PropertyReadFactory($typeResolver, $descriptionFactory), new PropertyWriteFactory($typeResolver, $descriptionFactory), new MethodFactory($typeResolver, $descriptionFactory), new ImplementsFactory($typeResolver, $descriptionFactory), new ExtendsFactory($typeResolver, $descriptionFactory), new TemplateFactory($typeResolver, $descriptionFactory), new TemplateImplementsFactory($typeResolver, $descriptionFactory), new TemplateExtendsFactory($typeResolver, $descriptionFactory));
-        $tagFactory->addService($descriptionFactory);
-        $tagFactory->addService($typeResolver);
-        $tagFactory->registerTagHandler('param', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('var', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('return', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property-read', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property-write', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('method', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('extends', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('implements', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('template', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('template-extends', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('template-implements', $phpstanTagFactory);
         $docBlockFactory = new self($descriptionFactory, $tagFactory);
         foreach ($additionalTags as $tagName => $tagHandler) {
             $docBlockFactory->registerTagHandler($tagName, $tagHandler);

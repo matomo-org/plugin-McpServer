@@ -18,15 +18,16 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Icon;
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS)]
-final class McpPrompt
+class McpPrompt
 {
     /**
      * @param ?string               $name        overrides the prompt name (defaults to method name)
+     * @param ?string               $title       Optional human-readable title for display in UI
      * @param ?string               $description Optional description of the prompt. Defaults to method DocBlock summary.
      * @param ?Icon[]               $icons       Optional list of icon URLs representing the prompt
      * @param ?array<string, mixed> $meta        Optional metadata
      */
-    public function __construct(public ?string $name = null, public ?string $description = null, public ?array $icons = null, public ?array $meta = null)
+    public function __construct(public ?string $name = null, public ?string $title = null, public ?string $description = null, public ?array $icons = null, public ?array $meta = null)
     {
     }
 }

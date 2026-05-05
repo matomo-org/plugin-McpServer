@@ -15,7 +15,6 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Array_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Integer;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Mixed_;
 /**
  * Value Object representing the type 'non-empty-list'.
  *
@@ -36,7 +35,7 @@ final class NonEmptyList extends Array_ implements PseudoType
      */
     public function __toString() : string
     {
-        if ($this->valueType instanceof Mixed_) {
+        if ($this->valueType === null) {
             return 'non-empty-list';
         }
         return 'non-empty-list<' . $this->valueType . '>';

@@ -13,17 +13,24 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection;
 
 use Matomo\Dependencies\McpServer\Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ArrayKey;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ArrayShape;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ArrayShapeItem;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\CallableArray;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\CallableString;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ClassString;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ClosedResource;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\Conditional;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ConditionalForParameter;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ConstExpression;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\EnumString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\False_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\FloatValue;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\Generic;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\HtmlEscapedString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\IntegerRange;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\IntegerValue;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\InterfaceString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\IntMask;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\IntMaskOf;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\KeyOf;
@@ -33,34 +40,44 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ListShape
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\LiteralString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\LowercaseString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NegativeInteger;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NeverReturn;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NeverReturns;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonEmptyArray;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonEmptyList;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonEmptyLowercaseString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonEmptyString;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonFalsyString;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonNegativeInteger;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonPositiveInteger;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NonZeroInteger;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NoReturn;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\Numeric_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\NumericString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ObjectShape;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ObjectShapeItem;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\OffsetAccess;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\OpenResource;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\PositiveInteger;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\PrivatePropertiesOf;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\PropertiesOf;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ProtectedPropertiesOf;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\PublicPropertiesOf;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\Scalar;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\StringValue;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\TraitString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\True_;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\TruthyString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoTypes\ValueOf;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\AggregatedType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Array_;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\ArrayKey;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Boolean;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Callable_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\CallableParameter;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\ClassString;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Collection;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Compound;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Context;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Expression;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Float_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Integer;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\InterfaceString;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Intersection;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Iterable_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Mixed_;
@@ -70,7 +87,6 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Nullable;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Object_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Parent_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Resource_;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Scalar;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Self_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Static_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\String_;
@@ -105,7 +121,6 @@ use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Parser\TokenIterator;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Parser\TypeParser;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\ParserConfig;
 use RuntimeException;
-use function array_filter;
 use function array_key_exists;
 use function array_map;
 use function array_reverse;
@@ -126,7 +141,7 @@ final class TypeResolver
      * @var array<string, string> List of recognized keywords and unto which Value Object they map
      * @psalm-var array<string, class-string<Type>>
      */
-    private $keywords = ['string' => String_::class, 'class-string' => ClassString::class, 'interface-string' => InterfaceString::class, 'html-escaped-string' => HtmlEscapedString::class, 'lowercase-string' => LowercaseString::class, 'non-empty-lowercase-string' => NonEmptyLowercaseString::class, 'non-empty-string' => NonEmptyString::class, 'numeric-string' => NumericString::class, 'numeric' => Numeric_::class, 'trait-string' => TraitString::class, 'int' => Integer::class, 'integer' => Integer::class, 'positive-int' => PositiveInteger::class, 'negative-int' => NegativeInteger::class, 'bool' => Boolean::class, 'boolean' => Boolean::class, 'real' => Float_::class, 'float' => Float_::class, 'double' => Float_::class, 'object' => Object_::class, 'mixed' => Mixed_::class, 'array' => Array_::class, 'array-key' => ArrayKey::class, 'non-empty-array' => NonEmptyArray::class, 'resource' => Resource_::class, 'void' => Void_::class, 'null' => Null_::class, 'scalar' => Scalar::class, 'callback' => Callable_::class, 'callable' => Callable_::class, 'callable-string' => CallableString::class, 'false' => False_::class, 'true' => True_::class, 'literal-string' => LiteralString::class, 'self' => Self_::class, '$this' => This::class, 'static' => Static_::class, 'parent' => Parent_::class, 'iterable' => Iterable_::class, 'never' => Never_::class, 'list' => List_::class, 'non-empty-list' => NonEmptyList::class];
+    private $keywords = ['string' => String_::class, 'class-string' => ClassString::class, 'interface-string' => InterfaceString::class, 'html-escaped-string' => HtmlEscapedString::class, 'lowercase-string' => LowercaseString::class, 'non-empty-lowercase-string' => NonEmptyLowercaseString::class, 'non-empty-string' => NonEmptyString::class, 'numeric-string' => NumericString::class, 'numeric' => Numeric_::class, 'trait-string' => TraitString::class, 'enum-string' => EnumString::class, 'int' => Integer::class, 'integer' => Integer::class, 'positive-int' => PositiveInteger::class, 'negative-int' => NegativeInteger::class, 'bool' => Boolean::class, 'boolean' => Boolean::class, 'real' => Float_::class, 'float' => Float_::class, 'double' => Float_::class, 'object' => Object_::class, 'mixed' => Mixed_::class, 'array' => Array_::class, 'callable-array' => CallableArray::class, 'array-key' => ArrayKey::class, 'non-empty-array' => NonEmptyArray::class, 'resource' => Resource_::class, 'open-resource' => OpenResource::class, 'closed-resource' => ClosedResource::class, 'void' => Void_::class, 'null' => Null_::class, 'scalar' => Scalar::class, 'callback' => Callable_::class, 'callable' => Callable_::class, 'callable-string' => CallableString::class, 'false' => False_::class, 'true' => True_::class, 'literal-string' => LiteralString::class, 'self' => Self_::class, '$this' => This::class, 'static' => Static_::class, 'parent' => Parent_::class, 'iterable' => Iterable_::class, 'never' => Never_::class, 'never-return' => NeverReturn::class, 'never-returns' => NeverReturns::class, 'no-return' => NoReturn::class, 'list' => List_::class, 'non-empty-list' => NonEmptyList::class, 'non-falsy-string' => NonFalsyString::class, 'truthy-string' => TruthyString::class, 'non-positive-int' => NonPositiveInteger::class, 'non-negative-int' => NonNegativeInteger::class, 'non-zero-int' => NonZeroInteger::class];
     /**
      * @psalm-readonly
      * @var FqsenResolver
@@ -148,13 +163,8 @@ final class TypeResolver
     public function __construct(?FqsenResolver $fqsenResolver = null)
     {
         $this->fqsenResolver = $fqsenResolver ?: new FqsenResolver();
-        if (class_exists(ParserConfig::class)) {
-            $this->typeParser = new TypeParser(new ParserConfig([]), new ConstExprParser(new ParserConfig([])));
-            $this->lexer = new Lexer(new ParserConfig([]));
-        } else {
-            $this->typeParser = new TypeParser(new ConstExprParser());
-            $this->lexer = new Lexer();
-        }
+        $this->typeParser = new TypeParser(new ParserConfig([]), new ConstExprParser(new ParserConfig([])));
+        $this->lexer = new Lexer(new ParserConfig([]));
     }
     /**
      * Analyzes the given type and returns the FQCN variant.
@@ -185,7 +195,11 @@ final class TypeResolver
         $tokenIterator = new TokenIterator($tokens);
         $ast = $this->parse($tokenIterator);
         $type = $this->createType($ast, $context);
-        return $this->tryParseRemainingCompoundTypes($tokenIterator, $context, $type);
+        if ($tokenIterator->isCurrentTokenType(Lexer::TOKEN_UNION) || $tokenIterator->isCurrentTokenType(Lexer::TOKEN_INTERSECTION)) {
+            Deprecation::trigger('phpdocumentor/type-resolver', 'https://github.com/phpDocumentor/TypeResolver/issues/184', 'Legacy nullable type detected, please update your code as
+                you are using nullable types in a docblock. support is removed in v2.0.0');
+        }
+        return $type;
     }
     public function createType(?TypeNode $type, Context $context) : Type
     {
@@ -221,24 +235,24 @@ final class TypeResolver
             case IdentifierTypeNode::class:
                 return $this->resolveSingleType($type->name, $context);
             case IntersectionTypeNode::class:
-                return new Intersection(array_filter(array_map(function (TypeNode $nestedType) use($context) : Type {
+                return new Intersection(array_map(function (TypeNode $nestedType) use($context) : Type {
                     $type = $this->createType($nestedType, $context);
                     if ($type instanceof AggregatedType) {
                         return new Expression($type);
                     }
                     return $type;
-                }, $type->types)));
+                }, $type->types));
             case NullableTypeNode::class:
                 $nestedType = $this->createType($type->type, $context);
                 return new Nullable($nestedType);
             case UnionTypeNode::class:
-                return new Compound(array_filter(array_map(function (TypeNode $nestedType) use($context) : Type {
+                return new Compound(array_map(function (TypeNode $nestedType) use($context) : Type {
                     $type = $this->createType($nestedType, $context);
                     if ($type instanceof AggregatedType) {
                         return new Expression($type);
                     }
                     return $type;
-                }, $type->types)));
+                }, $type->types));
             case ThisTypeNode::class:
                 return new This();
             case ConditionalTypeNode::class:
@@ -255,19 +269,19 @@ final class TypeResolver
     {
         switch (strtolower($type->type->name)) {
             case 'array':
-                return $this->createArray($type->genericTypes, $context);
+                $genericTypes = array_reverse($this->createTypesByTypeNodes($type->genericTypes, $context));
+                return new Array_(...$genericTypes);
+            case 'non-empty-array':
+                $genericTypes = array_reverse($this->createTypesByTypeNodes($type->genericTypes, $context));
+                return new NonEmptyArray(...$genericTypes);
             case 'class-string':
-                $subType = $this->createType($type->genericTypes[0], $context);
-                if (!$subType instanceof Object_ || $subType->getFqsen() === null) {
-                    throw new RuntimeException($subType . ' is not a class string');
-                }
-                return new ClassString($subType->getFqsen());
+                return new ClassString($this->createType($type->genericTypes[0], $context));
             case 'interface-string':
-                $subType = $this->createType($type->genericTypes[0], $context);
-                if (!$subType instanceof Object_ || $subType->getFqsen() === null) {
-                    throw new RuntimeException($subType . ' is not a class string');
-                }
-                return new InterfaceString($subType->getFqsen());
+                return new InterfaceString($this->createType($type->genericTypes[0], $context));
+            case 'trait-string':
+                return new TraitString($this->createType($type->genericTypes[0], $context));
+            case 'enum-string':
+                return new EnumString($this->createType($type->genericTypes[0], $context));
             case 'list':
                 return new List_($this->createType($type->genericTypes[0], $context));
             case 'non-empty-list':
@@ -283,6 +297,14 @@ final class TypeResolver
                 return new KeyOf($this->createType($type->genericTypes[0], $context));
             case 'value-of':
                 return new ValueOf($this->createType($type->genericTypes[0], $context));
+            case 'properties-of':
+                return new PropertiesOf($this->createType($type->genericTypes[0], $context));
+            case 'public-properties-of':
+                return new PublicPropertiesOf($this->createType($type->genericTypes[0], $context));
+            case 'protected-properties-of':
+                return new ProtectedPropertiesOf($this->createType($type->genericTypes[0], $context));
+            case 'private-properties-of':
+                return new PrivatePropertiesOf($this->createType($type->genericTypes[0], $context));
             case 'int-mask':
                 return new IntMask(...$this->createTypesByTypeNodes($type->genericTypes, $context));
             case 'int-mask-of':
@@ -292,16 +314,17 @@ final class TypeResolver
             case 'self':
                 return new Self_(...$this->createTypesByTypeNodes($type->genericTypes, $context));
             default:
-                $collectionType = $this->createType($type->type, $context);
-                if ($collectionType instanceof Object_ === \false) {
-                    throw new RuntimeException(sprintf('%s is not a collection', (string) $collectionType));
+                $mainType = $this->createType($type->type, $context);
+                if ($mainType instanceof Object_ === \false) {
+                    throw new RuntimeException(sprintf('%s is an unsupported generic', (string) $mainType));
                 }
-                return new Collection($collectionType->getFqsen(), ...array_reverse($this->createTypesByTypeNodes($type->genericTypes, $context)));
+                $types = $this->createTypesByTypeNodes($type->genericTypes, $context);
+                return new Generic($mainType->getFqsen(), $types);
         }
     }
     private function createFromCallable(CallableTypeNode $type, Context $context) : Callable_
     {
-        return new Callable_(array_map(function (CallableTypeParameterNode $param) use($context) : CallableParameter {
+        return new Callable_((string) $type->identifier, array_map(function (CallableTypeParameterNode $param) use($context) : CallableParameter {
             return new CallableParameter($this->createType($param->type, $context), $param->parameterName !== '' ? trim($param->parameterName, '$') : null, $param->isReference, $param->isVariadic, $param->isOptional);
         }, $type->parameters), $this->createType($type->returnType, $context));
     }
@@ -414,27 +437,6 @@ final class TypeResolver
     {
         return new Object_($this->fqsenResolver->resolve($type, $context));
     }
-    /** @param TypeNode[] $typeNodes */
-    private function createArray(array $typeNodes, Context $context) : Array_
-    {
-        $types = array_reverse($this->createTypesByTypeNodes($typeNodes, $context));
-        if (isset($types[1]) === \false) {
-            return new Array_(...$types);
-        }
-        if ($this->validArrayKeyType($types[1]) || $types[1] instanceof ArrayKey) {
-            return new Array_(...$types);
-        }
-        if ($types[1] instanceof Compound && $types[1]->getIterator()->count() === 2) {
-            if ($this->validArrayKeyType($types[1]->get(0)) && $this->validArrayKeyType($types[1]->get(1))) {
-                return new Array_(...$types);
-            }
-        }
-        throw new RuntimeException('An array can have only integers or strings as keys');
-    }
-    private function validArrayKeyType(?Type $type) : bool
-    {
-        return $type instanceof String_ || $type instanceof Integer;
-    }
     private function parse(TokenIterator $tokenIterator) : TypeNode
     {
         try {
@@ -443,36 +445,6 @@ final class TypeResolver
             throw new RuntimeException($e->getMessage(), 0, $e);
         }
         return $ast;
-    }
-    /**
-     * Will try to parse unsupported type notations by phpstan
-     *
-     * The phpstan parser doesn't support the illegal nullable combinations like this library does.
-     * This method will warn the user about those notations but for bc purposes we will still have it here.
-     */
-    private function tryParseRemainingCompoundTypes(TokenIterator $tokenIterator, Context $context, Type $type) : Type
-    {
-        if ($tokenIterator->isCurrentTokenType(Lexer::TOKEN_UNION) || $tokenIterator->isCurrentTokenType(Lexer::TOKEN_INTERSECTION)) {
-            Deprecation::trigger('phpdocumentor/type-resolver', 'https://github.com/phpDocumentor/TypeResolver/issues/184', 'Legacy nullable type detected, please update your code as
-                you are using nullable types in a docblock. support will be removed in v2.0.0');
-        }
-        $continue = \true;
-        while ($continue) {
-            $continue = \false;
-            while ($tokenIterator->tryConsumeTokenType(Lexer::TOKEN_UNION)) {
-                $ast = $this->parse($tokenIterator);
-                $type2 = $this->createType($ast, $context);
-                $type = new Compound([$type, $type2]);
-                $continue = \true;
-            }
-            while ($tokenIterator->tryConsumeTokenType(Lexer::TOKEN_INTERSECTION)) {
-                $ast = $this->typeParser->parse($tokenIterator);
-                $type2 = $this->createType($ast, $context);
-                $type = new Intersection([$type, $type2]);
-                $continue = \true;
-            }
-        }
-        return $type;
     }
     /**
      * @param TypeNode[] $nodes

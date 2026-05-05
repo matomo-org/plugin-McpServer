@@ -1,5 +1,9 @@
 ## Changelog
 
+### Unreleased
+
+- Updated `mcp/sdk` to 0.5.
+
 ### 5.0.3
 
 - Added the missing PHP version requirement to `plugin.json` to reflect the plugin's actual runtime requirement.

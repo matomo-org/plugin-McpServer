@@ -33,7 +33,7 @@ use Http\Message\UriFactory\GuzzleUriFactory;
 use Http\Message\UriFactory\SlimUriFactory;
 use Laminas\Diactoros\Request as DiactorosRequest;
 use Matomo\Dependencies\McpServer\Nyholm\Psr7\Factory\HttplugFactory as NyholmHttplugFactory;
-use Psr\Http\Client\ClientInterface as Psr18Client;
+use Matomo\Dependencies\McpServer\Psr\Http\Client\ClientInterface as Psr18Client;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\RequestFactoryInterface as Psr17RequestFactory;
 use Slim\Http\Request as SlimRequest;
 use Symfony\Component\HttpClient\HttplugClient as SymfonyHttplug;

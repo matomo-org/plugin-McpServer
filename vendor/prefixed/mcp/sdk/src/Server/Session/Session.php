@@ -1,6 +1,5 @@
 <?php
 
-declare (strict_types=1);
 /*
  * This file is part of the official PHP MCP SDK.
  *
@@ -36,13 +35,9 @@ class Session implements SessionInterface
     {
         return $this->id;
     }
-    public function getStore() : SessionStoreInterface
-    {
-        return $this->store;
-    }
     public function save() : bool
     {
-        return $this->store->write($this->id, json_encode($this->data, \JSON_THROW_ON_ERROR));
+        return $this->store->write($this->id, json_encode($this->readData(), \JSON_THROW_ON_ERROR));
     }
     public function get(string $key, mixed $default = null) : mixed
     {

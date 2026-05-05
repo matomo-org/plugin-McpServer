@@ -11,9 +11,9 @@ declare (strict_types=1);
  */
 namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags;
 
-use Matomo\Dependencies\McpServer\Doctrine\Deprecations\Deprecation;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Description;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tag;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Exception\CannotCreateTag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 /**
  * Reflection class for a {@}template tag in a Docblock.
@@ -40,9 +40,7 @@ final class Template extends BaseTag
      */
     public static function create(string $body) : ?Tag
     {
-        Deprecation::trigger('phpdocumentor/reflection-docblock', 'https://github.com/phpDocumentor/ReflectionDocBlock/issues/361', 'Create using static factory is deprecated, this method should not be called directly
-             by library consumers');
-        return null;
+        throw new CannotCreateTag('Template tag cannot be created');
     }
     public function getTemplateName() : string
     {

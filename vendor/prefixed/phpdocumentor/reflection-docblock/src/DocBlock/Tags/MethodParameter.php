@@ -58,6 +58,6 @@ final class MethodParameter
     }
     public function __toString() : string
     {
-        return $this->getType() . ' ' . ($this->isReference() ? '&' : '') . ($this->isVariadic() ? '...' : '') . '$' . $this->getName() . ($this->defaultValue !== self::NO_DEFAULT_VALUE ? (new MethodParameterFactory())->format($this->defaultValue) : '');
+        return $this->getType() . ' ' . ($this->isReference() ? '&' : '') . ($this->isVariadic() ? '...' : '') . '$' . $this->getName() . ($this->defaultValue !== self::NO_DEFAULT_VALUE ? ' = ' . (new MethodParameterFactory())->format($this->defaultValue) : '');
     }
 }

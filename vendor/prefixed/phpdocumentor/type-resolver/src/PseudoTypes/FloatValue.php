@@ -16,7 +16,7 @@ use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\PseudoType;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Float_;
 /** @psalm-immutable */
-class FloatValue implements PseudoType
+class FloatValue extends Float_ implements PseudoType
 {
     /** @var float */
     private $value;

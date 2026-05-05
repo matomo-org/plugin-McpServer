@@ -15,26 +15,31 @@ use InvalidArgumentException;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Author;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Covers;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Deprecated;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\AbstractPHPStanFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ExtendsFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\Factory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ImplementsFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\MethodFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\MixinFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ParamFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyReadFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyWriteFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ReturnFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\TemplateCovariantFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\TemplateFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\ThrowsFactory;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Factory\VarFactory;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Link as LinkTag;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Method;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Mixin;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Param;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Property;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\PropertyRead;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\PropertyWrite;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\See as SeeTag;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Since;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Source;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\TemplateCovariant;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Throws;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Uses;
-use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\DocBlock\Tags\Version;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\FqsenResolver;
+use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\TypeResolver;
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types\Context as TypeContext;
 use ReflectionMethod;
 use ReflectionNamedType;
@@ -72,32 +77,10 @@ final class StandardTagFactory implements TagFactory
     /** PCRE regular expression matching a tag name. */
     public const REGEX_TAGNAME = '[\\w\\-\\_\\\\:]+';
     /**
-     * @var array<class-string<Tag>|Factory> An array with a tag as a key, and an
+     * @var array<string, class-string<Tag>|Tag|Factory> An array with a tag as a key, and an
      *                               FQCN to a class that handles it as an array value.
      */
-    private array $tagHandlerMappings = [
-        'author' => Author::class,
-        'covers' => Covers::class,
-        'deprecated' => Deprecated::class,
-        // 'example'         => '\phpDocumentor\Reflection\DocBlock\Tags\Example',
-        'link' => LinkTag::class,
-        'mixin' => Mixin::class,
-        'method' => Method::class,
-        'param' => Param::class,
-        'property-read' => PropertyRead::class,
-        'property' => Property::class,
-        'property-write' => PropertyWrite::class,
-        'return' => Return_::class,
-        'see' => SeeTag::class,
-        'since' => Since::class,
-        'source' => Source::class,
-        'template-covariant' => TemplateCovariant::class,
-        'throw' => Throws::class,
-        'throws' => Throws::class,
-        'uses' => Uses::class,
-        'var' => Var_::class,
-        'version' => Version::class,
-    ];
+    private array $tagHandlerMappings = ['author' => Author::class, 'covers' => Covers::class, 'deprecated' => Deprecated::class, 'link' => LinkTag::class, 'see' => SeeTag::class, 'since' => Since::class, 'source' => Source::class, 'uses' => Uses::class, 'version' => Version::class];
     /**
      * @var array<class-string<Tag>> An array with an annotation as a key, and an
      *      FQCN to a class that handles it as an array value.
@@ -114,23 +97,40 @@ final class StandardTagFactory implements TagFactory
      *     services that can be inserted into the Factory Methods of Tag Handlers.
      */
     private array $serviceLocator = [];
-    /**
-     * Initialize this tag factory with the means to resolve an FQSEN and optionally a list of tag handlers.
-     *
-     * If no tag handlers are provided than the default list in the {@see self::$tagHandlerMappings} property
-     * is used.
-     *
-     * @see self::registerTagHandler() to add a new tag handler to the existing default list.
-     *
-     * @param array<class-string<Tag>> $tagHandlers
-     */
-    public function __construct(FqsenResolver $fqsenResolver, ?array $tagHandlers = null)
+    private function __construct(FqsenResolver $fqsenResolver)
     {
         $this->fqsenResolver = $fqsenResolver;
-        if ($tagHandlers !== null) {
-            $this->tagHandlerMappings = $tagHandlers;
-        }
         $this->addService($fqsenResolver, FqsenResolver::class);
+    }
+    /**
+     * Initialize this tag factory with the means to resolve an FQSEN.
+     *
+     * @see self::registerTagHandler() to add a new tag handler to the existing default list.
+     */
+    public static function createInstance(FqsenResolver $fqsenResolver) : self
+    {
+        $tagFactory = new self($fqsenResolver);
+        $descriptionFactory = new DescriptionFactory($tagFactory);
+        $typeResolver = new TypeResolver($fqsenResolver);
+        $phpstanTagFactory = new AbstractPHPStanFactory(new ParamFactory($typeResolver, $descriptionFactory), new VarFactory($typeResolver, $descriptionFactory), new ReturnFactory($typeResolver, $descriptionFactory), new PropertyFactory($typeResolver, $descriptionFactory), new PropertyReadFactory($typeResolver, $descriptionFactory), new PropertyWriteFactory($typeResolver, $descriptionFactory), new MethodFactory($typeResolver, $descriptionFactory), new MixinFactory($typeResolver, $descriptionFactory), new ImplementsFactory($typeResolver, $descriptionFactory), new ExtendsFactory($typeResolver, $descriptionFactory), new TemplateFactory($typeResolver, $descriptionFactory), new TemplateCovariantFactory($typeResolver, $descriptionFactory), new ThrowsFactory($typeResolver, $descriptionFactory));
+        $tagFactory->addService($descriptionFactory);
+        $tagFactory->addService($typeResolver);
+        $tagFactory->registerTagHandler('param', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('var', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('return', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('property', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('property-read', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('property-write', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('method', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('mixin', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('extends', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('implements', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('template', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('template-covariant', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('template-extends', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('template-implements', $phpstanTagFactory);
+        $tagFactory->registerTagHandler('throws', $phpstanTagFactory);
+        return $tagFactory;
     }
     public function create(string $tagLine, ?TypeContext $context = null) : Tag
     {
@@ -204,7 +204,7 @@ final class StandardTagFactory implements TagFactory
     /**
      * Determines the Fully Qualified Class Name of the Factory or Tag (containing a Factory Method `create`).
      *
-     * @return class-string<Tag>|Factory
+     * @return class-string<Tag>|Tag|Factory
      */
     private function findHandlerClassName(string $tagName, TypeContext $context)
     {
@@ -261,7 +261,7 @@ final class StandardTagFactory implements TagFactory
      * Retrieves a series of ReflectionParameter objects for the static 'create' method of the given
      * tag handler class name.
      *
-     * @param class-string|Factory $handler
+     * @param class-string<Tag>|Tag|Factory $handler
      *
      * @return ReflectionParameter[]
      */

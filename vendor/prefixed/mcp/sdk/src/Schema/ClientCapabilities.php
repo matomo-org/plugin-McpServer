@@ -61,9 +61,9 @@ class ClientCapabilities implements \JsonSerializable
      *     sampling?: object,
      *     elicitation?: object,
      *     experimental?: object,
-     * }
+     * }|\stdClass
      */
-    public function jsonSerialize() : array
+    public function jsonSerialize() : array|object
     {
         $data = [];
         if ($this->roots || $this->rootsListChanged) {
@@ -81,6 +81,6 @@ class ClientCapabilities implements \JsonSerializable
         if ($this->experimental) {
             $data['experimental'] = (object) $this->experimental;
         }
-        return $data;
+        return $data ?: new \stdClass();
     }
 }

@@ -31,7 +31,7 @@ final class MethodParameterFactory
     {
         $method = 'format' . ucfirst(gettype($defaultValue));
         if (method_exists($this, $method)) {
-            return ' = ' . $this->{$method}($defaultValue);
+            return $this->{$method}($defaultValue);
         }
         return '';
     }

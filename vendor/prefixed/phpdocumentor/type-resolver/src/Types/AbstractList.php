@@ -13,26 +13,26 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types;
 
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 /**
- * Represents a list of values. This is an abstract class for Array_ and Collection.
+ * Represents a list of values. This is an abstract class for Array_ and List_.
  *
  * @psalm-immutable
  */
 abstract class AbstractList implements Type
 {
-    /** @var Type */
+    /** @var Type|null */
     protected $valueType;
     /** @var Type|null */
     protected $keyType;
     /** @var Type */
     protected $defaultKeyType;
+    /** @var Type */
+    protected $defaultValueType;
     /**
      * Initializes this representation of an array with the given Type.
      */
     public function __construct(?Type $valueType = null, ?Type $keyType = null)
     {
-        if ($valueType === null) {
-            $valueType = new Mixed_();
-        }
+        $this->defaultValueType = new Mixed_();
         $this->valueType = $valueType;
         $this->defaultKeyType = new Compound([new String_(), new Integer()]);
         $this->keyType = $keyType;
@@ -40,6 +40,10 @@ abstract class AbstractList implements Type
     public function getOriginalKeyType() : ?Type
     {
         return $this->keyType;
+    }
+    public function getOriginalValueType() : ?Type
+    {
+        return $this->valueType;
     }
     /**
      * Returns the type for the keys of this array.
@@ -53,22 +57,6 @@ abstract class AbstractList implements Type
      */
     public function getValueType() : Type
     {
-        return $this->valueType;
-    }
-    /**
-     * Returns a rendered output of the Type as it would be used in a DocBlock.
-     */
-    public function __toString() : string
-    {
-        if ($this->keyType) {
-            return 'array<' . $this->keyType . ',' . $this->valueType . '>';
-        }
-        if ($this->valueType instanceof Mixed_) {
-            return 'array';
-        }
-        if ($this->valueType instanceof Compound) {
-            return '(' . $this->valueType . ')[]';
-        }
-        return $this->valueType . '[]';
+        return $this->valueType ?? $this->defaultValueType;
     }
 }

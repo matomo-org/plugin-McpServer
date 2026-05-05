@@ -43,6 +43,7 @@ final class ArrayLoader implements LoaderInterface
      * @param array{
      *     handler: Handler,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     annotations: ?ToolAnnotations,
      *     icons: ?Icon[],
@@ -99,7 +100,7 @@ final class ArrayLoader implements LoaderInterface
                     $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
                 }
                 $inputSchema = $data['inputSchema'] ?? $schemaGenerator->generate($reflection);
-                $tool = new Tool(name: $name, inputSchema: $inputSchema, description: $description, annotations: $data['annotations'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null, outputSchema: $data['outputSchema'] ?? null);
+                $tool = new Tool(name: $name, title: $data['title'] ?? null, inputSchema: $inputSchema, description: $description, annotations: $data['annotations'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null, outputSchema: $data['outputSchema'] ?? null);
                 $registry->registerTool($tool, $data['handler'], \true);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);
                 $this->logger->debug("Registered manual tool {$name} from handler {$handlerDesc}");
@@ -180,7 +181,7 @@ final class ArrayLoader implements LoaderInterface
                     $paramTag = $paramTags['$' . $param->getName()] ?? null;
                     $arguments[] = new PromptArgument($param->getName(), $paramTag ? trim((string) $paramTag->getDescription()) : null, !$param->isOptional() && !$param->isDefaultValueAvailable());
                 }
-                $prompt = new Prompt(name: $name, description: $description, arguments: $arguments, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
+                $prompt = new Prompt(name: $name, title: $data['title'] ?? null, description: $description, arguments: $arguments, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
                 $completionProviders = $this->getCompletionProviders($reflection);
                 $registry->registerPrompt($prompt, $data['handler'], $completionProviders, \true);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);

@@ -13,7 +13,7 @@ namespace Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Types;
 
 use Matomo\Dependencies\McpServer\phpDocumentor\Reflection\Type;
 /**
- * Value Object representing a Compound Type.
+ * Value Object representing a Intersection Type.
  *
  * A Intersection Type is not so much a special keyword or object reference but is a series of Types that are separated
  * using an AND operator (`&`). This combination of types signifies that whatever is associated with this Intersection

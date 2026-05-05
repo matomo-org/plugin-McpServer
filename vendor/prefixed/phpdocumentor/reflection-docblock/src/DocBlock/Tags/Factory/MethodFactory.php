@@ -34,9 +34,9 @@ final class MethodFactory implements PHPStanFactory
     {
         $tagValue = $node->value;
         Assert::isInstanceOf($tagValue, MethodTagValueNode::class);
-        return new Method($tagValue->methodName, [], $this->createReturnType($tagValue, $context), $tagValue->isStatic, $this->descriptionFactory->create($tagValue->description, $context), \false, array_map(function (MethodTagValueParameterNode $param) use($context) {
+        return new Method($tagValue->methodName, array_map(function (MethodTagValueParameterNode $param) use($context) {
             return new MethodParameter(trim($param->parameterName, '$'), $param->type === null ? new Mixed_() : $this->typeResolver->createType($param->type, $context), $param->isReference, $param->isVariadic, $param->defaultValue === null ? MethodParameter::NO_DEFAULT_VALUE : (string) $param->defaultValue);
-        }, $tagValue->parameters));
+        }, $tagValue->parameters), $this->createReturnType($tagValue, $context), $tagValue->isStatic, $this->descriptionFactory->create($tagValue->description, $context), \false);
     }
     public function supports(PhpDocTagNode $node, Context $context) : bool
     {
