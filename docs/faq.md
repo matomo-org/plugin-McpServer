@@ -8,7 +8,7 @@ Use the API endpoint:
 
 - `format=mcp` is required.
 - The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
-- Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
+- Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`. When OAuth2 metadata discovery is available, the challenge also includes `resource_metadata` pointing to the McpServer protected-resource metadata endpoint.
 - Authenticate with Matomo credentials by sending a Bearer token. If your MCP client supports OAuth2 and the Matomo `OAuth2` plugin is installed and enabled, OAuth2 is the recommended option; create an OAuth2 client there if needed. Otherwise use a Matomo `token_auth` as the Bearer token.
 
 ## Configuration
@@ -54,7 +54,7 @@ The Matomo `OAuth2` plugin is not required to use McpServer. If it is installed 
 
 When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp` behave as follows:
 
-- Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Bearer realm="mcp"`.
+- Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Bearer realm="mcp"`. When OAuth2 metadata discovery is available, the challenge also includes `resource_metadata` pointing to the McpServer protected-resource metadata endpoint.
 - Authenticated requests with a top-level JSON-RPC `id` receive `403 Forbidden` with a JSON-RPC error response instructing the user to contact their Matomo administrator.
 - Authenticated requests without a top-level `id` (for example notifications, invalid JSON, or batch payloads) receive `403 Forbidden` with an empty body.
 

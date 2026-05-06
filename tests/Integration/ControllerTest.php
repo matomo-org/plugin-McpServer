@@ -14,8 +14,10 @@ namespace Piwik\Plugins\McpServer\tests\Integration;
 use Piwik\Access;
 use Piwik\Container\StaticContainer;
 use Piwik\Date;
+use Piwik\FrontController;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Controller;
+use Piwik\Plugins\McpServer\Support\Auth\ProtectedResourceMetadataProvider;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\UsersManager\Model as UsersManagerModel;
@@ -64,10 +66,60 @@ class ControllerTest extends IntegrationTestCase
 
             $this->expectException(NoAccessException::class);
 
-            (new Controller(StaticContainer::get(SystemSettings::class)))->connect();
+            (new Controller(
+                StaticContainer::get(SystemSettings::class),
+                StaticContainer::get(ProtectedResourceMetadataProvider::class),
+            ))->connect();
         } finally {
             McpAuthTestHelper::restoreAuth($originalTokenAuth);
         }
+    }
+
+    public function testProtectedResourceMetadataReturns404WhenUnavailable(): void
+    {
+        http_response_code(200);
+
+        $controller = new Controller(
+            StaticContainer::get(SystemSettings::class),
+            $this->createProtectedResourceMetadataProvider(false),
+        );
+
+        self::assertSame('', $controller->oauthProtectedResourceMetadata());
+        self::assertSame(404, http_response_code());
+    }
+
+    public function testProtectedResourceMetadataReturnsJsonWhenAvailable(): void
+    {
+        http_response_code(200);
+
+        $controller = new Controller(
+            StaticContainer::get(SystemSettings::class),
+            $this->createProtectedResourceMetadataProvider(true),
+        );
+
+        $metadata = json_decode($controller->oauthProtectedResourceMetadata(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($metadata);
+
+        self::assertSame(
+            'https://matomo.example.test/index.php?module=API&method=McpServer.mcp&format=mcp',
+            $metadata['resource'] ?? null,
+        );
+        self::assertSame(
+            ['https://matomo.example.test'],
+            $metadata['authorization_servers'] ?? null,
+        );
+        self::assertSame(['header'], $metadata['bearer_methods_supported'] ?? null);
+        self::assertSame('Matomo MCP Server', $metadata['resource_name'] ?? null);
+        self::assertSame(200, http_response_code());
+    }
+
+    public function testFrontControllerDispatchServesProtectedResourceMetadata(): void
+    {
+        $output = FrontController::getInstance()->fetchDispatch('McpServer', 'oauthProtectedResourceMetadata');
+        $metadata = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertIsArray($metadata);
+        self::assertSame(StaticContainer::get(ProtectedResourceMetadataProvider::class)->build(), $metadata);
     }
 
     private function setAnonymousAccessForSite(int $idSite, string $access): void
@@ -107,5 +159,47 @@ class ControllerTest extends IntegrationTestCase
         }
 
         $this->anonymousAccessBackup = null;
+    }
+
+    private function createProtectedResourceMetadataProvider(bool $available): ProtectedResourceMetadataProvider
+    {
+        return new class (
+            $this->createMock(SystemSettings::class),
+            $available,
+        ) extends ProtectedResourceMetadataProvider {
+            public function __construct(
+                SystemSettings $settings,
+                private bool $available,
+            ) {
+                parent::__construct($settings);
+            }
+
+            public function isAvailable(): bool
+            {
+                return $this->available;
+            }
+
+            public function build(): array
+            {
+                return [
+                    'resource' => 'https://matomo.example.test/index.php?module=API&method=McpServer.mcp&format=mcp',
+                    'authorization_servers' => [
+                        'https://matomo.example.test',
+                    ],
+                    'bearer_methods_supported' => ['header'],
+                    'resource_name' => 'Matomo MCP Server',
+                ];
+            }
+        };
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function provideContainerConfig(): array
+    {
+        return [
+            'test.vars.mockOAuth2PluginEnabled' => true,
+        ];
     }
 }

@@ -26,6 +26,8 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Auth\ProtectedResourceMetadataProvider;
+use Piwik\Plugins\McpServer\Support\Auth\WwwAuthenticateChallengeBuilder;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -160,6 +162,7 @@ class APITest extends TestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 $this->createMock(SystemSettings::class),
+                $this->createUnavailableChallengeBuilder(),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -207,6 +210,7 @@ class APITest extends TestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 $this->createMock(SystemSettings::class),
+                $this->createUnavailableChallengeBuilder(),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -254,6 +258,7 @@ class APITest extends TestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 $this->createMock(SystemSettings::class),
+                $this->createUnavailableChallengeBuilder(),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -375,6 +380,7 @@ class APITest extends TestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 $this->createMock(SystemSettings::class),
+                $this->createUnavailableChallengeBuilder(),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -438,6 +444,7 @@ class APITest extends TestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 $systemSettings,
+                $this->createUnavailableChallengeBuilder(),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -460,6 +467,24 @@ class APITest extends TestCase
             ->willReturn($isCurrentUserPrivilegeLevelAllowed);
 
         return $api;
+    }
+
+    private function createUnavailableChallengeBuilder(): WwwAuthenticateChallengeBuilder
+    {
+        return new WwwAuthenticateChallengeBuilder(
+            new class ($this->createMock(SystemSettings::class)) extends ProtectedResourceMetadataProvider {
+                public function isAvailable(): bool
+                {
+                    return false;
+                }
+
+                public function getMetadataUrl(): string
+                {
+                    return 'https://matomo.example.test/index.php'
+                        . '?module=McpServer&action=oauthProtectedResourceMetadata';
+                }
+            },
+        );
     }
 
     private function assertGuardErrorResponse(ResponseInterface $response): void

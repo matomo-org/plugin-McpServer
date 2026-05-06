@@ -25,6 +25,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Auth\WwwAuthenticateChallengeBuilder;
 use Piwik\Request;
 
 class API extends \Piwik\Plugin\API
@@ -35,6 +36,7 @@ class API extends \Piwik\Plugin\API
         private JsonRpcErrorResponseFactory $jsonRpcErrorResponseFactory,
         private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor,
         private SystemSettings $systemSettings,
+        private WwwAuthenticateChallengeBuilder $wwwAuthenticateChallengeBuilder,
     ) {
     }
 
@@ -139,7 +141,7 @@ class API extends \Piwik\Plugin\API
             JsonRpcError::INVALID_REQUEST,
             McpEndpointSpec::UNAUTHORIZED_ERROR,
             $requestId,
-            ['WWW-Authenticate' => 'Bearer realm="mcp"'],
+            ['WWW-Authenticate' => $this->wwwAuthenticateChallengeBuilder->build()],
         );
     }
 

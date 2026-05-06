@@ -26,6 +26,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Auth\WwwAuthenticateChallengeBuilder;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -419,6 +420,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 StaticContainer::get(SystemSettings::class),
+                StaticContainer::get(WwwAuthenticateChallengeBuilder::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -445,6 +447,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
                 StaticContainer::get(SystemSettings::class),
+                StaticContainer::get(WwwAuthenticateChallengeBuilder::class),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();

@@ -12,15 +12,19 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer;
 
 use Piwik\Access;
+use Piwik\Common;
 use Piwik\Piwik;
+use Piwik\Plugins\McpServer\Support\Auth\ProtectedResourceMetadataProvider;
 use Piwik\SettingsPiwik;
 use Piwik\Url;
 use Piwik\View;
 
 class Controller extends \Piwik\Plugin\ControllerAdmin
 {
-    public function __construct(private SystemSettings $systemSettings)
-    {
+    public function __construct(
+        private SystemSettings $systemSettings,
+        private ProtectedResourceMetadataProvider $protectedResourceMetadataProvider,
+    ) {
     }
 
     public function connect(): string
@@ -43,6 +47,26 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $view->assign('userSecurityUrl', $this->getUserSecurityUrl());
 
         return $view->render();
+    }
+
+    public function oauthProtectedResourceMetadata(): string
+    {
+        if (!$this->protectedResourceMetadataProvider->isAvailable()) {
+            http_response_code(404);
+            Common::sendResponseCode(404);
+            return '';
+        }
+
+        http_response_code(200);
+        Common::sendHeader('Content-Type: application/json');
+        Common::sendHeader('Cache-Control: public, max-age=3600');
+
+        $json = json_encode($this->protectedResourceMetadataProvider->build(), JSON_UNESCAPED_SLASHES);
+        if (!is_string($json)) {
+            return '{}';
+        }
+
+        return $json;
     }
 
     private function getMcpApiEndpointUrl(): string
