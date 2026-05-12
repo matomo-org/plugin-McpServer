@@ -21,7 +21,11 @@ use Piwik\Date;
 use Piwik\FrontController;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
+use Piwik\Plugins\McpServer\Support\Api\InternalApiAccessGuard;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCaller;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCatalog;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
@@ -418,7 +422,10 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
-                StaticContainer::get(SystemSettings::class),
+                new McpAccessGate(StaticContainer::get(SystemSettings::class)),
+                new InternalApiAccessGuard(),
+                new InternalToolCatalog(),
+                new InternalToolCaller(),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -444,7 +451,10 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
-                StaticContainer::get(SystemSettings::class),
+                new McpAccessGate(StaticContainer::get(SystemSettings::class)),
+                new InternalApiAccessGuard(),
+                new InternalToolCatalog(),
+                new InternalToolCaller(),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();

@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
@@ -46,6 +47,7 @@ use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
 use Psr\Log\NullLogger;
@@ -84,6 +86,9 @@ final class McpServerFactory
         SiteSearch::class,
     ];
 
+    /** @var array{server: Server, registry: Registry, callToolHandler: RequestHandlerInterface<mixed>}|null */
+    private ?array $runtimeCache = null;
+
     public function __construct(
         private LoggerInterface $logger,
         private SessionStoreInterface $sessionStore,
@@ -97,8 +102,73 @@ final class McpServerFactory
      *                                  the factory resolves the shipped tool
      *                                  set via its container. Tests inject an
      *                                  explicit list to bypass DI.
+     *                                  An explicit list bypasses the runtime
+     *                                  cache and always builds a fresh server;
+     *                                  it is never written back to the cache,
+     *                                  so production calls (which pass null)
+     *                                  keep seeing the shipped tool set.
      */
     public function createServer(?array $tools = null): Server
+    {
+        if ($tools !== null) {
+            return $this->buildRuntime($tools)['server'];
+        }
+
+        return $this->resolveRuntime()['server'];
+    }
+
+    public function createInternalAccess(): InternalAccess
+    {
+        $runtime = $this->resolveRuntime();
+
+        return new InternalAccess(
+            $runtime['registry'],
+            $runtime['callToolHandler'],
+        );
+    }
+
+    /**
+     * Discard the memoised runtime so the next {@see createServer} or
+     * {@see createInternalAccess} call rebuilds against the current settings.
+     *
+     * The factory is a container singleton, so the cached runtime lives for the
+     * whole PHP process — one request under PHP-FPM, but potentially many logical
+     * operations in a long-running CLI worker. Production code still does not need
+     * to clear it: MCP settings and tool registration are stable for the process
+     * lifetime, and per-call state is isolated separately by the fresh in-memory
+     * session {@see InternalToolCaller} builds on every call. Tests that toggle
+     * settings affecting tool registration between builds must call this to drop
+     * the now-stale runtime.
+     *
+     * @internal
+     */
+    public function clearRuntimeCache(): void
+    {
+        $this->runtimeCache = null;
+    }
+
+    /**
+     * Memoise the MCP runtime so callers that hit the factory multiple times in
+     * one request (e.g. {@see getInternalToolCatalog} followed by repeated
+     * {@see callInternalTool} dispatches) reuse the same registry and handler
+     * chain.
+     *
+     * @return array{server: Server, registry: Registry, callToolHandler: RequestHandlerInterface<mixed>}
+     */
+    private function resolveRuntime(): array
+    {
+        if ($this->runtimeCache !== null) {
+            return $this->runtimeCache;
+        }
+
+        return $this->runtimeCache = $this->buildRuntime();
+    }
+
+    /**
+     * @param list<McpTool>|null $tools
+     * @return array{server: Server, registry: Registry, callToolHandler: RequestHandlerInterface<mixed>}
+     */
+    private function buildRuntime(?array $tools = null): array
     {
         $tools ??= $this->buildBuiltinTools();
 
@@ -140,19 +210,25 @@ final class McpServerFactory
             new NullLogger(),
         );
 
+        $activeCallToolHandler = $callToolHandler;
         if ($loggingConfig['logToolCalls']) {
-            $builder->addRequestHandler(new ObservedCallToolHandler(
+            $activeCallToolHandler = new ObservedCallToolHandler(
                 $callToolHandler,
                 $this->logger,
                 $this->toolCallParameterFormatter,
                 $loggingConfig['logFullParameters'],
                 $loggingConfig['logLevel'],
-            ));
-        } else {
-            $builder->addRequestHandler($callToolHandler);
+            );
         }
+        $builder->addRequestHandler($activeCallToolHandler);
 
-        return $builder->build();
+        $server = $builder->build();
+
+        return [
+            'server' => $server,
+            'registry' => $registry,
+            'callToolHandler' => $activeCallToolHandler,
+        ];
     }
 
     private function registerTool(Builder $builder, McpTool $tool): void

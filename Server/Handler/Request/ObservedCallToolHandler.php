@@ -20,6 +20,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Support\Logging\McpToolCallOrigin;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 
 /**
@@ -59,6 +60,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
             'mcp_session_id' => $this->resolveSessionId($session),
             'mcp_tool_name' => $toolName,
             'mcp_params_mode' => $loggingMode,
+            McpToolCallOrigin::LOG_CONTEXT_KEY => $this->resolveCallOrigin($session),
         ];
 
         $result = $this->delegate->handle($request, $session);
@@ -142,6 +144,21 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
         } catch (\Throwable) {
             return 'unknown';
         }
+    }
+
+    private function resolveCallOrigin(SessionInterface $session): string
+    {
+        try {
+            $origin = $session->get(McpToolCallOrigin::SESSION_KEY, McpToolCallOrigin::ORIGIN_HTTP);
+        } catch (\Throwable) {
+            return McpToolCallOrigin::ORIGIN_HTTP;
+        }
+
+        if ($origin === McpToolCallOrigin::ORIGIN_INTERNAL) {
+            return McpToolCallOrigin::ORIGIN_INTERNAL;
+        }
+
+        return McpToolCallOrigin::ORIGIN_HTTP;
     }
 
     /**

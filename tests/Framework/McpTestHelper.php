@@ -127,6 +127,8 @@ final class McpTestHelper
         } finally {
             $access->setSuperUserAccess($hadSuperUserAccess);
         }
+
+        StaticContainer::get(McpServerFactory::class)->clearRuntimeCache();
     }
 
     public static function getMaximumAllowedMcpAccessLevel(): string
