@@ -15,6 +15,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 2. `run-ai-smoke.sh`
 - Executes one provider prompt per configured tool case.
 - Uses pass/fail evidence from Matomo MCP call logs.
+- Requires one successful expected-tool call to contain every `expect_log_contains` value as an exact formatted argument; fixture placeholders are rendered from `.state.json` before matching.
 - Supports per-case timeout via `CASE_TIMEOUT_SECONDS` (default `120`).
 - Additional MCP tool calls are accepted if the expected tool succeeds at least once.
 - Handles empty `cases.json` safely and emits an empty `results.json`.
@@ -29,7 +30,7 @@ This harness powers `.github/workflows/mcp-ai-smoke.yml`.
 
 ## Files
 
-- `cases.json`: prototype smoke cases (`site_get`, `site_list`, `report_processed`), their expected log evidence, and the source for Claude's allowed MCP tool list.
+- `cases.json`: prototype smoke cases (`api_call_read`, `report_processed`, `site_get`, `site_list`), their expected log evidence, and the source for Claude's allowed MCP tool list.
 - `.state.json`: runtime discovery state from setup, including optional `skip_cases`.
 - `prompts/*.txt`: prompt templates used by configured cases.
 - `artifacts/<provider>/`: generated at runtime inside each provider job (`transcripts`, `logs`, `results`, `results.json`).

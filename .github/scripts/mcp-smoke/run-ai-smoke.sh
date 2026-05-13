@@ -10,6 +10,9 @@ ARTIFACT_DIR=${ARTIFACT_DIR:?ARTIFACT_DIR is required}
 MATOMO_LOG_FILE=${MATOMO_LOG_FILE:?MATOMO_LOG_FILE is required}
 PHP_SERVER_LOG_FILE=${PHP_SERVER_LOG_FILE:?PHP_SERVER_LOG_FILE is required}
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$script_dir/lib/argument-evidence.sh"
+
 if [ "$SMOKE_PROVIDER" != "codex" ] && [ "$SMOKE_PROVIDER" != "claude" ]; then
   echo "Unsupported SMOKE_PROVIDER: $SMOKE_PROVIDER" >&2
   exit 1
@@ -108,19 +111,30 @@ redact_secrets() {
     '
 }
 
+render_state_placeholders() {
+  local rendered="$1"
+  local escaped_value
+
+  # Substitute only the non-sensitive placeholders used by prompts and case
+  # expectations. Restricting the key set keeps secrets such as token_auth out
+  # of rendered prompts and expectation comparisons.
+  while IFS='=' read -r key value; do
+    escaped_value=$(escape_sed_replacement "$value")
+    rendered=$(printf '%s' "$rendered" | sed -e "s|{{${key}}}|${escaped_value}|g")
+  done < <(jq -r 'to_entries[] | select(.key | IN("idSite", "reportUniqueId")) | "\(.key)=\(.value)"' "$STATE_FILE")
+
+  printf '%s' "$rendered"
+}
+
 render_prompt() {
   local input_file="$1"
   local output_file="$2"
-  local escaped_value
-  cp "$input_file" "$output_file"
 
   # Substitute only the non-sensitive placeholders that prompts actually use.
   # Restricting the key set keeps secrets such as token_auth out of rendered
   # prompt files, which are uploaded as artifacts.
-  while IFS='=' read -r key value; do
-    escaped_value=$(escape_sed_replacement "$value")
-    sed -i "s|{{${key}}}|${escaped_value}|g" "$output_file"
-  done < <(jq -r 'to_entries[] | select(.key | IN("idSite", "reportUniqueId")) | "\(.key)=\(.value)"' "$STATE_FILE")
+  render_state_placeholders "$(< "$input_file")" > "$output_file"
+  printf '\n' >> "$output_file"
 }
 
 setup_provider() {
@@ -296,6 +310,23 @@ write_case_result() {
     > "$result_file"
 }
 
+success_line_has_expected_evidence() {
+  local success_line="$1"
+  local case_json="$2"
+  local expected_needle
+  local rendered_needle
+
+  while IFS= read -r expected_needle; do
+    [ -z "$expected_needle" ] && continue
+    rendered_needle=$(render_state_placeholders "$expected_needle")
+    if ! mcp_smoke_line_has_exact_argument "$success_line" "$rendered_needle"; then
+      return 1
+    fi
+  done < <(echo "$case_json" | jq -r '.expect_log_contains // [] | .[]')
+
+  return 0
+}
+
 setup_provider
 
 result_count=0
@@ -369,11 +400,23 @@ while IFS= read -r case_json; do
   elif [ "$cmd_exit" -ne 0 ]; then
     reason="${SMOKE_PROVIDER}_command_failed"
   elif grep -Fq "MCP Tool Call successful: ${tool} [" "$log_slice_file"; then
-    # Require the success line for the expected tool itself, not merely any
-    # successful call plus a separate mention of the tool name. The Matomo log
-    # emits "MCP Tool Call successful: <tool_name> [<arguments>]" on one line.
-    status="pass"
-    reason="tool success evidence found"
+    # Require one success line for the expected tool to contain every configured
+    # argument expectation. Check all successful calls so an initial incorrect
+    # call does not hide a later correct retry.
+    matching_success_found=0
+    while IFS= read -r success_line; do
+      if success_line_has_expected_evidence "$success_line" "$case_json"; then
+        matching_success_found=1
+        break
+      fi
+    done < <(grep -F "MCP Tool Call successful: ${tool} [" "$log_slice_file")
+
+    if [ "$matching_success_found" -eq 1 ]; then
+      status="pass"
+      reason="tool success evidence found"
+    else
+      reason="expected argument evidence missing"
+    fi
   elif grep -Eq "MCP Tool Call (successful|failed):" "$log_slice_file"; then
     reason="tool success evidence missing"
   else
