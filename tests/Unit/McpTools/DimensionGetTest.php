@@ -41,7 +41,7 @@ class DimensionGetTest extends TestCase
             }
         };
 
-        $actual = (new DimensionGet($wrapper))->get(4, 7);
+        $actual = (new DimensionGet($wrapper))->execute(4, 7);
 
         self::assertSame([
             'iddimension' => 7,
@@ -81,7 +81,7 @@ class DimensionGetTest extends TestCase
             }
         };
 
-        (new DimensionGet($wrapper))->get(9, 3);
+        (new DimensionGet($wrapper))->execute(9, 3);
 
         self::assertSame(['idSite' => 9, 'idDimension' => 3], $wrapper->captured);
     }
@@ -98,6 +98,6 @@ class DimensionGetTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Dimension data is incomplete (missing 'name').");
 
-        (new DimensionGet($wrapper))->get(4, 7);
+        (new DimensionGet($wrapper))->execute(4, 7);
     }
 }

@@ -50,7 +50,7 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('read'),
         );
 
-        $actual = $tool->list(limit: 10, sort: ApiMethodsPagination::SORT_METHOD_ASC);
+        $actual = $tool->execute(limit: 10, sort: ApiMethodsPagination::SORT_METHOD_ASC);
 
         self::assertSame([
             'methods' => [
@@ -94,7 +94,7 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->list(module: 'usersmanager', search: 'add', category: 'create', limit: 10);
+        $actual = $tool->execute(module: 'usersmanager', search: 'add', category: 'create', limit: 10);
 
         self::assertSame([
             'methods' => [
@@ -143,7 +143,7 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->list(category: 'uncategorized', limit: 10);
+        $actual = $tool->execute(category: 'uncategorized', limit: 10);
 
         self::assertSame([
             'methods' => [
@@ -174,7 +174,7 @@ class ApiListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(cursor: 'invalid');
+        $tool->execute(cursor: 'invalid');
     }
 
     public function testListSupportsPaginationAndSortOrdering(): void
@@ -185,13 +185,13 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 2, sort: ApiMethodsPagination::SORT_METHOD_ASC);
+        $firstPage = $tool->execute(limit: 2, sort: ApiMethodsPagination::SORT_METHOD_ASC);
         self::assertCount(2, $firstPage['methods']);
         self::assertTrue($firstPage['has_more']);
         self::assertIsString($firstPage['next_cursor']);
         self::assertSame(6, $firstPage['total_rows']);
 
-        $secondPage = $tool->list(
+        $secondPage = $tool->execute(
             limit: 2,
             cursor: $firstPage['next_cursor'],
             sort: ApiMethodsPagination::SORT_METHOD_ASC,
@@ -211,7 +211,7 @@ class ApiListTest extends TestCase
         );
         self::assertSame([], array_values(array_intersect($firstPageMethods, $secondPageMethods)));
 
-        $descPage = $tool->list(limit: 5, sort: ApiMethodsPagination::SORT_METHOD_DESC);
+        $descPage = $tool->execute(limit: 5, sort: ApiMethodsPagination::SORT_METHOD_DESC);
         $descMethods = array_map(
             static fn(array $row): string => $row['method'],
             $descPage['methods'],
@@ -230,14 +230,14 @@ class ApiListTest extends TestCase
             new PaginatedCollectionResponder(new CursorPaginator()),
             $settings,
         );
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC);
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC);
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $rawApiAccessMode = 'full';
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
-        $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC);
+        $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC);
     }
 
     public function testListRejectsCursorWhenSearchChanges(): void
@@ -248,13 +248,13 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'get');
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'get');
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
-        $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'add');
+        $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'add');
     }
 
     public function testListRejectsCursorWhenCategoryChanges(): void
@@ -265,13 +265,13 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'read');
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'read');
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
-        $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'create');
+        $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'create');
     }
 
     public function testListRejectsCursorWhenModuleChanges(): void
@@ -282,13 +282,13 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'UsersManager');
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'UsersManager');
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
-        $tool->list(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'SitesManager');
+        $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'SitesManager');
     }
 
     public function testListAcceptsCursorWhenEquivalentModuleNormalizationIsUsed(): void
@@ -299,11 +299,11 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: ' UsersManager ');
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: ' UsersManager ');
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $secondPage = $tool->list(
+        $secondPage = $tool->execute(
             limit: 1,
             cursor: $cursor,
             sort: ApiMethodsPagination::SORT_METHOD_ASC,
@@ -324,11 +324,11 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $firstPage = $tool->list(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: '  GET ');
+        $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: '  GET ');
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $secondPage = $tool->list(
+        $secondPage = $tool->execute(
             limit: 1,
             cursor: $cursor,
             sort: ApiMethodsPagination::SORT_METHOD_ASC,

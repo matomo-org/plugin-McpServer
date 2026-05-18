@@ -44,7 +44,7 @@ class GoalGetTest extends TestCase
             }
         };
 
-        $actual = (new GoalGet($wrapper))->get(4, 7);
+        $actual = (new GoalGet($wrapper))->execute(4, 7);
 
         self::assertSame([
             'idgoal' => 7,
@@ -90,7 +90,7 @@ class GoalGetTest extends TestCase
             }
         };
 
-        (new GoalGet($wrapper))->get(9, 3);
+        (new GoalGet($wrapper))->execute(9, 3);
 
         self::assertSame(['idSite' => 9, 'idGoal' => 3], $wrapper->captured);
     }
@@ -107,6 +107,6 @@ class GoalGetTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'name').");
 
-        (new GoalGet($wrapper))->get(4, 7);
+        (new GoalGet($wrapper))->execute(4, 7);
     }
 }

@@ -38,7 +38,7 @@ class SegmentListTest extends TestCase
             }
         };
 
-        $actual = (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+        $actual = (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             1,
             limit: 10,
             sort: SegmentsPagination::SORT_NAME_ASC,
@@ -67,7 +67,7 @@ class SegmentListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Segment list item is incomplete (missing 'definition').");
 
-        (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
+        (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -85,7 +85,7 @@ class SegmentListTest extends TestCase
         (new SegmentList(
             $wrapper,
             new PaginatedCollectionResponder(new CursorPaginator()),
-        ))->list(1, cursor: 'invalid');
+        ))->execute(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -101,14 +101,14 @@ class SegmentListTest extends TestCase
         };
 
         $tool = new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: SegmentsPagination::SORT_ID_DESC);
+        $page = $tool->execute(1, limit: 1, sort: SegmentsPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(1, cursor: $cursor, sort: SegmentsPagination::SORT_NAME_ASC);
+        $tool->execute(1, cursor: $cursor, sort: SegmentsPagination::SORT_NAME_ASC);
     }
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
@@ -124,13 +124,13 @@ class SegmentListTest extends TestCase
         };
 
         $tool = new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: SegmentsPagination::SORT_ID_ASC);
+        $page = $tool->execute(1, limit: 1, sort: SegmentsPagination::SORT_ID_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(2, cursor: $cursor, sort: SegmentsPagination::SORT_ID_ASC);
+        $tool->execute(2, cursor: $cursor, sort: SegmentsPagination::SORT_ID_ASC);
     }
 }

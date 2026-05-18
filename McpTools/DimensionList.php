@@ -11,9 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
@@ -24,7 +23,7 @@ use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 /**
  * @phpstan-import-type DimensionSummaryArray from DimensionSummaryRecord
  */
-class DimensionList
+class DimensionList extends McpTool
 {
     public const TOOL_NAME = 'matomo_dimension_list';
 
@@ -32,6 +31,54 @@ class DimensionList
         private DimensionSummaryQueryServiceInterface $queryService,
         private PaginatedCollectionResponder $paginationResponder,
     ) {
+        parent::__construct();
+    }
+
+    protected function init(): void
+    {
+        $this->name = self::TOOL_NAME;
+        $this->description = "Use when: you need idDimension values for processed report retrieval.\n"
+            . "Purpose: return paginated active custom dimensions configured for a specific site.\n"
+            . "Next: use the chosen iddimension in analytics/report API calls.";
+        $this->annotations = new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        );
+        $this->inputSchema = [
+            'type' => 'object',
+            'properties' => [
+                'idSite' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'description' => 'Matomo site ID used to scope available dimensions.',
+                ],
+                'limit' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'maximum' => DimensionsPagination::LIMIT_MAX,
+                    'description' => 'Maximum number of results to return. Uses schema constraints.',
+                ],
+                'cursor' => [
+                    'type' => 'string',
+                    'description' => 'Opaque cursor for pagination.',
+                ],
+                'sort' => [
+                    'type' => 'string',
+                    'enum' => [
+                        DimensionsPagination::SORT_NAME_ASC,
+                        DimensionsPagination::SORT_NAME_DESC,
+                        DimensionsPagination::SORT_ID_ASC,
+                        DimensionsPagination::SORT_ID_DESC,
+                    ],
+                    'description' => 'Sort order for results.',
+                ],
+            ],
+            'required' => ['idSite'],
+            'additionalProperties' => false,
+        ];
+        $this->outputSchema = DimensionSummaryToolOutputSchema::PAGINATED_LIST;
     }
 
     /**
@@ -42,52 +89,7 @@ class DimensionList
      *     total_rows: int,
      * }
      */
-    #[McpTool(
-        name: self::TOOL_NAME,
-        description: "Use when: you need idDimension values for processed report retrieval.\n"
-            . "Purpose: return paginated active custom dimensions configured for a specific site.\n"
-            . "Next: use the chosen iddimension in analytics/report API calls.",
-        annotations: new ToolAnnotations(
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false,
-        ),
-        outputSchema: DimensionSummaryToolOutputSchema::PAGINATED_LIST,
-    )]
-    #[Schema(
-        type: 'object',
-        properties: [
-            'idSite' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'description' => 'Matomo site ID used to scope available dimensions.',
-            ],
-            'limit' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'maximum' => DimensionsPagination::LIMIT_MAX,
-                'description' => 'Maximum number of results to return. Uses schema constraints.',
-            ],
-            'cursor' => [
-                'type' => 'string',
-                'description' => 'Opaque cursor for pagination.',
-            ],
-            'sort' => [
-                'type' => 'string',
-                'enum' => [
-                    DimensionsPagination::SORT_NAME_ASC,
-                    DimensionsPagination::SORT_NAME_DESC,
-                    DimensionsPagination::SORT_ID_ASC,
-                    DimensionsPagination::SORT_ID_DESC,
-                ],
-                'description' => 'Sort order for results.',
-            ],
-        ],
-        required: ['idSite'],
-        additionalProperties: false,
-    )]
-    public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
+    public function execute(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(

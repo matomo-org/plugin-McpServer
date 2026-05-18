@@ -81,7 +81,7 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        (new ReportProcessed($wrapper))->execute(
             idSite: 3,
             period: 'day',
             date: 'today',
@@ -151,7 +151,7 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        (new ReportProcessed($wrapper))->execute(
             idSite: 3,
             period: 'week',
             date: 'today',
@@ -227,7 +227,7 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        (new ReportProcessed($wrapper))->execute(
             idSite: 3,
             period: 'day',
             date: 'today',
@@ -282,7 +282,7 @@ class ReportProcessedTest extends TestCase
             }
         };
 
-        (new ReportProcessed($wrapper))->get(
+        (new ReportProcessed($wrapper))->execute(
             idSite: 3,
             period: 'day',
             date: 'today',

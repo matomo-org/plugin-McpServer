@@ -79,7 +79,7 @@ class ApiCallTest extends TestCase
             $this->createSystemSettingsStub('read'),
         );
 
-        $actual = $tool->call(method: ' API.getMatomoVersion ');
+        $actual = $tool->execute(method: ' API.getMatomoVersion ');
 
         self::assertSame([
             'result' => '6.0.0',
@@ -146,7 +146,7 @@ class ApiCallTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->call(
+        $actual = $tool->execute(
             module: ' UsersManager ',
             action: ' addUser ',
             parameters: ['userLogin' => 'alice'],
@@ -179,7 +179,7 @@ class ApiCallTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('API method not found or unavailable.');
 
-        $tool->call(method: 'UsersManager.addUser');
+        $tool->execute(method: 'UsersManager.addUser');
     }
 
     private function createMethodSummaryQueryServiceStub(

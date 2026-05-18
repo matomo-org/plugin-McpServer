@@ -44,7 +44,7 @@ class SiteListTest extends TestCase
             }
         };
 
-        $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+        $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             limit: 10,
             sort: SitesPagination::SORT_NAME_ASC,
         );
@@ -77,7 +77,7 @@ class SiteListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Site list item is incomplete (missing 'main_url').");
 
-        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list();
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute();
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -97,7 +97,7 @@ class SiteListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(cursor: 'invalid');
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -118,14 +118,14 @@ class SiteListTest extends TestCase
         };
 
         $tool = new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(limit: 1, sort: SitesPagination::SORT_ID_DESC);
+        $page = $tool->execute(limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $tool->execute(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 
     public function testListRejectsCursorFromSiteSearchContext(): void
@@ -152,13 +152,13 @@ class SiteListTest extends TestCase
         $searchTool = new SiteSearch($wrapper, $responder);
         $listTool = new SiteList($wrapper, $responder);
 
-        $page = $searchTool->search('site', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $page = $searchTool->execute('site', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $listTool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $listTool->execute(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

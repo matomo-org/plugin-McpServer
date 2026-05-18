@@ -11,9 +11,14 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiListToolInputSchema;
+use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Pagination\ApiMethodsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -22,7 +27,7 @@ use Piwik\Plugins\McpServer\SystemSettings;
 /**
  * @phpstan-import-type ApiMethodSummaryArray from ApiMethodSummaryRecord
  */
-class ApiList
+class ApiList extends McpTool
 {
     public const TOOL_NAME = 'matomo_api_list';
 
@@ -31,6 +36,28 @@ class ApiList
         private PaginatedCollectionResponder $paginationResponder,
         private SystemSettings $systemSettings,
     ) {
+        parent::__construct();
+    }
+
+    protected function init(): void
+    {
+        $this->name = self::TOOL_NAME;
+        $this->description = "Use when: you need discoverable Matomo API methods and parameter metadata.\n"
+            . "Purpose: return paginated API method summaries aligned with Matomo API docs visibility.\n"
+            . "Next: choose a method and map parameters for subsequent raw API tooling.";
+        $this->annotations = new ToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        );
+        $this->inputSchema = ApiListToolInputSchema::SCHEMA;
+        $this->outputSchema = ApiMethodSummaryToolOutputSchema::PAGINATED_LIST;
+    }
+
+    public function shouldRegister(): bool
+    {
+        return RawApiAccessMode::allowsToolRegistration($this->systemSettings->getRawApiAccessMode());
     }
 
     /**
@@ -41,7 +68,7 @@ class ApiList
      *     total_rows: int,
      * }
      */
-    public function list(
+    public function execute(
         ?int $limit = null,
         ?string $cursor = null,
         ?string $sort = null,

@@ -38,7 +38,7 @@ class DimensionListTest extends TestCase
             }
         };
 
-        $actual = (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+        $actual = (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             1,
             limit: 10,
             sort: DimensionsPagination::SORT_NAME_ASC,
@@ -75,7 +75,7 @@ class DimensionListTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Dimension list item is incomplete (missing 'name').");
 
-        (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
+        (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -93,7 +93,7 @@ class DimensionListTest extends TestCase
         (new DimensionList(
             $wrapper,
             new PaginatedCollectionResponder(new CursorPaginator()),
-        ))->list(1, cursor: 'invalid');
+        ))->execute(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -109,14 +109,14 @@ class DimensionListTest extends TestCase
         };
 
         $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: DimensionsPagination::SORT_ID_DESC);
+        $page = $tool->execute(1, limit: 1, sort: DimensionsPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(1, cursor: $cursor, sort: DimensionsPagination::SORT_NAME_ASC);
+        $tool->execute(1, cursor: $cursor, sort: DimensionsPagination::SORT_NAME_ASC);
     }
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
@@ -132,13 +132,13 @@ class DimensionListTest extends TestCase
         };
 
         $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: DimensionsPagination::SORT_ID_ASC);
+        $page = $tool->execute(1, limit: 1, sort: DimensionsPagination::SORT_ID_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(2, cursor: $cursor, sort: DimensionsPagination::SORT_ID_ASC);
+        $tool->execute(2, cursor: $cursor, sort: DimensionsPagination::SORT_ID_ASC);
     }
 }

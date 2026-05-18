@@ -43,7 +43,7 @@ class SiteGetTest extends TestCase
             }
         };
 
-        $actual = (new SiteGet($wrapper))->get(4);
+        $actual = (new SiteGet($wrapper))->execute(4);
 
         self::assertSame([
             'idsite' => 4,
@@ -71,6 +71,6 @@ class SiteGetTest extends TestCase
         $this->expectException(ToolCallException::class);
         $this->expectExceptionMessage("Site data is incomplete (missing 'currency_name').");
 
-        (new SiteGet($wrapper))->get(4);
+        (new SiteGet($wrapper))->execute(4);
     }
 }
