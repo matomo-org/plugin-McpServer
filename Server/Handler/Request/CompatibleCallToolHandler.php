@@ -14,7 +14,6 @@ namespace Piwik\Plugins\McpServer\Server\Handler\Request;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaValidator;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolNotFoundException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
@@ -121,7 +120,7 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
             ]);
 
             return new Response($request->getId(), $result);
-        } catch (ToolCallException | McpToolCallException $e) {
+        } catch (McpToolCallException $e) {
             $this->logger->error(
                 sprintf('Error while executing tool "%s": "%s".', $toolName, $e->getMessage()),
                 ['tool' => $toolName, 'arguments' => $rawArguments],

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Goals\CoreGoalsGateway;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
@@ -51,7 +51,7 @@ class CoreGoalsGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goals data is invalid.');
         $gateway->getGoals(5);
     }
@@ -67,7 +67,7 @@ class CoreGoalsGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goals data is invalid.');
         $gateway->getGoals(5);
     }
@@ -96,7 +96,7 @@ class CoreGoalsGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goal data is invalid.');
         $gateway->getGoal(5, 3);
     }

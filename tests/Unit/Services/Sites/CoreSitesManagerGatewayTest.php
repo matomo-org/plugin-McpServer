@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Sites\CoreSitesManagerGateway;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
@@ -51,7 +51,7 @@ class CoreSitesManagerGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
         $gateway->getSitesWithMinimumAccess('view', '', null);
     }
@@ -67,7 +67,7 @@ class CoreSitesManagerGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
         $gateway->getSitesWithMinimumAccess('view', '', null);
     }
@@ -96,7 +96,7 @@ class CoreSitesManagerGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site data is invalid.');
         $gateway->getSiteFromId(4);
     }

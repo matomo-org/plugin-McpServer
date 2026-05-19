@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
@@ -49,7 +49,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
                 return [];
             }
 
-            throw new ToolCallException('Report retrieval failed.');
+            throw new McpToolCallException('Report retrieval failed.');
         }
 
         return $this->normalizeReportSummaryRows(
@@ -68,7 +68,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
     {
         $parametersValue = $report['parameters'] ?? [];
         if ($parametersValue !== [] && !is_array($parametersValue)) {
-            throw new ToolCallException("{$context} is invalid (field 'parameters').");
+            throw new McpToolCallException("{$context} is invalid (field 'parameters').");
         }
         $parameters = ToolDataNormalizer::requireStringKeyedArray(
             $parametersValue,
@@ -98,7 +98,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         string $context,
     ): array {
         if (!is_array($reports)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         $result = [];
@@ -135,7 +135,7 @@ final class ReportSummaryQueryService implements ReportSummaryQueryServiceInterf
         }
 
         if (!is_string($value)) {
-            throw new ToolCallException("{$context} is invalid (field '{$field}').");
+            throw new McpToolCallException("{$context} is invalid (field '{$field}').");
         }
 
         return $value;

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 
 final class GoalRevenueNormalizer
 {
@@ -21,7 +21,7 @@ final class GoalRevenueNormalizer
     public static function normalizeRevenue(array $goal, string $context): string
     {
         if (!array_key_exists('revenue', $goal) || $goal['revenue'] === null) {
-            throw new ToolCallException("{$context} is incomplete (missing 'revenue').");
+            throw new McpToolCallException("{$context} is incomplete (missing 'revenue').");
         }
 
         $revenue = $goal['revenue'];
@@ -33,6 +33,6 @@ final class GoalRevenueNormalizer
             return (string) $revenue;
         }
 
-        throw new ToolCallException("{$context} is invalid (field 'revenue').");
+        throw new McpToolCallException("{$context} is invalid (field 'revenue').");
     }
 }

@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Sites\SiteDetailQueryService;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
@@ -30,7 +30,7 @@ class SiteDetailQueryServiceTest extends TestCase
         $data = $this->makeValidSiteData();
         unset($data['currency_name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is incomplete (missing 'currency_name').");
 
         $service->normalizeSiteDetailData($data);
@@ -42,7 +42,7 @@ class SiteDetailQueryServiceTest extends TestCase
         $data = $this->makeValidSiteData();
         $data['timezone_name'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is incomplete (missing 'timezone_name').");
 
         $service->normalizeSiteDetailData($data);
@@ -79,7 +79,7 @@ class SiteDetailQueryServiceTest extends TestCase
 
         $service = new SiteDetailQueryService($gateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site not found or access denied.');
         $service->getSiteDetailFromId(3);
     }
@@ -94,8 +94,8 @@ class SiteDetailQueryServiceTest extends TestCase
 
             try {
                 $service->getSiteDetailFromId(3);
-                self::fail('Expected ToolCallException was not thrown for ' . get_class($exception));
-            } catch (ToolCallException $e) {
+                self::fail('Expected McpToolCallException was not thrown for ' . get_class($exception));
+            } catch (McpToolCallException $e) {
                 self::assertSame('Site not found or access denied.', $e->getMessage());
             }
         }

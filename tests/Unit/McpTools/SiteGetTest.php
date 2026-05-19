@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteGet;
@@ -64,11 +64,11 @@ class SiteGetTest extends TestCase
         $wrapper = new class () implements SiteDetailQueryServiceInterface {
             public function getSiteDetailFromId(int $idSite): SiteDetailRecord
             {
-                throw new ToolCallException("Site data is incomplete (missing 'currency_name').");
+                throw new McpToolCallException("Site data is incomplete (missing 'currency_name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is incomplete (missing 'currency_name').");
 
         (new SiteGet($wrapper))->execute(4);

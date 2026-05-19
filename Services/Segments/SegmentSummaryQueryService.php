@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
@@ -33,7 +33,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
     public function getSegmentSummariesForSite(int $idSite): array
     {
         if (!$this->pluginCapabilityGateway->isPluginActivated('SegmentEditor')) {
-            throw new ToolCallException('SegmentEditor plugin is not available.');
+            throw new McpToolCallException('SegmentEditor plugin is not available.');
         }
 
         try {
@@ -44,7 +44,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
                 return [];
             }
 
-            throw new ToolCallException('Segment retrieval failed.');
+            throw new McpToolCallException('Segment retrieval failed.');
         }
 
         return $this->normalizeSegmentSummaryRows(
@@ -82,7 +82,7 @@ final class SegmentSummaryQueryService implements SegmentSummaryQueryServiceInte
         string $context,
     ): array {
         if (!is_array($segments)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         $result = [];

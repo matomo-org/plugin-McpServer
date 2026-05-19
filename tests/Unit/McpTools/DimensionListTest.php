@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\DimensionList;
@@ -68,11 +68,11 @@ class DimensionListTest extends TestCase
         $wrapper = new class () implements DimensionSummaryQueryServiceInterface {
             public function getDimensionSummariesForSite(int $idSite): array
             {
-                throw new ToolCallException("Dimension list item is incomplete (missing 'name').");
+                throw new McpToolCallException("Dimension list item is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension list item is incomplete (missing 'name').");
 
         (new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
@@ -87,7 +87,7 @@ class DimensionListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new DimensionList(
@@ -113,7 +113,7 @@ class DimensionListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(1, cursor: $cursor, sort: DimensionsPagination::SORT_NAME_ASC);
@@ -136,7 +136,7 @@ class DimensionListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(2, cursor: $cursor, sort: DimensionsPagination::SORT_ID_ASC);

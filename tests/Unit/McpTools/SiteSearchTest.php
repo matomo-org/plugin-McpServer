@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
@@ -71,11 +71,11 @@ class SiteSearchTest extends TestCase
 
             public function getSiteSummariesForSearch(string $search): array
             {
-                throw new ToolCallException("Site search item is incomplete (missing 'main_url').");
+                throw new McpToolCallException("Site search item is incomplete (missing 'main_url').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site search item is incomplete (missing 'main_url').");
 
         (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute('site');
@@ -95,7 +95,7 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new SiteSearch(
@@ -126,7 +126,7 @@ class SiteSearchTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
@@ -154,7 +154,7 @@ class SiteSearchTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute('beta', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
@@ -188,7 +188,7 @@ class SiteSearchTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $searchTool->execute('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);

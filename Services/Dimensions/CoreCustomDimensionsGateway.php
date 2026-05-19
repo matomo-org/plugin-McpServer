@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
@@ -43,7 +43,7 @@ final class CoreCustomDimensionsGateway implements CoreCustomDimensionsGatewayIn
     private function normalizeRows(mixed $rows, string $invalidDataMessage): array
     {
         if (!is_array($rows)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         if (!array_is_list($rows)) {

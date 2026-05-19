@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentSummaryQueryService;
@@ -36,7 +36,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
 
         $service = new SegmentSummaryQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('SegmentEditor plugin is not available.');
         $service->getSegmentSummariesForSite(9);
     }
@@ -47,7 +47,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidSegmentSummaryData();
         unset($data['definition']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Segment list item is incomplete (missing 'definition').");
 
         $service->normalizeSegmentSummaryData($data, 'Segment list item');
@@ -59,7 +59,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidSegmentSummaryData();
         $data['name'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Segment list item is incomplete (missing 'name').");
 
         $service->normalizeSegmentSummaryData($data, 'Segment list item');
@@ -84,7 +84,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment list data is invalid.');
 
         $service->normalizeSegmentSummaryRows(
@@ -98,7 +98,7 @@ class SegmentSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment list data is invalid.');
 
         $service->normalizeSegmentSummaryRows(

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalList;
@@ -78,11 +78,11 @@ class GoalListTest extends TestCase
         $wrapper = new class () implements GoalSummaryQueryServiceInterface {
             public function getGoalSummariesForSite(int $idSite): array
             {
-                throw new ToolCallException("Goal list item is incomplete (missing 'name').");
+                throw new McpToolCallException("Goal list item is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal list item is incomplete (missing 'name').");
 
         (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
@@ -97,7 +97,7 @@ class GoalListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new GoalList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))
@@ -121,7 +121,7 @@ class GoalListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(1, cursor: $cursor, sort: GoalsPagination::SORT_NAME_ASC);
@@ -144,7 +144,7 @@ class GoalListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(2, cursor: $cursor, sort: GoalsPagination::SORT_ID_ASC);

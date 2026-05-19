@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Api;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\DataTable\DataTableInterface;
 use Piwik\DataTable\Renderer\Json;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\CoreApiCallGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
@@ -50,9 +50,9 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
         try {
             $result = $this->coreApiCallGateway->call($resolvedMethod->method, $sanitizedParameters);
         } catch (AccessDeniedLikeException) {
-            throw new ToolCallException('No access to API method.');
+            throw new McpToolCallException('No access to API method.');
         } catch (CoreApiRequestException $e) {
-            throw new ToolCallException($this->buildFailureMessage($e));
+            throw new McpToolCallException($this->buildFailureMessage($e));
         }
 
         return new ApiCallRecord(
@@ -71,7 +71,7 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
 
         foreach ($parameters as $key => $_value) {
             if (isset(self::RESERVED_PARAMETER_KEYS[strtolower($key)])) {
-                throw new ToolCallException("Unsupported parameters key '{$key}'.");
+                throw new McpToolCallException("Unsupported parameters key '{$key}'.");
             }
         }
 
@@ -92,7 +92,7 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
 
                 return json_decode($json, true, 512, JSON_THROW_ON_ERROR);
             } catch (\Throwable) {
-                throw new ToolCallException($context . ' is invalid.');
+                throw new McpToolCallException($context . ' is invalid.');
             }
         }
 
@@ -109,7 +109,7 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
             $encoded = json_encode($value, JSON_THROW_ON_ERROR);
             return json_decode($encoded, true, 512, JSON_THROW_ON_ERROR);
         } catch (\Throwable) {
-            throw new ToolCallException($context . ' is invalid.');
+            throw new McpToolCallException($context . ' is invalid.');
         }
     }
 

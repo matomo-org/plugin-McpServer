@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\CustomDimensions\API as CustomDimensionsApi;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Dimensions\CoreCustomDimensionsGateway;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
@@ -59,7 +59,7 @@ class CoreCustomDimensionsGatewayTest extends TestCase
 
         $gateway = new CoreCustomDimensionsGateway();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Custom dimensions data is invalid.');
         $gateway->getConfiguredCustomDimensions(7);
     }
@@ -77,7 +77,7 @@ class CoreCustomDimensionsGatewayTest extends TestCase
 
         $gateway = new CoreCustomDimensionsGateway();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Custom dimensions data is invalid.');
         $gateway->getConfiguredCustomDimensions(7);
     }

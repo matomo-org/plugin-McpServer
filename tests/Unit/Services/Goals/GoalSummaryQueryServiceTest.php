@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalSummaryQueryService;
@@ -36,7 +36,7 @@ class GoalSummaryQueryServiceTest extends TestCase
 
         $service = new GoalSummaryQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goals plugin is not available.');
         $service->getGoalSummariesForSite(5);
     }
@@ -47,7 +47,7 @@ class GoalSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidGoalSummaryData();
         unset($data['name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal list item is incomplete (missing 'name').");
 
         $service->normalizeGoalSummaryData($data, 'Goal list item');
@@ -59,7 +59,7 @@ class GoalSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidGoalSummaryData();
         $data['match_attribute'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal list item is incomplete (missing 'match_attribute').");
 
         $service->normalizeGoalSummaryData($data, 'Goal list item');
@@ -98,7 +98,7 @@ class GoalSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goal list data is invalid.');
 
         $service->normalizeGoalSummaryRows(
@@ -112,7 +112,7 @@ class GoalSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goal list data is invalid.');
 
         $service->normalizeGoalSummaryRows(

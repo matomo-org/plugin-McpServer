@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SegmentList;
@@ -60,11 +60,11 @@ class SegmentListTest extends TestCase
         $wrapper = new class () implements SegmentSummaryQueryServiceInterface {
             public function getSegmentSummariesForSite(int $idSite): array
             {
-                throw new ToolCallException("Segment list item is incomplete (missing 'definition').");
+                throw new McpToolCallException("Segment list item is incomplete (missing 'definition').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Segment list item is incomplete (missing 'definition').");
 
         (new SegmentList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
@@ -79,7 +79,7 @@ class SegmentListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new SegmentList(
@@ -105,7 +105,7 @@ class SegmentListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(1, cursor: $cursor, sort: SegmentsPagination::SORT_NAME_ASC);
@@ -128,7 +128,7 @@ class SegmentListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(2, cursor: $cursor, sort: SegmentsPagination::SORT_ID_ASC);

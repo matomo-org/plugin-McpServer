@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionSummaryQueryService;
@@ -36,7 +36,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
 
         $service = new DimensionSummaryQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('CustomDimensions plugin is not available.');
         $service->getDimensionSummariesForSite(7);
     }
@@ -47,7 +47,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidDimensionSummaryData();
         unset($data['scope']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension list item is incomplete (missing 'scope').");
 
         $service->normalizeDimensionSummaryData($data, 'Dimension list item');
@@ -59,7 +59,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidDimensionSummaryData();
         $data['name'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension list item is incomplete (missing 'name').");
 
         $service->normalizeDimensionSummaryData($data, 'Dimension list item');
@@ -102,7 +102,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Dimension list data is invalid.');
 
         $service->normalizeDimensionSummaryRows(
@@ -116,7 +116,7 @@ class DimensionSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Dimension list data is invalid.');
 
         $service->normalizeDimensionSummaryRows(

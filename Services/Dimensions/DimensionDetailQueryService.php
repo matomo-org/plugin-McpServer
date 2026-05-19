@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Dimensions;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
@@ -31,7 +31,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
     public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
     {
         if (!$this->pluginCapabilityGateway->isPluginActivated('CustomDimensions')) {
-            throw new ToolCallException('CustomDimensions plugin is not available.');
+            throw new McpToolCallException('CustomDimensions plugin is not available.');
         }
 
         try {
@@ -61,7 +61,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
             return $this->normalizeDimensionDetailData($dimensionData, 'Dimension data');
         }
 
-        throw new ToolCallException('Dimension not found.');
+        throw new McpToolCallException('Dimension not found.');
     }
 
     /**
@@ -89,7 +89,7 @@ final class DimensionDetailQueryService implements DimensionDetailQueryServiceIn
     private function normalizeExtractions(mixed $extractions, string $context): array
     {
         if (!is_array($extractions)) {
-            throw new ToolCallException("{$context} is invalid (field 'extractions').");
+            throw new McpToolCallException("{$context} is invalid (field 'extractions').");
         }
 
         $result = [];

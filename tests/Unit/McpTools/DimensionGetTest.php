@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\DimensionGet;
@@ -91,11 +91,11 @@ class DimensionGetTest extends TestCase
         $wrapper = new class () implements DimensionDetailQueryServiceInterface {
             public function getDimensionDetailForSite(int $idSite, int $idDimension): DimensionDetailRecord
             {
-                throw new ToolCallException("Dimension data is incomplete (missing 'name').");
+                throw new McpToolCallException("Dimension data is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension data is incomplete (missing 'name').");
 
         (new DimensionGet($wrapper))->execute(4, 7);

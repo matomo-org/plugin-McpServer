@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Goals\GoalDetailQueryService;
@@ -36,7 +36,7 @@ class GoalDetailQueryServiceTest extends TestCase
 
         $service = new GoalDetailQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Goals plugin is not available.');
         $service->getGoalDetailForSite(5, 3);
     }
@@ -47,7 +47,7 @@ class GoalDetailQueryServiceTest extends TestCase
         $data = $this->makeValidGoalDetailData();
         unset($data['name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'name').");
 
         $service->normalizeGoalDetailData($data, 'Goal data');
@@ -59,7 +59,7 @@ class GoalDetailQueryServiceTest extends TestCase
         $data = $this->makeValidGoalDetailData();
         $data['case_sensitive'] = 'invalid';
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is invalid (field 'case_sensitive').");
 
         $service->normalizeGoalDetailData($data, 'Goal data');
@@ -117,7 +117,7 @@ class GoalDetailQueryServiceTest extends TestCase
         $data = $this->makeValidGoalDetailData();
         unset($data['pattern']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'pattern').");
 
         $service->normalizeGoalDetailData($data, 'Goal data');

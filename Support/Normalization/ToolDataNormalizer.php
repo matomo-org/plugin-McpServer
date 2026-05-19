@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Normalization;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 
 final class ToolDataNormalizer
 {
@@ -21,12 +21,12 @@ final class ToolDataNormalizer
     public static function requireStringKeyedArray(mixed $value, string $context): array
     {
         if (!is_array($value)) {
-            throw new ToolCallException(self::invalidMessage($context));
+            throw new McpToolCallException(self::invalidMessage($context));
         }
 
         foreach (array_keys($value) as $key) {
             if (!is_string($key)) {
-                throw new ToolCallException(self::invalidMessage($context));
+                throw new McpToolCallException(self::invalidMessage($context));
             }
         }
 
@@ -40,7 +40,7 @@ final class ToolDataNormalizer
     public static function requireStringKeyedArrayOrEmptyList(mixed $value, string $context): array
     {
         if (!is_array($value)) {
-            throw new ToolCallException(self::invalidMessage($context));
+            throw new McpToolCallException(self::invalidMessage($context));
         }
 
         if ($value === []) {
@@ -72,7 +72,7 @@ final class ToolDataNormalizer
     {
         $value = self::requirePresentField($data, $field, $context);
         if (!is_string($value)) {
-            throw new ToolCallException("{$context} is invalid (field '{$field}').");
+            throw new McpToolCallException("{$context} is invalid (field '{$field}').");
         }
 
         return $value;
@@ -92,7 +92,7 @@ final class ToolDataNormalizer
             return (int) $value;
         }
 
-        throw new ToolCallException("{$context} is invalid (field '{$field}').");
+        throw new McpToolCallException("{$context} is invalid (field '{$field}').");
     }
 
     /**
@@ -109,7 +109,7 @@ final class ToolDataNormalizer
             return (bool) $value;
         }
 
-        throw new ToolCallException("{$context} is invalid (field '{$field}').");
+        throw new McpToolCallException("{$context} is invalid (field '{$field}').");
     }
 
     /**
@@ -118,7 +118,7 @@ final class ToolDataNormalizer
     private static function requirePresentField(array $data, string $field, string $context): mixed
     {
         if (!array_key_exists($field, $data) || $data[$field] === null) {
-            throw new ToolCallException("{$context} is incomplete (missing '{$field}').");
+            throw new McpToolCallException("{$context} is incomplete (missing '{$field}').");
         }
 
         return $data[$field];

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
@@ -31,7 +31,7 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
     public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
     {
         if (!$this->pluginCapabilityGateway->isPluginActivated('Goals')) {
-            throw new ToolCallException('Goals plugin is not available.');
+            throw new McpToolCallException('Goals plugin is not available.');
         }
 
         try {
@@ -41,7 +41,7 @@ final class GoalDetailQueryService implements GoalDetailQueryServiceInterface
                 $e,
                 'Goal not found.',
                 'Goal retrieval failed.',
-                static fn(\Throwable $error): bool => $error instanceof ToolCallException
+                static fn(\Throwable $error): bool => $error instanceof McpToolCallException
                     || ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
             );
         }

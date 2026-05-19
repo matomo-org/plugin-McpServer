@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\CoreGoalsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
@@ -33,7 +33,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
     public function getGoalSummariesForSite(int $idSite): array
     {
         if (!$this->pluginCapabilityGateway->isPluginActivated('Goals')) {
-            throw new ToolCallException('Goals plugin is not available.');
+            throw new McpToolCallException('Goals plugin is not available.');
         }
 
         try {
@@ -44,7 +44,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
                 return [];
             }
 
-            throw new ToolCallException('Goal retrieval failed.');
+            throw new McpToolCallException('Goal retrieval failed.');
         }
 
         return $this->normalizeGoalSummaryRows(
@@ -84,7 +84,7 @@ final class GoalSummaryQueryService implements GoalSummaryQueryServiceInterface
         string $context,
     ): array {
         if (!is_array($goals)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         $result = [];

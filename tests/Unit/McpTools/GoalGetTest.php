@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
@@ -100,11 +100,11 @@ class GoalGetTest extends TestCase
         $wrapper = new class () implements GoalDetailQueryServiceInterface {
             public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
             {
-                throw new ToolCallException("Goal data is incomplete (missing 'name').");
+                throw new McpToolCallException("Goal data is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'name').");
 
         (new GoalGet($wrapper))->execute(4, 7);

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportList;
@@ -92,11 +92,11 @@ class ReportListTest extends TestCase
         $wrapper = new class () implements ReportSummaryQueryServiceInterface {
             public function getReportSummariesForSite(int $idSite): array
             {
-                throw new ToolCallException("Report list item is incomplete (missing 'name').");
+                throw new McpToolCallException("Report list item is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is incomplete (missing 'name').");
 
         (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
@@ -111,7 +111,7 @@ class ReportListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))
@@ -149,7 +149,7 @@ class ReportListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(1, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
@@ -186,7 +186,7 @@ class ReportListTest extends TestCase
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(2, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
@@ -171,7 +171,7 @@ class ApiListTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(cursor: 'invalid');
@@ -235,7 +235,7 @@ class ApiListTest extends TestCase
         self::assertIsString($cursor);
 
         $rawApiAccessMode = 'full';
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC);
     }
@@ -252,7 +252,7 @@ class ApiListTest extends TestCase
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'add');
     }
@@ -269,7 +269,7 @@ class ApiListTest extends TestCase
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'create');
     }
@@ -286,7 +286,7 @@ class ApiListTest extends TestCase
         $cursor = $firstPage['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
         $tool->execute(limit: 1, cursor: $cursor, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'SitesManager');
     }

@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Pagination;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 
 final class CursorPaginator
 {
@@ -29,13 +29,13 @@ final class CursorPaginator
     {
         $limit = $request->limit ?? $config->defaultLimit;
         if ($limit < 1 || $limit > $config->maxLimit) {
-            throw new ToolCallException("Parameter 'limit' missing or invalid.");
+            throw new McpToolCallException("Parameter 'limit' missing or invalid.");
         }
 
         $sortToken = $request->sortToken ?? $config->defaultSortToken;
         $sortSpec = $config->getSortSpec($sortToken);
         if ($sortSpec === null) {
-            throw new ToolCallException("Parameter 'sort' missing or invalid.");
+            throw new McpToolCallException("Parameter 'sort' missing or invalid.");
         }
 
         $rows = $items;
@@ -89,26 +89,26 @@ final class CursorPaginator
     {
         $decoded = base64_decode($cursor, true);
         if ($decoded === false) {
-            throw new ToolCallException('Invalid cursor.');
+            throw new McpToolCallException('Invalid cursor.');
         }
 
         $payload = json_decode($decoded, true);
         if (!is_array($payload)) {
-            throw new ToolCallException('Invalid cursor.');
+            throw new McpToolCallException('Invalid cursor.');
         }
         if (($payload['v'] ?? null) !== 1) {
-            throw new ToolCallException('Invalid cursor.');
+            throw new McpToolCallException('Invalid cursor.');
         }
         if (($payload['sort'] ?? null) !== $sortSpec->token) {
-            throw new ToolCallException('Invalid cursor.');
+            throw new McpToolCallException('Invalid cursor.');
         }
         if (!isset($payload['last']) || !is_array($payload['last'])) {
-            throw new ToolCallException('Invalid cursor.');
+            throw new McpToolCallException('Invalid cursor.');
         }
         if ($cursorContext !== null) {
             $context = $payload['ctx'] ?? null;
             if (!is_string($context) || $context !== $cursorContext) {
-                throw new ToolCallException('Invalid cursor.');
+                throw new McpToolCallException('Invalid cursor.');
             }
         }
 
@@ -116,7 +116,7 @@ final class CursorPaginator
         foreach ($sortSpec->keyChain() as $keySpec) {
             $value = $payload['last'][$keySpec->key] ?? null;
             if ($value === null) {
-                throw new ToolCallException('Invalid cursor.');
+                throw new McpToolCallException('Invalid cursor.');
             }
 
             if ($keySpec->type === KeySpec::TYPE_INT) {
@@ -129,11 +129,11 @@ final class CursorPaginator
                     continue;
                 }
 
-                throw new ToolCallException('Invalid cursor.');
+                throw new McpToolCallException('Invalid cursor.');
             }
 
             if (!is_string($value)) {
-                throw new ToolCallException('Invalid cursor.');
+                throw new McpToolCallException('Invalid cursor.');
             }
             $last[$keySpec->key] = $value;
         }
@@ -216,7 +216,7 @@ final class CursorPaginator
     private function readRowValue(array $row, KeySpec $keySpec, string $context): int|string
     {
         if (!array_key_exists($keySpec->key, $row) || $row[$keySpec->key] === null) {
-            throw new ToolCallException("{$context} is incomplete (missing '{$keySpec->key}').");
+            throw new McpToolCallException("{$context} is incomplete (missing '{$keySpec->key}').");
         }
         $value = $row[$keySpec->key];
 
@@ -228,11 +228,11 @@ final class CursorPaginator
                 return (int) $value;
             }
 
-            throw new ToolCallException("{$context} is invalid (field '{$keySpec->key}').");
+            throw new McpToolCallException("{$context} is invalid (field '{$keySpec->key}').");
         }
 
         if (!is_string($value)) {
-            throw new ToolCallException("{$context} is invalid (field '{$keySpec->key}').");
+            throw new McpToolCallException("{$context} is invalid (field '{$keySpec->key}').");
         }
 
         return $value;
