@@ -3,6 +3,7 @@
 ### Unreleased
 
 - Updated `mcp/sdk` to 0.5.
+- Surfaced nested SegmentEditor validation messages through MCP tool errors instead of collapsing them to the generic failure message.
 
 ### 5.0.3
 

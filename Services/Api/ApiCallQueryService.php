@@ -178,9 +178,6 @@ final class ApiCallQueryService implements ApiCallQueryServiceInterface
 
             // Filesystem path leakage.
             "wasn't found in ",
-
-            // SegmentEditor wraps nested parser/validator exception text verbatim.
-            'the specified segment is invalid:',
         ];
 
         foreach ($unsafeFragments as $fragment) {
