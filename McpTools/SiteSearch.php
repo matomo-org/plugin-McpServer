@@ -16,7 +16,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
-use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteToolSchemas;
 use Piwik\Plugins\McpServer\Support\Pagination\SitesPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -80,7 +80,7 @@ class SiteSearch extends McpTool
             'required' => ['search'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = SiteSummaryToolOutputSchema::PAGINATED_LIST;
+        $this->outputSchema = SiteToolSchemas::PAGINATED_LIST;
     }
 
     /**

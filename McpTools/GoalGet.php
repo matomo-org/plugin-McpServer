@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
-use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Goals\GoalToolSchemas;
 
 /**
  * @phpstan-import-type GoalDetailArray from GoalDetailRecord
@@ -59,7 +59,7 @@ class GoalGet extends McpTool
             'required' => ['idSite', 'idGoal'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = GoalDetailToolOutputSchema::ITEM;
+        $this->outputSchema = GoalToolSchemas::DETAIL;
     }
 
     /**

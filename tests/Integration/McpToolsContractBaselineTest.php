@@ -31,17 +31,13 @@ use Piwik\Plugins\McpServer\McpTools\SiteList;
 use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiMethodSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Goals\GoalDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionToolSchemas;
+use Piwik\Plugins\McpServer\Schemas\Goals\GoalToolSchemas;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
-use Piwik\Plugins\McpServer\Schemas\Sites\SiteSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteToolSchemas;
 use Piwik\Plugins\McpServer\tests\Framework\ContractShapeAssert;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Plugins\SegmentEditor\API as SegmentEditorApi;
@@ -307,38 +303,38 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
     public static function provideSuccessCases(): array
     {
         return [
-            'site_get' => [SiteGet::TOOL_NAME, 'siteGetSuccessArguments', SiteDetailToolOutputSchema::ITEM],
+            'site_get' => [SiteGet::TOOL_NAME, 'siteGetSuccessArguments', SiteToolSchemas::DETAIL],
             'site_list' => [
                 SiteList::TOOL_NAME,
                 'siteListSuccessArguments',
-                SiteSummaryToolOutputSchema::PAGINATED_LIST,
+                SiteToolSchemas::PAGINATED_LIST,
             ],
             'site_search' => [
                 SiteSearch::TOOL_NAME,
                 'siteSearchSuccessArguments',
-                SiteSummaryToolOutputSchema::PAGINATED_LIST,
+                SiteToolSchemas::PAGINATED_LIST,
             ],
-            'segment_get' => [SegmentGet::TOOL_NAME, 'segmentGetSuccessArguments', SegmentDetailToolOutputSchema::ITEM],
+            'segment_get' => [SegmentGet::TOOL_NAME, 'segmentGetSuccessArguments', SegmentToolSchemas::DETAIL],
             'segment_list' => [
                 SegmentList::TOOL_NAME,
                 'segmentListSuccessArguments',
-                SegmentSummaryToolOutputSchema::PAGINATED_LIST,
+                SegmentToolSchemas::PAGINATED_LIST,
             ],
             'dimension_get' => [
                 DimensionGet::TOOL_NAME,
                 'dimensionGetSuccessArguments',
-                DimensionDetailToolOutputSchema::ITEM,
+                DimensionToolSchemas::DETAIL,
             ],
             'dimension_list' => [
                 DimensionList::TOOL_NAME,
                 'dimensionListSuccessArguments',
-                DimensionSummaryToolOutputSchema::PAGINATED_LIST,
+                DimensionToolSchemas::PAGINATED_LIST,
             ],
-            'goal_get' => [GoalGet::TOOL_NAME, 'goalGetSuccessArguments', GoalDetailToolOutputSchema::ITEM],
+            'goal_get' => [GoalGet::TOOL_NAME, 'goalGetSuccessArguments', GoalToolSchemas::DETAIL],
             'goal_list' => [
                 GoalList::TOOL_NAME,
                 'goalListSuccessArguments',
-                GoalSummaryToolOutputSchema::PAGINATED_LIST,
+                GoalToolSchemas::PAGINATED_LIST,
             ],
             'report_list' => [
                 ReportList::TOOL_NAME,

@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
-use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionToolSchemas;
 use Piwik\Plugins\McpServer\Support\Pagination\DimensionsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -78,7 +78,7 @@ class DimensionList extends McpTool
             'required' => ['idSite'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = DimensionSummaryToolOutputSchema::PAGINATED_LIST;
+        $this->outputSchema = DimensionToolSchemas::PAGINATED_LIST;
     }
 
     /**

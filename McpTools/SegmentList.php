@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
-use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -78,7 +78,7 @@ class SegmentList extends McpTool
             'required' => ['idSite'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = SegmentSummaryToolOutputSchema::PAGINATED_LIST;
+        $this->outputSchema = SegmentToolSchemas::PAGINATED_LIST;
     }
 
     /**

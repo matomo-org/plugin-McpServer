@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
-use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionToolSchemas;
 
 /**
  * @phpstan-import-type DimensionDetailArray from DimensionDetailRecord
@@ -58,7 +58,7 @@ class DimensionGet extends McpTool
             'required' => ['idSite', 'idDimension'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = DimensionDetailToolOutputSchema::ITEM;
+        $this->outputSchema = DimensionToolSchemas::DETAIL;
     }
 
     /**

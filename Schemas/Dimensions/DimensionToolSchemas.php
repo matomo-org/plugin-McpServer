@@ -11,8 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Schemas\Dimensions;
 
-final class DimensionDetailToolOutputSchema
+final class DimensionToolSchemas
 {
+    /** Nested extraction rule referenced from DETAIL. */
     public const EXTRACTION_ITEM = [
         'type' => 'object',
         'properties' => [
@@ -23,7 +24,8 @@ final class DimensionDetailToolOutputSchema
         'additionalProperties' => false,
     ];
 
-    public const ITEM = [
+    /** Single custom dimension with full configuration metadata (matomo_dimension_get). */
+    public const DETAIL = [
         'type' => 'object',
         'properties' => [
             'iddimension' => ['type' => 'integer'],
@@ -48,6 +50,34 @@ final class DimensionDetailToolOutputSchema
             'case_sensitive',
             'extractions',
         ],
+        'additionalProperties' => false,
+    ];
+
+    /** Compact dimension row used inside paginated listings (matomo_dimension_list). */
+    public const SUMMARY = [
+        'type' => 'object',
+        'properties' => [
+            'iddimension' => ['type' => 'integer'],
+            'name' => ['type' => 'string'],
+            'scope' => ['type' => 'string'],
+        ],
+        'required' => ['iddimension', 'name', 'scope'],
+        'additionalProperties' => false,
+    ];
+
+    /** Paginated envelope around SUMMARY rows. */
+    public const PAGINATED_LIST = [
+        'type' => 'object',
+        'properties' => [
+            'dimensions' => [
+                'type' => 'array',
+                'items' => self::SUMMARY,
+            ],
+            'next_cursor' => ['type' => ['string', 'null']],
+            'has_more' => ['type' => 'boolean'],
+            'total_rows' => ['type' => 'integer'],
+        ],
+        'required' => ['dimensions', 'next_cursor', 'has_more', 'total_rows'],
         'additionalProperties' => false,
     ];
 }

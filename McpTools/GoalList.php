@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
-use Piwik\Plugins\McpServer\Schemas\Goals\GoalSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Goals\GoalToolSchemas;
 use Piwik\Plugins\McpServer\Support\Pagination\GoalsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -78,7 +78,7 @@ class GoalList extends McpTool
             'required' => ['idSite'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = GoalSummaryToolOutputSchema::PAGINATED_LIST;
+        $this->outputSchema = GoalToolSchemas::PAGINATED_LIST;
     }
 
     /**

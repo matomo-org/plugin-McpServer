@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteDetailRecord;
-use Piwik\Plugins\McpServer\Schemas\Sites\SiteDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Sites\SiteToolSchemas;
 
 /**
  * @phpstan-import-type SiteDetailArray from SiteDetailRecord
@@ -55,7 +55,7 @@ class SiteGet extends McpTool
             'required' => ['idSite'],
             'additionalProperties' => false,
         ];
-        $this->outputSchema = SiteDetailToolOutputSchema::ITEM;
+        $this->outputSchema = SiteToolSchemas::DETAIL;
     }
 
     /**

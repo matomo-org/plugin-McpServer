@@ -15,7 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
-use Piwik\Plugins\McpServer\Schemas\Segments\SegmentDetailToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
 
 /**
  * @phpstan-import-type SegmentDetailArray from SegmentDetailRecord
@@ -72,7 +72,7 @@ class SegmentGet extends McpTool
             'maxProperties' => 2,
             'additionalProperties' => false,
         ];
-        $this->outputSchema = SegmentDetailToolOutputSchema::ITEM;
+        $this->outputSchema = SegmentToolSchemas::DETAIL;
     }
 
     /**
