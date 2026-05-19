@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
@@ -41,7 +41,7 @@ class ReportList extends McpTool
             . "for a site, including subtable reports.\n"
             . "Purpose: return paginated report metadata for idSite.\n"
             . "Next: choose reportUniqueId or module/action/parameters and call Matomo reporting APIs.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

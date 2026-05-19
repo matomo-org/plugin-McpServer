@@ -11,9 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteToolSchemas;
@@ -42,7 +41,7 @@ class SiteSearch extends McpTool
             . "Purpose: find matching Matomo sites and return candidate idSite values.\n"
             . "Notes: may return multiple matches; results are ordered by sort (default name_asc).\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) with the chosen idSite.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
@@ -99,7 +98,7 @@ class SiteSearch extends McpTool
     ): array {
         $search = trim($search);
         if ($search === '') {
-            throw new ToolCallException("Parameter 'search' missing or invalid.");
+            $this->fail("Parameter 'search' missing or invalid.");
         }
 
         $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['search' => $search]);

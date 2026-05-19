@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiGetToolInputSchema;
@@ -40,7 +40,7 @@ class ApiGet extends McpTool
         $this->description = "Use when: you already know the Matomo API method name and need its exact signature.\n"
             . "Purpose: return one authoritative API method summary with parameter metadata.\n"
             . "Do not use: for broad discovery across APIs; use " . ApiList::TOOL_NAME . ' instead.';
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

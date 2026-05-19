@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionToolSchemas;
@@ -35,7 +35,7 @@ class DimensionGet extends McpTool
         $this->description = "Use when: idSite and idDimension are known.\n"
             . "Purpose: fetch authoritative details for exactly one configured custom dimension.\n"
             . "Do not use: if dimension id is unknown—discover candidates first.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

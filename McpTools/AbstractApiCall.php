@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
@@ -56,7 +55,7 @@ abstract class AbstractApiCall extends McpTool
             $expectedOperationCategory !== null
             && $resolvedMethod->operationCategory !== $expectedOperationCategory
         ) {
-            throw new ToolCallException(self::UNAVAILABLE_MESSAGE);
+            $this->fail(self::UNAVAILABLE_MESSAGE);
         }
 
         return $this->queryService->callApi(

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
@@ -35,7 +35,7 @@ class SegmentGet extends McpTool
         $this->description = "Use when: you need details for one saved segment.\n"
             . "Purpose: resolve a segment by idSegment, exact name, or exact definition within idSite scope.\n"
             . "Next: use the returned definition in analytics/report API calls.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

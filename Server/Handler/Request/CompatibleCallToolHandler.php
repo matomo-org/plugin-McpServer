@@ -24,6 +24,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
 use Psr\Log\LoggerInterface;
@@ -120,7 +121,7 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
             ]);
 
             return new Response($request->getId(), $result);
-        } catch (ToolCallException $e) {
+        } catch (ToolCallException | McpToolCallException $e) {
             $this->logger->error(
                 sprintf('Error while executing tool "%s": "%s".', $toolName, $e->getMessage()),
                 ['tool' => $toolName, 'arguments' => $rawArguments],

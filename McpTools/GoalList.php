@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalToolSchemas;
@@ -40,7 +40,7 @@ class GoalList extends McpTool
         $this->description = "Use when: you need reusable configured goals for a specific site.\n"
             . "Purpose: return paginated goal definitions available for idSite.\n"
             . "Next: use the chosen idgoal in goal-specific analytics/report API calls.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

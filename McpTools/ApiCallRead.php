@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolInputSchema;
 use Piwik\Plugins\McpServer\Schemas\Api\ApiCallToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
@@ -28,7 +28,7 @@ class ApiCallRead extends AbstractApiCall
             . "Purpose: call one allowed read method and return its result plus the resolved method metadata.\n"
             . "Next: use " . ApiGet::TOOL_NAME . ' or ' . ApiList::TOOL_NAME
             . ' first if you still need to confirm the method signature.';
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

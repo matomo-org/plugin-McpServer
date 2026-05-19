@@ -13,7 +13,9 @@ namespace Piwik\Plugins\McpServer;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Icon;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
@@ -21,6 +23,8 @@ use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpToolIcon;
 use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
 use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
 use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
@@ -161,11 +165,45 @@ final class McpServerFactory
             name: $tool->getName(),
             title: $tool->getTitle(),
             description: $tool->getDescription(),
-            annotations: $tool->getAnnotations(),
+            annotations: $this->adaptAnnotations($tool->getAnnotations()),
             inputSchema: $tool->getInputSchema(),
-            icons: $tool->getIcons(),
+            icons: $this->adaptIcons($tool->getIcons()),
             meta: $tool->getMeta(),
             outputSchema: $tool->getOutputSchema(),
+        );
+    }
+
+    /**
+     * Translate Matomo-owned annotation hints into the form expected at
+     * tool registration.
+     */
+    private function adaptAnnotations(McpToolAnnotations $annotations): ToolAnnotations
+    {
+        return new ToolAnnotations(
+            readOnlyHint: $annotations->readOnlyHint,
+            destructiveHint: $annotations->destructiveHint,
+            idempotentHint: $annotations->idempotentHint,
+            openWorldHint: $annotations->openWorldHint,
+        );
+    }
+
+    /**
+     * @param list<McpToolIcon>|null $icons
+     * @return list<Icon>|null
+     */
+    private function adaptIcons(?array $icons): ?array
+    {
+        if ($icons === null) {
+            return null;
+        }
+
+        return array_map(
+            static fn(McpToolIcon $icon): Icon => new Icon(
+                src: $icon->src,
+                mimeType: $icon->mimeType,
+                sizes: $icon->sizes,
+            ),
+            $icons,
         );
     }
 

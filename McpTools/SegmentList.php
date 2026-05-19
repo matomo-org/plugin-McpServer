@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
@@ -40,7 +40,7 @@ class SegmentList extends McpTool
         $this->description = "Use when: you need reusable saved segments for a specific site.\n"
             . "Purpose: return paginated saved segment definitions available for idSite.\n"
             . "Next: use the chosen segment definition in analytics/report API calls.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

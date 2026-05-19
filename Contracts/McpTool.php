@@ -11,22 +11,23 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Contracts;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\Icon;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
-
 /**
  * Base class for MCP tools registered by the McpServer plugin.
  *
  * Each subclass represents exactly one MCP tool and MUST define a public
- * execute(...) method whose typed parameters the SDK uses to bind incoming
- * JSON-RPC arguments. The method name is intentionally fixed (no handlerMethod
- * property) because there is no remaining value in per-tool configurability.
+ * execute(...) method. Its typed parameters declare the tool's input shape
+ * and receive the bound JSON-RPC arguments at call time. The method name is
+ * intentionally fixed (no handlerMethod property) because there is no
+ * remaining value in per-tool configurability.
+ *
+ * Subclasses interact only with Matomo-owned types (McpToolAnnotations,
+ * McpToolIcon, the fail() helper).
  */
 abstract class McpTool
 {
     protected string $name;
     protected string $description;
-    protected ToolAnnotations $annotations;
+    protected McpToolAnnotations $annotations;
     protected ?string $title = null;
 
     /** @var array<string, mixed> */
@@ -35,7 +36,7 @@ abstract class McpTool
     /** @var array<string, mixed>|null */
     protected ?array $outputSchema = null;
 
-    /** @var list<Icon>|null */
+    /** @var list<McpToolIcon>|null */
     protected ?array $icons = null;
 
     /** @var array<string, mixed>|null */
@@ -47,7 +48,7 @@ abstract class McpTool
         // initialised. Subclasses MUST overwrite the required ones inside init().
         $this->name = '';
         $this->description = '';
-        $this->annotations = new ToolAnnotations();
+        $this->annotations = new McpToolAnnotations();
         $this->inputSchema = [];
 
         $this->init();
@@ -95,7 +96,7 @@ abstract class McpTool
         return $this->description;
     }
 
-    public function getAnnotations(): ToolAnnotations
+    public function getAnnotations(): McpToolAnnotations
     {
         return $this->annotations;
     }
@@ -122,7 +123,7 @@ abstract class McpTool
     }
 
     /**
-     * @return list<Icon>|null
+     * @return list<McpToolIcon>|null
      */
     public function getIcons(): ?array
     {
@@ -135,5 +136,14 @@ abstract class McpTool
     public function getMeta(): ?array
     {
         return $this->meta;
+    }
+
+    /**
+     * Abort execute() with a structured tool-call error returned to the
+     * MCP client.
+     */
+    protected function fail(string $message): never
+    {
+        throw new McpToolCallException($message);
     }
 }

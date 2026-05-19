@@ -11,9 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportMetadataRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportMetadataToolOutputSchema;
@@ -38,7 +37,7 @@ class ReportMetadata extends McpTool
             . " including subtable reports.\n"
             . "Purpose: resolve one report by reportUniqueId (preferred) or module/action selector.\n"
             . "Next: use the returned metadata and parameters for reporting API calls.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
@@ -166,7 +165,7 @@ class ReportMetadata extends McpTool
                 || $apiAction !== null
                 || ($apiParameters !== null && $apiParameters !== [])
             ) {
-                throw new ToolCallException(
+                $this->fail(
                     'Invalid parameter combination: reportUniqueId cannot be combined '
                     . 'with apiModule, apiAction, or non-empty apiParameters.',
                 );

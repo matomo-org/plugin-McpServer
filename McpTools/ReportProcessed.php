@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
@@ -45,7 +45,7 @@ class ReportProcessed extends McpTool
             . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.";
         // Classify range aggregate materialization as non-mutational for MCP when
         // browser archiving is fully disabled.
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: !Rules::isBrowserArchivingAvailableForSegments()
                 && !Rules::isBrowserTriggerEnabled(),
             destructiveHint: false,

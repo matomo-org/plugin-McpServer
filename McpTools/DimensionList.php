@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\DimensionSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Dimensions\DimensionSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Dimensions\DimensionToolSchemas;
@@ -40,7 +40,7 @@ class DimensionList extends McpTool
         $this->description = "Use when: you need idDimension values for processed report retrieval.\n"
             . "Purpose: return paginated active custom dimensions configured for a specific site.\n"
             . "Next: use the chosen iddimension in analytics/report API calls.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

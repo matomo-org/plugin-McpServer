@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Sites\SiteToolSchemas;
@@ -40,7 +40,7 @@ class SiteList extends McpTool
         $this->description = "Use when: you need to list accessible Matomo sites without a search hint.\n"
             . "Purpose: return paginated site summaries for all sites the user can view.\n"
             . "Next: call " . SiteGet::TOOL_NAME . "(idSite) for full details of one site.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,

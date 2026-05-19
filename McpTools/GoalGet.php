@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\Schemas\Goals\GoalToolSchemas;
@@ -36,7 +36,7 @@ class GoalGet extends McpTool
             . " (from the user or " . GoalList::TOOL_NAME . ").\n"
             . "Purpose: fetch authoritative details for exactly one configured goal.\n"
             . "Do not use: if goal id is unknown—use " . GoalList::TOOL_NAME . " first.";
-        $this->annotations = new ToolAnnotations(
+        $this->annotations = new McpToolAnnotations(
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
