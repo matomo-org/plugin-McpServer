@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\API\Request;
 use Piwik\DataTable\DataTableInterface;
@@ -298,13 +299,13 @@ class ApiCallTest extends IntegrationTestCase
         $this->assertIsDetailedMissingParameterError($result);
     }
 
-    public function testFullModeSuppressesNestedSegmentValidationError(): void
+    public function testFullModeReturnsNestedSegmentValidationError(): void
     {
         McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        McpTestHelper::callToolAndAssertError(
+        $result = McpTestHelper::callToolAndAssertError(
             $server,
             $sessionId,
             ApiCallFull::TOOL_NAME,
@@ -316,8 +317,17 @@ class ApiCallTest extends IntegrationTestCase
                     'idSite' => $this->idSite,
                 ],
             ],
-            'Matomo API request failed.',
+            null,
             __METHOD__,
+        );
+
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        self::assertIsString($content->text);
+        self::assertStringStartsWith(
+            "Matomo API request failed: The specified segment is invalid: "
+            . "Segment 'invalidSegmentDefinition' is not a supported segment.",
+            $content->text,
         );
     }
 
