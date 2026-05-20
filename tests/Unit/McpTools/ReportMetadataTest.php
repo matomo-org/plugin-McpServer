@@ -50,7 +50,7 @@ class ReportMetadataTest extends TestCase
             }
         };
 
-        $actual = (new ReportMetadata($wrapper))->get(idSite: 1, reportUniqueId: 'Actions_getPageUrls');
+        $actual = (new ReportMetadata($wrapper))->execute(idSite: 1, reportUniqueId: 'Actions_getPageUrls');
 
         self::assertSame('Actions_getPageUrls', $actual['uniqueId']);
         self::assertSame('Actions', $actual['module']);
@@ -99,7 +99,7 @@ class ReportMetadataTest extends TestCase
             }
         };
 
-        (new ReportMetadata($wrapper))->get(idSite: 7, apiModule: 'VisitsSummary', apiAction: 'get');
+        (new ReportMetadata($wrapper))->execute(idSite: 7, apiModule: 'VisitsSummary', apiAction: 'get');
 
         self::assertSame(7, $wrapper->captured['idSite']);
         self::assertSame('VisitsSummary', $wrapper->captured['apiModule']);
@@ -142,7 +142,7 @@ class ReportMetadataTest extends TestCase
             }
         };
 
-        $actual = (new ReportMetadata($wrapper))->get(
+        $actual = (new ReportMetadata($wrapper))->execute(
             idSite: 1,
             reportUniqueId: 'Actions_getPageUrls',
             period: 'week',
@@ -187,7 +187,7 @@ class ReportMetadataTest extends TestCase
             }
         };
 
-        $actual = (new ReportMetadata($wrapper))->get(
+        $actual = (new ReportMetadata($wrapper))->execute(
             idSite: 1,
             reportUniqueId: 'Actions_getPageUrls',
             apiParameters: [],
@@ -230,7 +230,7 @@ class ReportMetadataTest extends TestCase
             }
         };
 
-        (new ReportMetadata($wrapper))->get(
+        (new ReportMetadata($wrapper))->execute(
             idSite: 1,
             apiModule: 'Actions',
             apiAction: 'getPageUrls',

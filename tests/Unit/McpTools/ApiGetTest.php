@@ -69,7 +69,7 @@ class ApiGetTest extends TestCase
             $this->createSystemSettingsStub('read'),
         );
 
-        $actual = $tool->get(method: ' API.getMatomoVersion ');
+        $actual = $tool->execute(method: ' API.getMatomoVersion ');
 
         self::assertSame([
             'module' => 'API',
@@ -129,7 +129,7 @@ class ApiGetTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->get(module: ' UsersManager ', action: ' addUser ');
+        $actual = $tool->execute(module: ' UsersManager ', action: ' addUser ');
 
         self::assertSame([
             'module' => 'UsersManager',

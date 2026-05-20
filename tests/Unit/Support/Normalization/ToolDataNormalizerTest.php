@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Normalization;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 
 /**
@@ -23,7 +23,7 @@ class ToolDataNormalizerTest extends TestCase
 {
     public function testRequireStringFieldThrowsWhenMissing(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is incomplete (missing 'name').");
 
         ToolDataNormalizer::requireStringField([], 'name', 'Site data');
@@ -31,7 +31,7 @@ class ToolDataNormalizerTest extends TestCase
 
     public function testRequireIntLikeFieldThrowsWhenInvalid(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is invalid (field 'idsite').");
 
         ToolDataNormalizer::requireIntLikeField(['idsite' => 'abc'], 'idsite', 'Site data');
@@ -56,7 +56,7 @@ class ToolDataNormalizerTest extends TestCase
 
     public function testRequireBoolLikeFieldThrowsWhenInvalid(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site data is invalid (field 'sitesearch').");
 
         ToolDataNormalizer::requireBoolLikeField(['sitesearch' => 'yes'], 'sitesearch', 'Site data');
@@ -69,7 +69,7 @@ class ToolDataNormalizerTest extends TestCase
 
     public function testRequireStringKeyedArrayOrEmptyListRejectsNonEmptyList(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('apiParameters is invalid.');
 
         ToolDataNormalizer::requireStringKeyedArrayOrEmptyList(['flat'], 'apiParameters');

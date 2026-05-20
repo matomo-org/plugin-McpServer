@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Dimensions;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Dimensions\CoreCustomDimensionsGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Dimensions\DimensionDetailQueryService;
@@ -36,7 +36,7 @@ class DimensionDetailQueryServiceTest extends TestCase
 
         $service = new DimensionDetailQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('CustomDimensions plugin is not available.');
         $service->getDimensionDetailForSite(5, 3);
     }
@@ -47,7 +47,7 @@ class DimensionDetailQueryServiceTest extends TestCase
         $data = $this->makeValidDimensionDetailData();
         unset($data['name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension data is incomplete (missing 'name').");
 
         $service->normalizeDimensionDetailData($data, 'Dimension data');
@@ -59,7 +59,7 @@ class DimensionDetailQueryServiceTest extends TestCase
         $data = $this->makeValidDimensionDetailData();
         $data['case_sensitive'] = 'invalid';
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension data is invalid (field 'case_sensitive').");
 
         $service->normalizeDimensionDetailData($data, 'Dimension data');
@@ -94,7 +94,7 @@ class DimensionDetailQueryServiceTest extends TestCase
         $data = $this->makeValidDimensionDetailData();
         $data['extractions'] = ['invalid'];
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Dimension data is invalid (field 'extractions').");
 
         $service->normalizeDimensionDetailData($data, 'Dimension data');

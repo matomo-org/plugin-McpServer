@@ -48,7 +48,7 @@ class SegmentGetTest extends TestCase
             }
         };
 
-        $actual = (new SegmentGet($wrapper))->get(idSite: 2, idSegment: 4);
+        $actual = (new SegmentGet($wrapper))->execute(idSite: 2, idSegment: 4);
 
         self::assertSame([
             'idsegment' => 4,
@@ -97,7 +97,7 @@ class SegmentGetTest extends TestCase
             }
         };
 
-        (new SegmentGet($wrapper))->get(
+        (new SegmentGet($wrapper))->execute(
             idSite: 2,
             idSegment: 8,
             name: '  Segment Name  ',

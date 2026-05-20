@@ -19,6 +19,7 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\Config;
+use Piwik\Container\StaticContainer;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
@@ -29,7 +30,6 @@ use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
-use Psr\Container\ContainerInterface;
 
 /**
  * @group McpServer
@@ -49,6 +49,12 @@ class APITest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
+
+        // mcp() resolves tools via the McpServerFactory's container, which in
+        // createApiWithRequest() is the real StaticContainer; install the
+        // SystemSettings stub up front so tools that depend on it never reach
+        // the un-bootstrapped real plugin settings.
+        McpTestHelper::installSystemSettingsStub();
 
         $originalConfig = Config::getInstance()->McpServer ?? null;
         $this->originalMcpServerConfig = is_array($originalConfig) ? $originalConfig : null;
@@ -412,9 +418,12 @@ class APITest extends TestCase
         return new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
-            $this->createMock(ContainerInterface::class),
+            // Tool resolution now runs through the factory's container, so
+            // happy-path tests need the real StaticContainer here. Tests that
+            // never reach createServer() (guard rejections, auth failures) are
+            // unaffected.
+            StaticContainer::getContainer(),
             new ToolCallParameterFormatter(),
-            $this->createMock(SystemSettings::class),
         );
     }
 

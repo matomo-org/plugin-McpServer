@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Api;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\DocumentationGenerator;
 use Piwik\API\NoDefaultValue;
 use Piwik\API\Proxy;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
@@ -45,7 +45,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
 
         $selectedRecord = $this->findApiMethodSummaryRecord($records, $method, $module, $action);
         if ($selectedRecord === null) {
-            throw new ToolCallException('API method not found or unavailable.');
+            throw new McpToolCallException('API method not found or unavailable.');
         }
 
         return $selectedRecord;

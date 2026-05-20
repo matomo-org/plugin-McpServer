@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
@@ -44,7 +44,7 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $actual = (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->search(
+        $actual = (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             'site',
             limit: 10,
             sort: SitesPagination::SORT_NAME_ASC,
@@ -71,14 +71,14 @@ class SiteSearchTest extends TestCase
 
             public function getSiteSummariesForSearch(string $search): array
             {
-                throw new ToolCallException("Site search item is incomplete (missing 'main_url').");
+                throw new McpToolCallException("Site search item is incomplete (missing 'main_url').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site search item is incomplete (missing 'main_url').");
 
-        (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->search('site');
+        (new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute('site');
     }
 
     public function testSearchRejectsInvalidCursor(): void
@@ -95,13 +95,13 @@ class SiteSearchTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new SiteSearch(
             $wrapper,
             new PaginatedCollectionResponder(new CursorPaginator()),
-        ))->search('site', cursor: 'invalid');
+        ))->execute('site', cursor: 'invalid');
     }
 
     public function testSearchRejectsCursorSortMismatch(): void
@@ -122,14 +122,14 @@ class SiteSearchTest extends TestCase
         };
 
         $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->search('site', limit: 1, sort: SitesPagination::SORT_ID_DESC);
+        $page = $tool->execute('site', limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->search('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $tool->execute('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 
     public function testSearchRejectsCursorSearchMismatch(): void
@@ -150,14 +150,14 @@ class SiteSearchTest extends TestCase
         };
 
         $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->search('alpha', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $page = $tool->execute('alpha', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->search('beta', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $tool->execute('beta', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 
     public function testSearchRejectsCursorFromSiteListContext(): void
@@ -184,13 +184,13 @@ class SiteSearchTest extends TestCase
         $listTool = new SiteList($wrapper, $responder);
         $searchTool = new SiteSearch($wrapper, $responder);
 
-        $page = $listTool->list(limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $page = $listTool->execute(limit: 1, sort: SitesPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $searchTool->search('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $searchTool->execute('site', cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

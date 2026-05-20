@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Segments\CoreSegmentEditorGateway;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 
@@ -51,7 +51,7 @@ class CoreSegmentEditorGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment data is invalid.');
         $gateway->getAll(9);
     }
@@ -67,7 +67,7 @@ class CoreSegmentEditorGatewayTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment data is invalid.');
         $gateway->getAll(9);
     }

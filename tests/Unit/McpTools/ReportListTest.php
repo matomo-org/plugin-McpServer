@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\ReportList;
@@ -52,7 +52,7 @@ class ReportListTest extends TestCase
             }
         };
 
-        $actual = (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+        $actual = (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             1,
             limit: 10,
             sort: ReportsPagination::SORT_CATEGORY_ASC,
@@ -92,14 +92,14 @@ class ReportListTest extends TestCase
         $wrapper = new class () implements ReportSummaryQueryServiceInterface {
             public function getReportSummariesForSite(int $idSite): array
             {
-                throw new ToolCallException("Report list item is incomplete (missing 'name').");
+                throw new McpToolCallException("Report list item is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is incomplete (missing 'name').");
 
-        (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1);
+        (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(1);
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -111,10 +111,11 @@ class ReportListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(1, cursor: 'invalid');
+        (new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))
+            ->execute(1, cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -144,14 +145,14 @@ class ReportListTest extends TestCase
         };
 
         $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: ReportsPagination::SORT_NAME_DESC);
+        $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(1, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
+        $tool->execute(1, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
     }
 
     public function testListRejectsCursorFromDifferentSiteContext(): void
@@ -181,13 +182,13 @@ class ReportListTest extends TestCase
         };
 
         $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC);
+        $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(2, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
+        $tool->execute(2, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
     }
 }

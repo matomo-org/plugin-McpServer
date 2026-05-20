@@ -11,12 +11,12 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\DataTable;
 use Piwik\DataTable\Map;
 use Piwik\DataTable\Row;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\StrictSegmentPolicyServiceInterface;
@@ -43,7 +43,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Unsupported apiParameters key 'method'.");
 
         $service->getProcessedReport(
@@ -69,7 +69,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid apiParameters for reportUniqueId lookup.');
 
         $service->getProcessedReport(
@@ -103,7 +103,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
 
         try {
@@ -141,7 +141,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
 
         try {
@@ -278,7 +278,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid period/date parameters.');
 
         try {
@@ -370,7 +370,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid period/date parameters.');
 
         try {
@@ -600,7 +600,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(
             "Use top-level goal parameters instead of apiParameters key 'filter_update_columns_when_show_all_goals'.",
         );
@@ -628,7 +628,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Invalid goalMetricsMode value 'invalid'.");
 
         $service->getProcessedReport(
@@ -654,7 +654,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("goalMetricsMode 'specific_goal' requires idGoal");
 
         $service->getProcessedReport(
@@ -680,7 +680,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(
             'Invalid goalMetricsProcessGoals value: at least one goal ID is required.',
         );
@@ -936,7 +936,7 @@ class ReportProcessedQueryServiceTest extends TestCase
     {
         $service = $this->makeService($this->makeMetadataWrapper());
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('core ecommerce goal ID');
 
         $service->getProcessedReport(
@@ -986,7 +986,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ): ReportMetadataRecord {
                 $this->calls++;
                 if (array_key_exists('idGoal', $apiParameters)) {
-                    throw new ToolCallException('Unexpected idGoal in primary metadata lookup.');
+                    throw new McpToolCallException('Unexpected idGoal in primary metadata lookup.');
                 }
 
                 return new ReportMetadataRecord(
@@ -1057,7 +1057,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ): ReportMetadataRecord {
                 $this->calls++;
                 if (!array_key_exists('idGoal', $apiParameters)) {
-                    throw new ToolCallException('Report not found.');
+                    throw new McpToolCallException('Report not found.');
                 }
 
                 return new ReportMetadataRecord(
@@ -1118,7 +1118,7 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
 
         try {
-            $this->expectException(ToolCallException::class);
+            $this->expectException(McpToolCallException::class);
             $this->expectExceptionMessage('Report retrieval failed.');
 
             $service->getProcessedReport(
@@ -1152,7 +1152,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report data is invalid.');
 
         $service->getProcessedReport(
@@ -1407,7 +1407,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
 
         $service->getProcessedReport(
@@ -1443,7 +1443,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
 
         $service->getProcessedReport(
@@ -1518,7 +1518,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage(self::STRICT_SEGMENT_ERROR_MESSAGE);
 
         $service->getProcessedReport(
@@ -1564,7 +1564,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $strictSegmentPolicy,
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report retrieval failed.');
 
         try {
@@ -1603,7 +1603,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report not found.');
 
         $service->getProcessedReport(
@@ -1639,7 +1639,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report retrieval failed.');
 
         $service->getProcessedReport(
@@ -1678,7 +1678,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             ),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report retrieval failed.');
 
         $service->getProcessedReport(
@@ -1700,17 +1700,17 @@ class ReportProcessedQueryServiceTest extends TestCase
         );
     }
 
-    public function testDoesNotApplyStrictGuidanceForNonGatewayToolCallException(): void
+    public function testDoesNotApplyStrictGuidanceForNonGatewayMcpToolCallException(): void
     {
         $service = $this->makeService(
             metadataWrapper: $this->makeMetadataWrapper(),
             processedReportCaller: static function (): array {
-                throw new ToolCallException('Original report failure.');
+                throw new McpToolCallException('Original report failure.');
             },
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(true),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Original report failure.');
 
         $service->getProcessedReport(
@@ -1746,7 +1746,7 @@ class ReportProcessedQueryServiceTest extends TestCase
             strictSegmentPolicy: $this->makeStrictSegmentPolicyService(false),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report retrieval failed.');
 
         $service->getProcessedReport(

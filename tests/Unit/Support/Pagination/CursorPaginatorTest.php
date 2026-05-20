@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Pagination;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
@@ -123,7 +123,7 @@ class CursorPaginatorTest extends TestCase
 
     public function testRejectsInvalidSortToken(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Parameter 'sort' missing or invalid.");
 
         (new CursorPaginator())->paginate(
@@ -135,7 +135,7 @@ class CursorPaginatorTest extends TestCase
 
     public function testRejectsInvalidCursor(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         (new CursorPaginator())->paginate(
@@ -157,7 +157,7 @@ class CursorPaginatorTest extends TestCase
         $page = $paginator->paginate($items, new PageRequest(limit: 1, sortToken: 'name_asc'), $config);
         self::assertIsString($page->nextCursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $paginator->paginate(
@@ -217,7 +217,7 @@ class CursorPaginatorTest extends TestCase
         );
         self::assertIsString($firstPage->nextCursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $paginator->paginate(
@@ -248,7 +248,7 @@ class CursorPaginatorTest extends TestCase
         );
         self::assertIsString($legacyPage->nextCursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
         $paginator->paginate(
@@ -265,7 +265,7 @@ class CursorPaginatorTest extends TestCase
 
     public function testRejectsMissingRequiredFieldInRow(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Pagination data is incomplete (missing 'name').");
 
         (new CursorPaginator())->paginate(
@@ -277,7 +277,7 @@ class CursorPaginatorTest extends TestCase
 
     public function testRejectsInvalidLimit(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Parameter 'limit' missing or invalid.");
 
         (new CursorPaginator())->paginate(

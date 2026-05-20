@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiCallQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\ApiMethodSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiCallRecord;
@@ -79,7 +79,7 @@ class ApiCallTest extends TestCase
             $this->createSystemSettingsStub('read'),
         );
 
-        $actual = $tool->call(method: ' API.getMatomoVersion ');
+        $actual = $tool->execute(method: ' API.getMatomoVersion ');
 
         self::assertSame([
             'result' => '6.0.0',
@@ -146,7 +146,7 @@ class ApiCallTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $actual = $tool->call(
+        $actual = $tool->execute(
             module: ' UsersManager ',
             action: ' addUser ',
             parameters: ['userLogin' => 'alice'],
@@ -176,10 +176,10 @@ class ApiCallTest extends TestCase
             $this->createSystemSettingsStub('full'),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('API method not found or unavailable.');
 
-        $tool->call(method: 'UsersManager.addUser');
+        $tool->execute(method: 'UsersManager.addUser');
     }
 
     private function createMethodSummaryQueryServiceStub(

@@ -13,7 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Server\Handler\Request;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException as SdkToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
@@ -26,6 +26,7 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\Session;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use PHPUnit\Framework\TestCase;
 use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
@@ -174,7 +175,7 @@ class ObservedCallToolHandlerTest extends TestCase
                 'required' => [],
             ]),
             static function (): void {
-                throw new ToolCallException('Tool execution failed');
+                throw new McpToolCallException('Tool execution failed');
             },
         );
 
@@ -287,8 +288,14 @@ class ObservedCallToolHandlerTest extends TestCase
                     'properties' => ['id' => ['type' => 'integer']],
                     'required' => [],
                 ]),
-                'callback' => static function (): void {
-                    throw new ToolCallException('Tool execution failed');
+                // Each handler can only catch its native tool-call exception type;
+                // throwing the matching type into each path is what proves the
+                // wrapper still produces the same wire payload as the SDK.
+                'observedCallback' => static function (): void {
+                    throw new McpToolCallException('Tool execution failed');
+                },
+                'sdkCallback' => static function (): void {
+                    throw new SdkToolCallException('Tool execution failed');
                 },
             ],
             [
@@ -308,9 +315,14 @@ class ObservedCallToolHandlerTest extends TestCase
             $registryForObserved = new Registry();
             $registryForSdk = new Registry();
 
-            if (isset($case['tool'], $case['callback'])) {
-                $registryForObserved->registerTool($case['tool'], $case['callback']);
-                $registryForSdk->registerTool($case['tool'], $case['callback']);
+            $observedCallback = $case['observedCallback'] ?? $case['callback'] ?? null;
+            $sdkCallback = $case['sdkCallback'] ?? $case['callback'] ?? null;
+
+            if (isset($case['tool']) && $observedCallback !== null) {
+                $registryForObserved->registerTool($case['tool'], $observedCallback);
+            }
+            if (isset($case['tool']) && $sdkCallback !== null) {
+                $registryForSdk->registerTool($case['tool'], $sdkCallback);
             }
 
             $observed = $this->createObservedHandler(

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Goals\GoalDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Goals\GoalDetailRecord;
 use Piwik\Plugins\McpServer\McpTools\GoalGet;
@@ -44,7 +44,7 @@ class GoalGetTest extends TestCase
             }
         };
 
-        $actual = (new GoalGet($wrapper))->get(4, 7);
+        $actual = (new GoalGet($wrapper))->execute(4, 7);
 
         self::assertSame([
             'idgoal' => 7,
@@ -90,7 +90,7 @@ class GoalGetTest extends TestCase
             }
         };
 
-        (new GoalGet($wrapper))->get(9, 3);
+        (new GoalGet($wrapper))->execute(9, 3);
 
         self::assertSame(['idSite' => 9, 'idGoal' => 3], $wrapper->captured);
     }
@@ -100,13 +100,13 @@ class GoalGetTest extends TestCase
         $wrapper = new class () implements GoalDetailQueryServiceInterface {
             public function getGoalDetailForSite(int $idSite, int $idGoal): GoalDetailRecord
             {
-                throw new ToolCallException("Goal data is incomplete (missing 'name').");
+                throw new McpToolCallException("Goal data is incomplete (missing 'name').");
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'name').");
 
-        (new GoalGet($wrapper))->get(4, 7);
+        (new GoalGet($wrapper))->execute(4, 7);
     }
 }

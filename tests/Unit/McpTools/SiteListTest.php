@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
@@ -44,7 +44,7 @@ class SiteListTest extends TestCase
             }
         };
 
-        $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(
+        $actual = (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(
             limit: 10,
             sort: SitesPagination::SORT_NAME_ASC,
         );
@@ -65,7 +65,7 @@ class SiteListTest extends TestCase
         $wrapper = new class () implements SiteSummaryQueryServiceInterface {
             public function getSiteSummariesForList(): array
             {
-                throw new ToolCallException("Site list item is incomplete (missing 'main_url').");
+                throw new McpToolCallException("Site list item is incomplete (missing 'main_url').");
             }
 
             public function getSiteSummariesForSearch(string $search): array
@@ -74,10 +74,10 @@ class SiteListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site list item is incomplete (missing 'main_url').");
 
-        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list();
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute();
     }
 
     public function testListRejectsInvalidCursor(): void
@@ -94,10 +94,10 @@ class SiteListTest extends TestCase
             }
         };
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->list(cursor: 'invalid');
+        (new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator())))->execute(cursor: 'invalid');
     }
 
     public function testListRejectsCursorSortMismatch(): void
@@ -118,14 +118,14 @@ class SiteListTest extends TestCase
         };
 
         $tool = new SiteList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
-        $page = $tool->list(limit: 1, sort: SitesPagination::SORT_ID_DESC);
+        $page = $tool->execute(limit: 1, sort: SitesPagination::SORT_ID_DESC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $tool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $tool->execute(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 
     public function testListRejectsCursorFromSiteSearchContext(): void
@@ -152,13 +152,13 @@ class SiteListTest extends TestCase
         $searchTool = new SiteSearch($wrapper, $responder);
         $listTool = new SiteList($wrapper, $responder);
 
-        $page = $searchTool->search('site', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
+        $page = $searchTool->execute('site', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
         $cursor = $page['next_cursor'] ?? null;
         self::assertIsString($cursor);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid cursor.');
 
-        $listTool->list(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
+        $listTool->execute(cursor: $cursor, sort: SitesPagination::SORT_NAME_ASC);
     }
 }

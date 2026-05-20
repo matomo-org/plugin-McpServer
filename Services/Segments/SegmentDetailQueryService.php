@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Segments;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
@@ -35,7 +35,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
     public function getSegmentDetailsForSite(int $idSite): array
     {
         if (!$this->pluginCapabilityGateway->isPluginActivated('SegmentEditor')) {
-            throw new ToolCallException('SegmentEditor plugin is not available.');
+            throw new McpToolCallException('SegmentEditor plugin is not available.');
         }
 
         try {
@@ -80,11 +80,11 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         ));
 
         if ($matches === []) {
-            throw new ToolCallException('Segment not found.');
+            throw new McpToolCallException('Segment not found.');
         }
 
         if (count($matches) > 1) {
-            throw new ToolCallException('Multiple segments matched. Provide idSegment.');
+            throw new McpToolCallException('Multiple segments matched. Provide idSegment.');
         }
 
         return $matches[0];
@@ -121,7 +121,7 @@ final class SegmentDetailQueryService implements SegmentDetailQueryServiceInterf
         string $context,
     ): array {
         if (!is_array($segments)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         $result = [];

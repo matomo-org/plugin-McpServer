@@ -11,12 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\SegmentSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Segments\SegmentSummaryRecord;
-use Piwik\Plugins\McpServer\Schemas\Segments\SegmentSummaryToolOutputSchema;
+use Piwik\Plugins\McpServer\Schemas\Segments\SegmentToolSchemas;
 use Piwik\Plugins\McpServer\Support\Pagination\SegmentsPagination;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
@@ -24,7 +23,7 @@ use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 /**
  * @phpstan-import-type SegmentSummaryArray from SegmentSummaryRecord
  */
-class SegmentList
+class SegmentList extends McpTool
 {
     public const TOOL_NAME = 'matomo_segment_list';
 
@@ -32,6 +31,54 @@ class SegmentList
         private SegmentSummaryQueryServiceInterface $queryService,
         private PaginatedCollectionResponder $paginationResponder,
     ) {
+        parent::__construct();
+    }
+
+    protected function init(): void
+    {
+        $this->name = self::TOOL_NAME;
+        $this->description = "Use when: you need reusable saved segments for a specific site.\n"
+            . "Purpose: return paginated saved segment definitions available for idSite.\n"
+            . "Next: use the chosen segment definition in analytics/report API calls.";
+        $this->annotations = new McpToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        );
+        $this->inputSchema = [
+            'type' => 'object',
+            'properties' => [
+                'idSite' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'description' => 'Matomo site ID used to scope available saved segments.',
+                ],
+                'limit' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'maximum' => SegmentsPagination::LIMIT_MAX,
+                    'description' => 'Maximum number of results to return. Uses schema constraints.',
+                ],
+                'cursor' => [
+                    'type' => 'string',
+                    'description' => 'Opaque cursor for pagination.',
+                ],
+                'sort' => [
+                    'type' => 'string',
+                    'enum' => [
+                        SegmentsPagination::SORT_NAME_ASC,
+                        SegmentsPagination::SORT_NAME_DESC,
+                        SegmentsPagination::SORT_ID_ASC,
+                        SegmentsPagination::SORT_ID_DESC,
+                    ],
+                    'description' => 'Sort order for results.',
+                ],
+            ],
+            'required' => ['idSite'],
+            'additionalProperties' => false,
+        ];
+        $this->outputSchema = SegmentToolSchemas::PAGINATED_LIST;
     }
 
     /**
@@ -42,52 +89,7 @@ class SegmentList
      *     total_rows: int,
      * }
      */
-    #[McpTool(
-        name: self::TOOL_NAME,
-        description: "Use when: you need reusable saved segments for a specific site.\n"
-            . "Purpose: return paginated saved segment definitions available for idSite.\n"
-            . "Next: use the chosen segment definition in analytics/report API calls.",
-        annotations: new ToolAnnotations(
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false,
-        ),
-        outputSchema: SegmentSummaryToolOutputSchema::PAGINATED_LIST,
-    )]
-    #[Schema(
-        type: 'object',
-        properties: [
-            'idSite' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'description' => 'Matomo site ID used to scope available saved segments.',
-            ],
-            'limit' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'maximum' => SegmentsPagination::LIMIT_MAX,
-                'description' => 'Maximum number of results to return. Uses schema constraints.',
-            ],
-            'cursor' => [
-                'type' => 'string',
-                'description' => 'Opaque cursor for pagination.',
-            ],
-            'sort' => [
-                'type' => 'string',
-                'enum' => [
-                    SegmentsPagination::SORT_NAME_ASC,
-                    SegmentsPagination::SORT_NAME_DESC,
-                    SegmentsPagination::SORT_ID_ASC,
-                    SegmentsPagination::SORT_ID_DESC,
-                ],
-                'description' => 'Sort order for results.',
-            ],
-        ],
-        required: ['idSite'],
-        additionalProperties: false,
-    )]
-    public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
+    public function execute(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(

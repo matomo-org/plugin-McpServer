@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Sites\SiteSummaryQueryService;
 
@@ -28,7 +28,7 @@ class SiteSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidSiteSummaryData();
         unset($data['main_url']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site list item is incomplete (missing 'main_url').");
 
         $service->normalizeSiteSummaryData($data, 'Site list item');
@@ -40,7 +40,7 @@ class SiteSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidSiteSummaryData();
         $data['type'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Site search item is incomplete (missing 'type').");
 
         $service->normalizeSiteSummaryData($data, 'Site search item');
@@ -65,7 +65,7 @@ class SiteSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site list data is invalid.');
 
         $service->normalizeSiteSummaryRows(
@@ -79,7 +79,7 @@ class SiteSummaryQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Site search data is invalid.');
 
         $service->normalizeSiteSummaryRows(

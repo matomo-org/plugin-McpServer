@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Date;
 use Piwik\NoAccessException;
 use Piwik\Period\Factory as PeriodFactory;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
@@ -43,17 +43,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 },
             );
         } catch (NoAccessException) {
-            throw new ToolCallException('Report not found.');
+            throw new McpToolCallException('Report not found.');
         } catch (InfrastructureDataException) {
-            throw new ToolCallException('Report not found.');
-        } catch (ToolCallException $e) {
+            throw new McpToolCallException('Report not found.');
+        } catch (McpToolCallException $e) {
             throw $e;
         } catch (\Throwable) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                throw new ToolCallException('Report not found.');
+                throw new McpToolCallException('Report not found.');
             }
 
-            throw new ToolCallException('Report retrieval failed.');
+            throw new McpToolCallException('Report retrieval failed.');
         }
 
         $metadataData = ToolDataNormalizer::requireStringKeyedArray($metadata, 'Report not found.');
@@ -87,17 +87,17 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
                 },
             );
         } catch (NoAccessException) {
-            throw new ToolCallException('Report not found.');
+            throw new McpToolCallException('Report not found.');
         } catch (InfrastructureDataException) {
-            throw new ToolCallException('Report metadata data is invalid.');
-        } catch (ToolCallException $e) {
+            throw new McpToolCallException('Report metadata data is invalid.');
+        } catch (McpToolCallException $e) {
             throw $e;
         } catch (\Throwable) {
             if (ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()) {
-                throw new ToolCallException('Report not found.');
+                throw new McpToolCallException('Report not found.');
             }
 
-            throw new ToolCallException('Report retrieval failed.');
+            throw new McpToolCallException('Report retrieval failed.');
         }
 
         /** @var list<array<string, mixed>> $reports */
@@ -107,7 +107,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             $action = $report['action'] ?? null;
 
             if (!is_string($module) || !is_string($action)) {
-                throw new ToolCallException('Report metadata data is invalid.');
+                throw new McpToolCallException('Report metadata data is invalid.');
             }
 
             if ($module !== $apiModule || $action !== $apiAction) {
@@ -116,7 +116,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
 
             $reportParametersRaw = $report['parameters'] ?? [];
             if (!is_array($reportParametersRaw)) {
-                throw new ToolCallException("Report metadata item is invalid (field 'parameters').");
+                throw new McpToolCallException("Report metadata item is invalid (field 'parameters').");
             }
             $reportParameters = $this->normalizeParameterObject($reportParametersRaw, 'parameters');
             if (!$this->parametersAreEquivalent($reportParameters, $normalizedApiParameters)) {
@@ -127,11 +127,11 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         }
 
         if ($matches === []) {
-            throw new ToolCallException('Report not found.');
+            throw new McpToolCallException('Report not found.');
         }
 
         if (count($matches) > 1) {
-            throw new ToolCallException('Multiple reports matched. Provide reportUniqueId.');
+            throw new McpToolCallException('Multiple reports matched. Provide reportUniqueId.');
         }
 
         return $this->normalizeReportMetadataData($matches[0], 'Report metadata item');
@@ -146,7 +146,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
     {
         $parametersRaw = $report['parameters'] ?? [];
         if (!is_array($parametersRaw)) {
-            throw new ToolCallException("{$context} is invalid (field 'parameters').");
+            throw new McpToolCallException("{$context} is invalid (field 'parameters').");
         }
         $parameters = $this->normalizeParameterObject($parametersRaw, 'parameters');
 
@@ -215,7 +215,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
             return json_encode($this->sortArrayRecursively($value), JSON_THROW_ON_ERROR);
         }
 
-        throw new ToolCallException("Report metadata item is invalid (field 'parameters').");
+        throw new McpToolCallException("Report metadata item is invalid (field 'parameters').");
     }
 
     /**
@@ -226,7 +226,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         try {
             $normalizedPeriod = PeriodFactory::build($period, $date);
         } catch (\Throwable) {
-            throw new ToolCallException('Invalid period/date parameters.');
+            throw new McpToolCallException('Invalid period/date parameters.');
         }
 
         if ($normalizedPeriod->getLabel() === 'range') {
@@ -289,7 +289,7 @@ final class ReportMetadataQueryService implements ReportMetadataQueryServiceInte
         }
 
         if (!is_string($value)) {
-            throw new ToolCallException("{$context} is invalid (field '{$field}').");
+            throw new McpToolCallException("{$context} is invalid (field '{$field}').");
         }
 
         return $value;

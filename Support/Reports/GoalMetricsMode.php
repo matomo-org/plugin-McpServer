@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\DataTable\Filter\AddColumnsProcessedMetricsGoal;
 use Piwik\Piwik;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 
 enum GoalMetricsMode: string
 {
@@ -43,7 +43,7 @@ enum GoalMetricsMode: string
 
     public static function fromInput(string $value): self
     {
-        return self::tryFrom($value) ?? throw new ToolCallException(
+        return self::tryFrom($value) ?? throw new McpToolCallException(
             "Invalid goalMetricsMode value '{$value}'. Allowed values: " . implode(', ', self::SCHEMA_VALUES) . '.',
         );
     }
@@ -81,7 +81,7 @@ enum GoalMetricsMode: string
             }
         }
 
-        throw new ToolCallException(
+        throw new McpToolCallException(
             "goalMetricsMode '" . self::SPECIFIC_GOAL->value . "' requires idGoal to be a positive integer "
             . "or one of: " . Piwik::LABEL_ID_GOAL_IS_ECOMMERCE_ORDER . ', '
             . Piwik::LABEL_ID_GOAL_IS_ECOMMERCE_CART . '.',

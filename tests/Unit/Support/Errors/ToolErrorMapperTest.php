@@ -11,10 +11,10 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Support\Errors;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\ToolErrorMapper;
@@ -71,7 +71,7 @@ class ToolErrorMapperTest extends TestCase
 
     public function testThrowDetailFailureMapsNoAccessToNotFoundMessage(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('not-found');
 
         ToolErrorMapper::throwDetailFailure(
@@ -83,7 +83,7 @@ class ToolErrorMapperTest extends TestCase
 
     public function testThrowDetailFailureMapsAccessDeniedLikeToNotFoundMessage(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('not-found');
 
         ToolErrorMapper::throwDetailFailure(
@@ -95,7 +95,7 @@ class ToolErrorMapperTest extends TestCase
 
     public function testThrowDetailFailureMapsCallbackMatchedExceptionToNotFoundMessage(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('not-found');
 
         ToolErrorMapper::throwDetailFailure(
@@ -108,7 +108,7 @@ class ToolErrorMapperTest extends TestCase
 
     public function testThrowDetailFailureMapsUnmatchedExceptionToFailedMessage(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('failed');
 
         ToolErrorMapper::throwDetailFailure(

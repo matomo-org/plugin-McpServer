@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Reports\ReportSummaryQueryService;
 
 /**
@@ -27,7 +27,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidReportSummaryData();
         unset($data['name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is incomplete (missing 'name').");
 
         $service->normalizeReportSummaryData($data, 'Report list item');
@@ -39,7 +39,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidReportSummaryData();
         $data['category'] = null;
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is incomplete (missing 'category').");
 
         $service->normalizeReportSummaryData($data, 'Report list item');
@@ -83,7 +83,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidReportSummaryData();
         $data['parameters'] = 'not-an-object';
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is invalid (field 'parameters').");
 
         $service->normalizeReportSummaryData($data, 'Report list item');
@@ -95,7 +95,7 @@ class ReportSummaryQueryServiceTest extends TestCase
         $data = $this->makeValidReportSummaryData();
         $data['parameters'] = ['idGoal'];
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report list item is invalid (field 'parameters').");
 
         $service->normalizeReportSummaryData($data, 'Report list item');
@@ -105,7 +105,7 @@ class ReportSummaryQueryServiceTest extends TestCase
     {
         $service = $this->makeService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report list data is invalid.');
 
         $service->normalizeReportSummaryRows(
@@ -119,7 +119,7 @@ class ReportSummaryQueryServiceTest extends TestCase
     {
         $service = $this->makeService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report list data is invalid.');
 
         $service->normalizeReportSummaryRows(

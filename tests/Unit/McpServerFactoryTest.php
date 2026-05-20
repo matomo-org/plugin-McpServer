@@ -12,20 +12,13 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Unit;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use PHPUnit\Framework\TestCase;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\McpServerFactory;
-use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
-use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
-use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
-use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
-use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
-use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Psr\Container\ContainerInterface;
 
@@ -62,9 +55,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $payload = McpTestHelper::makeInitializeRequest('init-1');
 
         $response = McpTestHelper::postJson($server, $payload);
@@ -101,9 +93,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-1');
@@ -138,9 +129,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', ['query' => 'secret'], 'missing-full-1');
@@ -163,9 +153,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-bool-1');
@@ -188,9 +177,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-2');
@@ -213,9 +201,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-zero-1');
@@ -238,9 +225,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-true-1');
@@ -263,9 +249,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-3');
@@ -291,9 +276,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-warn-1');
@@ -319,9 +303,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-error-1');
@@ -347,9 +330,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-info-1');
@@ -374,9 +356,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-verbose-1');
@@ -404,9 +385,8 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub(),
         );
-        $server = $factory->createServer();
+        $server = $factory->createServer([]);
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-invalid-level-1');
@@ -414,144 +394,5 @@ class McpServerFactoryTest extends TestCase
         $message = McpTestHelper::decodeError($response);
 
         self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
-    }
-
-    public function testRawApiListToolIsVisibleWhenRawAccessModeAllowsDirectApiAccess(): void
-    {
-        $toolsWhenRead = $this->listToolNamesForCurrentConfig('read');
-        self::assertContains(ApiCallRead::TOOL_NAME, $toolsWhenRead);
-        self::assertContains('matomo_api_get', $toolsWhenRead);
-        self::assertContains('matomo_api_list', $toolsWhenRead);
-        self::assertNotContains(ApiCallFull::TOOL_NAME, $toolsWhenRead);
-
-        $toolsWhenCreate = $this->listToolNamesForCurrentConfig('create');
-        self::assertContains(ApiCallCreate::TOOL_NAME, $toolsWhenCreate);
-        self::assertContains('matomo_api_get', $toolsWhenCreate);
-        self::assertContains('matomo_api_list', $toolsWhenCreate);
-
-        $toolsWhenUpdate = $this->listToolNamesForCurrentConfig('update');
-        self::assertContains(ApiCallUpdate::TOOL_NAME, $toolsWhenUpdate);
-        self::assertContains('matomo_api_get', $toolsWhenUpdate);
-        self::assertContains('matomo_api_list', $toolsWhenUpdate);
-
-        $toolsWhenDelete = $this->listToolNamesForCurrentConfig('delete');
-        self::assertContains(ApiCallDelete::TOOL_NAME, $toolsWhenDelete);
-        self::assertContains('matomo_api_get', $toolsWhenDelete);
-        self::assertContains('matomo_api_list', $toolsWhenDelete);
-
-        $toolsWhenFull = $this->listToolNamesForCurrentConfig('full');
-        self::assertContains(ApiCallRead::TOOL_NAME, $toolsWhenFull);
-        self::assertContains(ApiCallCreate::TOOL_NAME, $toolsWhenFull);
-        self::assertContains(ApiCallUpdate::TOOL_NAME, $toolsWhenFull);
-        self::assertContains(ApiCallDelete::TOOL_NAME, $toolsWhenFull);
-        self::assertContains(ApiCallFull::TOOL_NAME, $toolsWhenFull);
-        self::assertContains('matomo_api_get', $toolsWhenFull);
-        self::assertContains('matomo_api_list', $toolsWhenFull);
-    }
-
-    public function testRawApiGetToolHasFullAnnotationsWhenVisible(): void
-    {
-        $toolsWhenRead = $this->listToolsByNameForCurrentConfig('read');
-
-        self::assertArrayHasKey('matomo_api_get', $toolsWhenRead);
-        $toolWhenRead = $toolsWhenRead['matomo_api_get'];
-        self::assertNotNull($toolWhenRead->annotations);
-        self::assertTrue($toolWhenRead->annotations->readOnlyHint);
-        self::assertFalse($toolWhenRead->annotations->destructiveHint);
-        self::assertTrue($toolWhenRead->annotations->idempotentHint);
-        self::assertFalse($toolWhenRead->annotations->openWorldHint);
-
-        $toolsWhenFull = $this->listToolsByNameForCurrentConfig('full');
-
-        self::assertArrayHasKey('matomo_api_get', $toolsWhenFull);
-        $toolWhenFull = $toolsWhenFull['matomo_api_get'];
-        self::assertNotNull($toolWhenFull->annotations);
-        self::assertTrue($toolWhenFull->annotations->readOnlyHint);
-        self::assertFalse($toolWhenFull->annotations->destructiveHint);
-        self::assertTrue($toolWhenFull->annotations->idempotentHint);
-        self::assertFalse($toolWhenFull->annotations->openWorldHint);
-    }
-
-    public function testRawApiCallToolsHaveExpectedAnnotationsWhenVisible(): void
-    {
-        $toolsWhenRead = $this->listToolsByNameForCurrentConfig('read');
-
-        self::assertArrayHasKey(ApiCallRead::TOOL_NAME, $toolsWhenRead);
-        $toolWhenRead = $toolsWhenRead[ApiCallRead::TOOL_NAME];
-        self::assertNotNull($toolWhenRead->annotations);
-        self::assertTrue($toolWhenRead->annotations->readOnlyHint);
-        self::assertFalse($toolWhenRead->annotations->destructiveHint);
-        self::assertTrue($toolWhenRead->annotations->idempotentHint);
-        self::assertFalse($toolWhenRead->annotations->openWorldHint);
-
-        $toolsWhenFull = $this->listToolsByNameForCurrentConfig('full');
-
-        self::assertArrayHasKey(ApiCallCreate::TOOL_NAME, $toolsWhenFull);
-        self::assertNotNull($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations);
-        self::assertFalse($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations->readOnlyHint);
-        self::assertFalse($toolsWhenFull[ApiCallCreate::TOOL_NAME]->annotations->destructiveHint);
-
-        self::assertArrayHasKey(ApiCallUpdate::TOOL_NAME, $toolsWhenFull);
-        self::assertNotNull($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations);
-        self::assertFalse($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations->readOnlyHint);
-        self::assertFalse($toolsWhenFull[ApiCallUpdate::TOOL_NAME]->annotations->destructiveHint);
-
-        self::assertArrayHasKey(ApiCallDelete::TOOL_NAME, $toolsWhenFull);
-        self::assertNotNull($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations);
-        self::assertFalse($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations->readOnlyHint);
-        self::assertTrue($toolsWhenFull[ApiCallDelete::TOOL_NAME]->annotations->destructiveHint);
-
-        self::assertArrayHasKey(ApiCallFull::TOOL_NAME, $toolsWhenFull);
-        $toolWhenFull = $toolsWhenFull[ApiCallFull::TOOL_NAME];
-        self::assertNotNull($toolWhenFull->annotations);
-        self::assertFalse($toolWhenFull->annotations->readOnlyHint);
-        self::assertTrue($toolWhenFull->annotations->destructiveHint);
-        self::assertFalse($toolWhenFull->annotations->idempotentHint);
-        self::assertFalse($toolWhenFull->annotations->openWorldHint);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function listToolNamesForCurrentConfig(string $rawApiAccessMode = 'none'): array
-    {
-        return array_keys($this->listToolsByNameForCurrentConfig($rawApiAccessMode));
-    }
-
-    /**
-     * @return array<string, Tool>
-     */
-    private function listToolsByNameForCurrentConfig(string $rawApiAccessMode = 'none'): array
-    {
-        $factory = new McpServerFactory(
-            $this->createMock(LoggerInterface::class),
-            new InMemorySessionStore(),
-            $this->createMock(ContainerInterface::class),
-            new ToolCallParameterFormatter(),
-            $this->createSystemSettingsStub($rawApiAccessMode),
-        );
-        $server = $factory->createServer();
-        $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeListToolsRequest('list-tools-1');
-
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeResponse($response);
-        $result = McpTestHelper::parseListTools($message);
-
-        $toolsByName = [];
-        foreach ($result->tools as $tool) {
-            $toolsByName[$tool->name] = $tool;
-        }
-
-        return $toolsByName;
-    }
-
-    private function createSystemSettingsStub(string $rawApiAccessMode = 'none'): SystemSettings
-    {
-        $settings = $this->createMock(SystemSettings::class);
-        $settings->method('getRawApiAccessMode')
-            ->willReturn($rawApiAccessMode);
-
-        return $settings;
     }
 }

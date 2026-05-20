@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access;
 use Piwik\DataTable;
 use Piwik\DataTable\DataTableInterface;
@@ -19,6 +18,7 @@ use Piwik\DataTable\Map;
 use Piwik\DataTable\Renderer\Json;
 use Piwik\NoAccessException;
 use Piwik\Period\Factory as PeriodFactory;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreApiModuleGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportMetadataQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
@@ -110,7 +110,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         if ($reportUniqueId !== null) {
             $reportMetadata = $this->metadataQueryService->getReportMetadataByUniqueId($idSite, $reportUniqueId);
             if ($reportSpecificParameters !== []) {
-                throw new ToolCallException(
+                throw new McpToolCallException(
                     'Invalid apiParameters for reportUniqueId lookup. '
                     . 'Only safe filter/sort/columns/expanded/flat/label/compare* parameters are allowed.',
                 );
@@ -211,7 +211,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 $period,
                 $date,
             );
-        } catch (ToolCallException $e) {
+        } catch (McpToolCallException $e) {
             if (!$this->isReportNotFoundError($e)) {
                 throw $e;
             }
@@ -236,7 +236,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
     }
 
-    private function isReportNotFoundError(ToolCallException $e): bool
+    private function isReportNotFoundError(McpToolCallException $e): bool
     {
         return trim($e->getMessage()) === 'Report not found.';
     }
@@ -284,19 +284,19 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
 
         foreach ($apiParameters as $key => $value) {
             if (isset(self::DANGEROUS_API_PARAMETER_KEYS[$key])) {
-                throw new ToolCallException("Unsupported apiParameters key '{$key}'.");
+                throw new McpToolCallException("Unsupported apiParameters key '{$key}'.");
             }
             if (
                 $key === self::GOAL_COLUMNS_MODE_KEY
                 || $key === self::GOAL_COLUMNS_PROCESS_GOALS_KEY
             ) {
-                throw new ToolCallException(
+                throw new McpToolCallException(
                     "Use top-level goal parameters instead of apiParameters key '{$key}'.",
                 );
             }
 
             if (!is_scalar($value) && !is_array($value) && $value !== null) {
-                throw new ToolCallException("Invalid apiParameters value for key '{$key}'.");
+                throw new McpToolCallException("Invalid apiParameters value for key '{$key}'.");
             }
         }
 
@@ -363,7 +363,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         $normalized = [];
         foreach ($goalMetricsProcessGoals as $value) {
             if (!is_int($value) && !is_string($value)) {
-                throw new ToolCallException(
+                throw new McpToolCallException(
                     'Invalid goalMetricsProcessGoals value: expected int or int-like string.',
                 );
             }
@@ -376,7 +376,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                     && !GoalMetricsMode::isCoreEcommerceGoalId($stringValue)
                 )
             ) {
-                throw new ToolCallException(
+                throw new McpToolCallException(
                     "Invalid goalMetricsProcessGoals value '{$stringValue}': expected positive goal ID or "
                     . 'core ecommerce goal ID (ecommerceOrder, ecommerceAbandonedCart).',
                 );
@@ -386,7 +386,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
 
         if ($normalized === []) {
-            throw new ToolCallException(
+            throw new McpToolCallException(
                 'Invalid goalMetricsProcessGoals value: at least one goal ID is required.',
             );
         }
@@ -406,7 +406,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             return;
         }
 
-        throw new ToolCallException(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
+        throw new McpToolCallException(self::SUBTABLE_REPORT_REQUIRES_ID_SUBTABLE_MESSAGE);
     }
 
     private function reportUsesIdGoalSelector(ReportMetadataRecord $reportMetadata): bool
@@ -480,7 +480,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         try {
             PeriodFactory::build($period, $date);
         } catch (\Throwable) {
-            throw new ToolCallException('Invalid period/date parameters.');
+            throw new McpToolCallException('Invalid period/date parameters.');
         }
     }
 
@@ -507,7 +507,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             try {
                 Access::getInstance()->checkUserHasViewAccess($idSite);
             } catch (NoAccessException) {
-                throw new ToolCallException('Report not found.');
+                throw new McpToolCallException('Report not found.');
             }
         }
 
@@ -551,11 +551,11 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 );
             });
         } catch (NoAccessException) {
-            throw new ToolCallException('Report not found.');
+            throw new McpToolCallException('Report not found.');
         } catch (AccessDeniedLikeException) {
-            throw new ToolCallException('Report not found.');
+            throw new McpToolCallException('Report not found.');
         } catch (InfrastructureDataException) {
-            throw new ToolCallException('Report data is invalid.');
+            throw new McpToolCallException('Report data is invalid.');
         } catch (CoreApiRequestException $e) {
             $rootCause = $e->getPrevious() ?? $e;
             $shouldMapToStrictSegmentGuidance = false;
@@ -577,7 +577,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             }
 
             if ($shouldMapToStrictSegmentGuidance) {
-                throw new ToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
+                throw new McpToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
             }
 
             ToolErrorMapper::throwDetailFailure(
@@ -587,7 +587,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                 static fn(\Throwable $error): bool => NoAccessLikeErrorDetector::isDetected($error)
                     && ViewAccessFallback::shouldReturnEmptyOnNoAccessFallback()
             );
-        } catch (ToolCallException $e) {
+        } catch (McpToolCallException $e) {
             throw $e;
         } catch (\Throwable $e) {
             ToolErrorMapper::throwDetailFailure(
@@ -617,7 +617,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             return $this->derivePaginationFromDataTableMap($reportData, $filterOffset);
         }
 
-        throw new ToolCallException('Report data is invalid.');
+        throw new McpToolCallException('Report data is invalid.');
     }
 
     /**
@@ -643,7 +643,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
     {
         $tables = array_values($reportData->getDataTables());
         if ($tables === []) {
-            throw new ToolCallException('Report data is invalid.');
+            throw new McpToolCallException('Report data is invalid.');
         }
 
         $returnedRows = 0;
@@ -651,7 +651,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         $hasMore = false;
         foreach ($tables as $table) {
             if (!$table instanceof DataTable) {
-                throw new ToolCallException('Report data is invalid.');
+                throw new McpToolCallException('Report data is invalid.');
             }
 
             [$tableReturnedRows, $tableTotalRows, $tableHasMore] = $this->derivePaginationFromDataTable(
@@ -735,7 +735,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         }
 
         if ($shouldMapToStrictSegmentGuidance) {
-            throw new ToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
+            throw new McpToolCallException(self::STRICT_SEGMENT_ERROR_MESSAGE);
         }
     }
 

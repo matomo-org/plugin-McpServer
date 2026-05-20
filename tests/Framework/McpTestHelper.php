@@ -44,6 +44,27 @@ use Piwik\Plugins\McpServer\SystemSettings;
  */
 final class McpTestHelper
 {
+    /**
+     * Replace the SystemSettings binding on the current StaticContainer with a
+     * fresh stub at the given raw API access mode. Tools that resolve
+     * SystemSettings via DI after this call will receive the returned stub;
+     * tools that were resolved before this call still hold the previous
+     * reference and are unaffected.
+     *
+     * Only call this from unit tests that need to skip the real plugin-settings
+     * bootstrap. Integration tests must keep the real SystemSettings binding so
+     * setRawApiAccessMode() can mutate its rawApiAccess* setting handles.
+     */
+    public static function installSystemSettingsStub(
+        string $rawApiAccessMode = RawApiAccessMode::NONE,
+    ): StatefulSystemSettingsStub {
+        $stub = new StatefulSystemSettingsStub();
+        $stub->currentRawApiAccessMode = $rawApiAccessMode;
+        StaticContainer::getContainer()->set(SystemSettings::class, $stub);
+
+        return $stub;
+    }
+
     public static function buildServer(): Server
     {
         $factory = StaticContainer::get(McpServerFactory::class);

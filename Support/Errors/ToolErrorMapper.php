@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Errors;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Access\ViewAccessFallback;
 
 final class ToolErrorMapper
@@ -58,13 +58,13 @@ final class ToolErrorMapper
             || $e instanceof AccessDeniedLikeException
             || $e instanceof NotFoundLikeException
         ) {
-            throw new ToolCallException($notFoundMessage);
+            throw new McpToolCallException($notFoundMessage);
         }
 
         if ($isNotFoundOrNoAccessLike !== null && $isNotFoundOrNoAccessLike($e)) {
-            throw new ToolCallException($notFoundMessage);
+            throw new McpToolCallException($notFoundMessage);
         }
 
-        throw new ToolCallException($failedMessage);
+        throw new McpToolCallException($failedMessage);
     }
 }

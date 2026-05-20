@@ -11,11 +11,11 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\DataTable;
 use Piwik\DataTable\Map;
 use Piwik\DataTable\Row;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Api\CoreApiCallGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Services\Api\ApiCallQueryService;
@@ -171,7 +171,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Unsupported parameters key 'format'.");
 
         $service->callApi($resolvedMethod, parameters: ['format' => 'json']);
@@ -189,7 +189,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('No access to API method.');
 
         $service->callApi($resolvedMethod);
@@ -207,7 +207,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
         $service->callApi($resolvedMethod);
@@ -223,7 +223,7 @@ class ApiCallQueryServiceTest extends TestCase
             self::gatewayThrowingWrapped(new \RuntimeException($thrown)),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed: ' . $thrown . '.');
 
         $service->callApi($resolvedMethod);
@@ -287,7 +287,7 @@ class ApiCallQueryServiceTest extends TestCase
             self::gatewayThrowingWrapped(new \RuntimeException("  Parameter\t'foo'\n missing.  ")),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Matomo API request failed: Parameter 'foo' missing.");
 
         $service->callApi($resolvedMethod);
@@ -303,7 +303,7 @@ class ApiCallQueryServiceTest extends TestCase
             self::gatewayThrowingWrapped(new \RuntimeException($thrown)),
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
         $service->callApi($resolvedMethod);
@@ -355,7 +355,7 @@ class ApiCallQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Matomo API request failed.');
 
         $service->callApi($resolvedMethod);
@@ -384,7 +384,7 @@ class ApiCallQueryServiceTest extends TestCase
                 },
             );
 
-            $this->expectException(ToolCallException::class);
+            $this->expectException(McpToolCallException::class);
             $this->expectExceptionMessage('API response is invalid.');
 
             $service->callApi($resolvedMethod);

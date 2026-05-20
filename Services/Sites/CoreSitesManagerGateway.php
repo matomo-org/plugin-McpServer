@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\API\Request;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Support\Errors\AccessDeniedLikeException;
 use Piwik\Plugins\McpServer\Support\Errors\NoAccessLikeErrorDetector;
@@ -74,7 +74,7 @@ final class CoreSitesManagerGateway implements CoreSitesManagerGatewayInterface
     private function normalizeRows(mixed $rows, string $invalidDataMessage): array
     {
         if (!is_array($rows)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         if (!array_is_list($rows)) {

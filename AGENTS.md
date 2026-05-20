@@ -28,9 +28,9 @@ This document is repo-specific. Prefer it over generic Matomo assumptions when w
 
 ### MCP capability surface
 
-- `McpTools/`: user-facing MCP tools. Start here for new capabilities or changes to tool behavior.
-- `Schemas/`: tool output schemas grouped by domain (`Sites`, `Reports`, `Goals`, `Segments`, `Dimensions`).
-- `Contracts/`: shared typed records and ports. Use these when a boundary needs an explicit typed contract.
+- `McpTools/`: user-facing MCP tools. Each tool is a class extending `Contracts\McpTool` with an `init()` that declares name/description/annotations/schemas and a public `execute(...)` method whose typed parameters define the input shape. Start here for new capabilities or changes to tool behavior.
+- `Schemas/`: tool input/output schemas grouped by domain (`Api`, `Sites`, `Reports`, `Goals`, `Segments`, `Dimensions`). Most domains expose a single combined `*ToolSchemas` class; `Api` and `Reports` still keep per-tool schema classes where the shape diverges between tools.
+- `Contracts/`: Matomo-owned types that bound the plugin's tool surface. Includes the `McpTool` base class, `McpToolAnnotations`, `McpToolIcon`, and `McpToolCallException`, plus shared typed records and ports under `Records/` and `Ports/`. Tool classes interact with these types only — they must not import the vendored MCP SDK directly.
 
 ### Domain and infrastructure layers
 
@@ -75,7 +75,7 @@ Preferred flow:
 
 ### If the task changes domain behavior
 
-Find the domain area under `Services/Sites`, `Services/Reports`, `Services/Goals`, `Services/Segments`, `Services/Dimensions`, or `Services/System`.
+Find the domain area under `Services/Api`, `Services/Sites`, `Services/Reports`, `Services/Goals`, `Services/Segments`, `Services/Dimensions`, or `Services/System`.
 
 Before editing:
 
@@ -87,10 +87,13 @@ Before editing:
 
 ### Adding new MCP capabilities
 
-- Add user-facing capability through a tool class in `McpTools/`.
+- Add user-facing capability through a tool class in `McpTools/` that extends `Contracts\McpTool`. Implement `init()` to set name, description, annotations, input schema, and (when applicable) title, output schema, icons, and meta. Declare a public `execute(...)` method whose typed parameters define the JSON-RPC input shape.
+- Register the new tool class in `McpServerFactory::BUILTIN_TOOL_CLASSES` so the factory resolves it from the container.
+- Abort tool execution via `$this->fail($message)` from `execute()`; downstream services and helpers in the call chain may throw `McpToolCallException` directly when surfacing client-facing failures.
+- Interact only with Matomo-owned tool types (`McpTool`, `McpToolAnnotations`, `McpToolIcon`, `McpToolCallException`) inside `McpTools/`. Do not import or expose vendored MCP SDK types from tool classes — translation to the SDK happens centrally in `McpServerFactory`.
 - Keep Matomo/core access in focused services or gateway classes under `Services/`.
-- Define or update output schemas in `Schemas/`.
-- Use `Contracts/` only when a shared typed record or service boundary improves clarity.
+- Define or update tool schemas in `Schemas/`, matching the domain layout.
+- Use `Contracts/Records` and `Contracts/Ports` only when a shared typed record or service boundary improves clarity.
 
 ### Keeping boundaries clean
 

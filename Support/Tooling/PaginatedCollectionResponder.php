@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Tooling;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Pagination\KeySpec;
 use Piwik\Plugins\McpServer\Support\Pagination\PageRequest;
@@ -47,7 +47,7 @@ final class PaginatedCollectionResponder
         $sort = $sort ?? $defaultSortToken;
         $sortSpec = $paginationConfig->getSortSpec($sort);
         if ($sortSpec === null) {
-            throw new ToolCallException("Parameter 'sort' missing or invalid.");
+            throw new McpToolCallException("Parameter 'sort' missing or invalid.");
         }
 
         $sortDataResolver = $recordToSortData ?? $recordToArray;
@@ -77,7 +77,7 @@ final class PaginatedCollectionResponder
         $items = [];
         foreach ($page->items as $row) {
             if (!array_key_exists($internalRecordKey, $row)) {
-                throw new ToolCallException('Pagination data is invalid.');
+                throw new McpToolCallException('Pagination data is invalid.');
             }
             $record = $row[$internalRecordKey];
             /** @var TRecord $record */

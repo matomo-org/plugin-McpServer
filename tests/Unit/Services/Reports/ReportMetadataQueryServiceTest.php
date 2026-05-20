@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Reports;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\Period\Factory as PeriodFactory;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\CoreProcessedReportGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\TranslatorContextRunnerInterface;
 use Piwik\Plugins\McpServer\Services\Reports\ReportMetadataQueryService;
@@ -31,7 +31,7 @@ class ReportMetadataQueryServiceTest extends TestCase
         $data = $this->makeValidReportMetadataData();
         unset($data['name']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report metadata item is incomplete (missing 'name').");
 
         $service->normalizeReportMetadataData($data, 'Report metadata item');
@@ -43,7 +43,7 @@ class ReportMetadataQueryServiceTest extends TestCase
         $data = $this->makeValidReportMetadataData();
         $data['parameters'] = ['idGoal'];
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Report metadata item is invalid (field 'parameters').");
 
         $service->normalizeReportMetadataData($data, 'Report metadata item');
@@ -91,7 +91,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report not found.');
         $service->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
     }
@@ -117,7 +117,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report not found.');
         $service->getReportMetadataByUniqueId(1, 'Actions_getPageUrls');
     }
@@ -274,7 +274,7 @@ class ReportMetadataQueryServiceTest extends TestCase
             },
         );
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Report metadata data is invalid.');
 
         $service->getReportMetadataByModuleAction(
@@ -391,7 +391,7 @@ class ReportMetadataQueryServiceTest extends TestCase
     {
         $service = $this->makeService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Invalid period/date parameters.');
 
         $service->getReportMetadataByModuleAction(

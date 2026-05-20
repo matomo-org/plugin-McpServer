@@ -14,7 +14,6 @@ namespace Piwik\Plugins\McpServer\Server\Handler\Request;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaValidator;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolNotFoundException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
@@ -24,6 +23,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
 use Psr\Log\LoggerInterface;
@@ -120,7 +120,7 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
             ]);
 
             return new Response($request->getId(), $result);
-        } catch (ToolCallException $e) {
+        } catch (McpToolCallException $e) {
             $this->logger->error(
                 sprintf('Error while executing tool "%s": "%s".', $toolName, $e->getMessage()),
                 ['tool' => $toolName, 'arguments' => $rawArguments],

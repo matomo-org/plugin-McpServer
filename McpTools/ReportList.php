@@ -11,9 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\McpTool;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Attribute\Schema;
-use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
+use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
@@ -24,7 +23,7 @@ use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 /**
  * @phpstan-import-type ReportSummaryArray from ReportSummaryRecord
  */
-class ReportList
+class ReportList extends McpTool
 {
     public const TOOL_NAME = 'matomo_report_list';
 
@@ -32,6 +31,55 @@ class ReportList
         private ReportSummaryQueryServiceInterface $queryService,
         private PaginatedCollectionResponder $paginationResponder,
     ) {
+        parent::__construct();
+    }
+
+    protected function init(): void
+    {
+        $this->name = self::TOOL_NAME;
+        $this->description = "Use when: you need a compact discovery list of available reports "
+            . "for a site, including subtable reports.\n"
+            . "Purpose: return paginated report metadata for idSite.\n"
+            . "Next: choose reportUniqueId or module/action/parameters and call Matomo reporting APIs.";
+        $this->annotations = new McpToolAnnotations(
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        );
+        $this->inputSchema = [
+            'type' => 'object',
+            'properties' => [
+                'idSite' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'description' => 'Matomo site ID used to scope available reports.',
+                ],
+                'limit' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'maximum' => ReportsPagination::LIMIT_MAX,
+                    'description' => 'Maximum number of results to return. Uses schema constraints.',
+                ],
+                'cursor' => [
+                    'type' => 'string',
+                    'description' => 'Opaque cursor for pagination.',
+                ],
+                'sort' => [
+                    'type' => 'string',
+                    'enum' => [
+                        ReportsPagination::SORT_CATEGORY_ASC,
+                        ReportsPagination::SORT_CATEGORY_DESC,
+                        ReportsPagination::SORT_NAME_ASC,
+                        ReportsPagination::SORT_NAME_DESC,
+                    ],
+                    'description' => 'Sort order for results.',
+                ],
+            ],
+            'required' => ['idSite'],
+            'additionalProperties' => false,
+        ];
+        $this->outputSchema = ReportSummaryToolOutputSchema::PAGINATED_LIST;
     }
 
     /**
@@ -42,53 +90,7 @@ class ReportList
      *     total_rows: int,
      * }
      */
-    #[McpTool(
-        name: self::TOOL_NAME,
-        description: "Use when: you need a compact discovery list of available reports "
-            . "for a site, including subtable reports.\n"
-            . "Purpose: return paginated report metadata for idSite.\n"
-            . "Next: choose reportUniqueId or module/action/parameters and call Matomo reporting APIs.",
-        annotations: new ToolAnnotations(
-            readOnlyHint: true,
-            destructiveHint: false,
-            idempotentHint: true,
-            openWorldHint: false,
-        ),
-        outputSchema: ReportSummaryToolOutputSchema::PAGINATED_LIST,
-    )]
-    #[Schema(
-        type: 'object',
-        properties: [
-            'idSite' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'description' => 'Matomo site ID used to scope available reports.',
-            ],
-            'limit' => [
-                'type' => 'integer',
-                'minimum' => 1,
-                'maximum' => ReportsPagination::LIMIT_MAX,
-                'description' => 'Maximum number of results to return. Uses schema constraints.',
-            ],
-            'cursor' => [
-                'type' => 'string',
-                'description' => 'Opaque cursor for pagination.',
-            ],
-            'sort' => [
-                'type' => 'string',
-                'enum' => [
-                    ReportsPagination::SORT_CATEGORY_ASC,
-                    ReportsPagination::SORT_CATEGORY_DESC,
-                    ReportsPagination::SORT_NAME_ASC,
-                    ReportsPagination::SORT_NAME_DESC,
-                ],
-                'description' => 'Sort order for results.',
-            ],
-        ],
-        required: ['idSite'],
-        additionalProperties: false,
-    )]
-    public function list(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
+    public function execute(int $idSite, ?int $limit = null, ?string $cursor = null, ?string $sort = null): array
     {
         $cursorContext = CursorContextBuilder::forTool(self::TOOL_NAME, ['idSite' => $idSite]);
         $response = $this->paginationResponder->paginateRecords(

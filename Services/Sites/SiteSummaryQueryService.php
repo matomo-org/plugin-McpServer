@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Services\Sites;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use Piwik\Access\Role\View;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Records\Sites\SiteSummaryRecord;
@@ -76,7 +76,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
         string $context,
     ): array {
         if (!is_array($sites)) {
-            throw new ToolCallException($invalidDataMessage);
+            throw new McpToolCallException($invalidDataMessage);
         }
 
         $result = [];
@@ -101,7 +101,7 @@ final class SiteSummaryQueryService implements SiteSummaryQueryServiceInterface
                 return [];
             }
 
-            throw new ToolCallException('Site retrieval failed.');
+            throw new McpToolCallException('Site retrieval failed.');
         }
 
         return $this->normalizeSiteSummaryRows($sites, $invalidDataMessage, $context);

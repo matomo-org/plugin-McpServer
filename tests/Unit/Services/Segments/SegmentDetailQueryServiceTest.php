@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Segments;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
 use Piwik\NoAccessException;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Contracts\Ports\Segments\CoreSegmentEditorGatewayInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
 use Piwik\Plugins\McpServer\Services\Segments\SegmentDetailQueryService;
@@ -38,7 +38,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
         $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('SegmentEditor plugin is not available.');
         $service->getSegmentDetailsForSite(9);
     }
@@ -49,7 +49,7 @@ class SegmentDetailQueryServiceTest extends TestCase
         $data = $this->makeValidSegmentDetailData();
         unset($data['login']);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Segment detail item is incomplete (missing 'login').");
 
         $service->normalizeSegmentDetailData($data, 'Segment detail item');
@@ -61,7 +61,7 @@ class SegmentDetailQueryServiceTest extends TestCase
         $data = $this->makeValidSegmentDetailData();
         $data['auto_archive'] = 'invalid';
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Segment detail item is invalid (field 'auto_archive').");
 
         $service->normalizeSegmentDetailData($data, 'Segment detail item');
@@ -89,7 +89,7 @@ class SegmentDetailQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment detail data is invalid.');
 
         $service->normalizeSegmentDetailRows(
@@ -103,7 +103,7 @@ class SegmentDetailQueryServiceTest extends TestCase
     {
         $service = $this->createService();
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment detail data is invalid.');
 
         $service->normalizeSegmentDetailRows(
@@ -132,7 +132,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
         $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment not found.');
         $service->getSegmentDetailsForSite(9);
     }
@@ -164,7 +164,7 @@ class SegmentDetailQueryServiceTest extends TestCase
 
         $service = new SegmentDetailQueryService($gateway, $capabilityGateway);
 
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage('Segment not found.');
         $service->getSegmentDetailsForSite(9);
     }

@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Unit\Services\Goals;
 
-use Matomo\Dependencies\McpServer\Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\TestCase;
+use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Services\Goals\GoalRevenueNormalizer;
 
 /**
@@ -44,7 +44,7 @@ class GoalRevenueNormalizerTest extends TestCase
 
     public function testNormalizeRevenueThrowsWhenRevenueIsMissing(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'revenue').");
 
         GoalRevenueNormalizer::normalizeRevenue([], 'Goal data');
@@ -52,7 +52,7 @@ class GoalRevenueNormalizerTest extends TestCase
 
     public function testNormalizeRevenueThrowsWhenRevenueIsNull(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is incomplete (missing 'revenue').");
 
         GoalRevenueNormalizer::normalizeRevenue(['revenue' => null], 'Goal data');
@@ -60,7 +60,7 @@ class GoalRevenueNormalizerTest extends TestCase
 
     public function testNormalizeRevenueThrowsWhenRevenueHasInvalidType(): void
     {
-        $this->expectException(ToolCallException::class);
+        $this->expectException(McpToolCallException::class);
         $this->expectExceptionMessage("Goal data is invalid (field 'revenue').");
 
         GoalRevenueNormalizer::normalizeRevenue(['revenue' => ['unexpected']], 'Goal data');
