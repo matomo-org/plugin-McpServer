@@ -36,7 +36,7 @@ class ApiCallUpdate extends AbstractApiCall
             openWorldHint: false,
         );
         $this->inputSchema = ApiCallToolInputSchema::SCHEMA;
-        $this->outputSchema = ApiCallToolOutputSchema::ITEM;
+        $this->outputSchema = ApiCallToolOutputSchema::item();
     }
 
     public function shouldRegister(): bool
