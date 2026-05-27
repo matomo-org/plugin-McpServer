@@ -52,7 +52,7 @@ class ApiList extends McpTool
             openWorldHint: false,
         );
         $this->inputSchema = ApiListToolInputSchema::SCHEMA;
-        $this->outputSchema = ApiMethodSummaryToolOutputSchema::PAGINATED_LIST;
+        $this->outputSchema = ApiMethodSummaryToolOutputSchema::paginatedList();
     }
 
     public function shouldRegister(): bool

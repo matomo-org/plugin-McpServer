@@ -259,7 +259,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::PAGINATED_LIST, $content);
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::paginatedList(), $content);
         self::assertNotEmpty($content['methods'] ?? []);
     }
 
@@ -277,7 +277,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::ITEM, $content);
+        ContractShapeAssert::assertMatchesSchema(ApiMethodSummaryToolOutputSchema::item(), $content);
     }
 
     public function testApiCallSuccessShapeInReadMode(): void
@@ -294,7 +294,7 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        ContractShapeAssert::assertMatchesSchema(ApiCallToolOutputSchema::ITEM, $content);
+        ContractShapeAssert::assertMatchesSchema(ApiCallToolOutputSchema::item(), $content);
     }
 
     /**

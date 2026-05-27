@@ -15,63 +15,83 @@ use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
 
 final class ApiMethodSummaryToolOutputSchema
 {
-    public const PARAMETER = [
-        'type' => 'object',
-        'properties' => [
-            'name' => ['type' => 'string'],
-            'type' => ['type' => ['string', 'null']],
-            'required' => ['type' => 'boolean'],
-            'allowsNull' => ['type' => 'boolean'],
-            'hasDefault' => ['type' => 'boolean'],
-            'defaultValue' => [],
-        ],
-        'required' => ['name', 'type', 'required', 'allowsNull', 'hasDefault', 'defaultValue'],
-        'additionalProperties' => false,
-    ];
-
-    public const ITEM = [
-        'type' => 'object',
-        'properties' => [
-            'module' => ['type' => 'string'],
-            'action' => ['type' => 'string'],
-            'method' => ['type' => 'string'],
-            'parameters' => [
-                'type' => 'array',
-                'items' => self::PARAMETER,
+    /**
+     * @return array<string, mixed>
+     */
+    public static function parameter(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'name' => ['type' => 'string'],
+                'type' => ['type' => ['string', 'null']],
+                'required' => ['type' => 'boolean'],
+                'allowsNull' => ['type' => 'boolean'],
+                'hasDefault' => ['type' => 'boolean'],
+                // `new \stdClass()` so `json_encode` emits `{}` (an empty JSON Schema =
+                // "any value"); `[]` would encode as `[]` and fail MCP schema validation.
+                'defaultValue' => new \stdClass(),
             ],
-            'operationCategory' => [
-                'type' => ['string', 'null'],
-                'enum' => [
-                    ApiMethodOperationClassifier::CATEGORY_READ,
-                    ApiMethodOperationClassifier::CATEGORY_CREATE,
-                    ApiMethodOperationClassifier::CATEGORY_UPDATE,
-                    ApiMethodOperationClassifier::CATEGORY_DELETE,
-                    null,
+            'required' => ['name', 'type', 'required', 'allowsNull', 'hasDefault', 'defaultValue'],
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function item(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'module' => ['type' => 'string'],
+                'action' => ['type' => 'string'],
+                'method' => ['type' => 'string'],
+                'parameters' => [
+                    'type' => 'array',
+                    'items' => self::parameter(),
+                ],
+                'operationCategory' => [
+                    'type' => ['string', 'null'],
+                    'enum' => [
+                        ApiMethodOperationClassifier::CATEGORY_READ,
+                        ApiMethodOperationClassifier::CATEGORY_CREATE,
+                        ApiMethodOperationClassifier::CATEGORY_UPDATE,
+                        ApiMethodOperationClassifier::CATEGORY_DELETE,
+                        null,
+                    ],
                 ],
             ],
-        ],
-        'required' => [
-            'module',
-            'action',
-            'method',
-            'parameters',
-            'operationCategory',
-        ],
-        'additionalProperties' => false,
-    ];
-
-    public const PAGINATED_LIST = [
-        'type' => 'object',
-        'properties' => [
-            'methods' => [
-                'type' => 'array',
-                'items' => self::ITEM,
+            'required' => [
+                'module',
+                'action',
+                'method',
+                'parameters',
+                'operationCategory',
             ],
-            'next_cursor' => ['type' => ['string', 'null']],
-            'has_more' => ['type' => 'boolean'],
-            'total_rows' => ['type' => 'integer'],
-        ],
-        'required' => ['methods', 'next_cursor', 'has_more', 'total_rows'],
-        'additionalProperties' => false,
-    ];
+            'additionalProperties' => false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function paginatedList(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'methods' => [
+                    'type' => 'array',
+                    'items' => self::item(),
+                ],
+                'next_cursor' => ['type' => ['string', 'null']],
+                'has_more' => ['type' => 'boolean'],
+                'total_rows' => ['type' => 'integer'],
+            ],
+            'required' => ['methods', 'next_cursor', 'has_more', 'total_rows'],
+            'additionalProperties' => false,
+        ];
+    }
 }

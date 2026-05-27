@@ -4,6 +4,7 @@
 
 - Updated `mcp/sdk` to 0.5.
 - Surfaced nested SegmentEditor validation messages through MCP tool errors instead of collapsing them to the generic failure message.
+- Aligned the declared MCP `outputSchema` for the `matomo_api_*` tools so the `result` and `defaultValue` entries serialize as `{}` rather than `[]`, matching the MCP requirement that every schema value is a JSON object.
 
 ### 5.0.3
 

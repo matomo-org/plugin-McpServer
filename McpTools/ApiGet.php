@@ -47,7 +47,7 @@ class ApiGet extends McpTool
             openWorldHint: false,
         );
         $this->inputSchema = ApiGetToolInputSchema::SCHEMA;
-        $this->outputSchema = ApiMethodSummaryToolOutputSchema::ITEM;
+        $this->outputSchema = ApiMethodSummaryToolOutputSchema::item();
     }
 
     public function shouldRegister(): bool

@@ -13,13 +13,21 @@ namespace Piwik\Plugins\McpServer\Schemas\Api;
 
 final class ApiCallToolOutputSchema
 {
-    public const ITEM = [
-        'type' => 'object',
-        'properties' => [
-            'result' => [],
-            'resolvedMethod' => ApiMethodSummaryToolOutputSchema::ITEM,
-        ],
-        'required' => ['result', 'resolvedMethod'],
-        'additionalProperties' => false,
-    ];
+    /**
+     * @return array<string, mixed>
+     */
+    public static function item(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                // `new \stdClass()` so `json_encode` emits `{}` (an empty JSON Schema =
+                // "any value"); `[]` would encode as `[]` and fail MCP schema validation.
+                'result' => new \stdClass(),
+                'resolvedMethod' => ApiMethodSummaryToolOutputSchema::item(),
+            ],
+            'required' => ['result', 'resolvedMethod'],
+            'additionalProperties' => false,
+        ];
+    }
 }
