@@ -1,6 +1,6 @@
 ## Changelog
 
-### Unreleased
+### 5.0.4
 
 - Updated `mcp/sdk` to 0.5.
 - Surfaced nested SegmentEditor validation messages through MCP tool errors instead of collapsing them to the generic failure message.
