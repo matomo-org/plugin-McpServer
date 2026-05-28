@@ -67,7 +67,7 @@ class McpToolTest extends TestCase
     public function testConstructorRejectsSubclassWithoutExecuteMethod(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('must define a public execute() method.');
+        $this->expectExceptionMessage('must define a public callable execute() method.');
 
         // McpTool intentionally does not declare execute() abstract; the runtime
         // check inside the constructor is the safety net for that case. init()

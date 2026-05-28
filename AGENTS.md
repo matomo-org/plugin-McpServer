@@ -23,6 +23,7 @@ This document is repo-specific. Prefer it over generic Matomo assumptions when w
 - `API.php`: main MCP API endpoint, request validation flow, auth/error handling, and hand-off into the server.
 - `McpServer.php`: plugin lifecycle hooks, stylesheet registration, install/uninstall table setup.
 - `McpServerFactory.php`: server/container wiring and MCP server construction.
+- `McpToolsProvider.php`: resolves the built-in tool set and fires the `McpServer.addTools` / `McpServer.filterTools` events so other plugins can register or restrict MCP tools.
 - `SystemSettings.php`: plugin settings, including MCP enablement.
 - `plugin.json`, `composer.json`: plugin metadata and PHP dependency constraints.
 
@@ -88,7 +89,7 @@ Before editing:
 ### Adding new MCP capabilities
 
 - Add user-facing capability through a tool class in `McpTools/` that extends `Contracts\McpTool`. Implement `init()` to set name, description, annotations, input schema, and (when applicable) title, output schema, icons, and meta. Declare a public `execute(...)` method whose typed parameters define the JSON-RPC input shape.
-- Register the new tool class in `McpServerFactory::BUILTIN_TOOL_CLASSES` so the factory resolves it from the container.
+- Register the new tool class in `McpToolsProvider::BUILTIN_TOOL_CLASSES` so the provider resolves it from the container.
 - Abort tool execution via `$this->fail($message)` from `execute()`; downstream services and helpers in the call chain may throw `McpToolCallException` directly when surfacing client-facing failures.
 - Interact only with Matomo-owned tool types (`McpTool`, `McpToolAnnotations`, `McpToolIcon`, `McpToolCallException`) inside `McpTools/`. Do not import or expose vendored MCP SDK types from tool classes — translation to the SDK happens centrally in `McpServerFactory`.
 - Keep Matomo/core access in focused services or gateway classes under `Services/`.

@@ -20,10 +20,12 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\Config;
 use Piwik\Container\StaticContainer;
+use Piwik\EventDispatcher;
 use Piwik\Http\BadRequestException;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\McpToolsProvider;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
 use Piwik\Plugins\McpServer\Support\Access\McpUnavailableException;
 use Piwik\Plugins\McpServer\Support\Api\InternalApiAccessGuard;
@@ -358,6 +360,7 @@ class APITest extends TestCase
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
+                $this->createMock(LoggerInterface::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -392,6 +395,8 @@ class APITest extends TestCase
 
     private function createFactory(): McpServerFactory
     {
+        $container = StaticContainer::getContainer();
+
         return new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
@@ -399,8 +404,13 @@ class APITest extends TestCase
             // happy-path tests need the real StaticContainer here. Tests that
             // never reach createServer() (guard rejections, auth failures) are
             // unaffected.
-            StaticContainer::getContainer(),
+            $container,
             new ToolCallParameterFormatter(),
+            new McpToolsProvider(
+                $container,
+                StaticContainer::get(EventDispatcher::class),
+                $this->createMock(LoggerInterface::class),
+            ),
         );
     }
 
@@ -433,6 +443,7 @@ class APITest extends TestCase
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
+                $this->createMock(LoggerInterface::class),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',

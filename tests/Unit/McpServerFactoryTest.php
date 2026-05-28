@@ -19,6 +19,7 @@ use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
+use Piwik\Plugins\McpServer\tests\Framework\FixedMcpToolsProvider;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Psr\Container\ContainerInterface;
 
@@ -55,8 +56,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $payload = McpTestHelper::makeInitializeRequest('init-1');
 
         $response = McpTestHelper::postJson($server, $payload);
@@ -93,8 +95,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-1');
@@ -129,8 +132,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', ['query' => 'secret'], 'missing-full-1');
@@ -153,8 +157,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-bool-1');
@@ -177,8 +182,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-2');
@@ -201,8 +207,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-zero-1');
@@ -225,8 +232,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-string-true-1');
@@ -249,8 +257,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-3');
@@ -276,8 +285,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-warn-1');
@@ -303,8 +313,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-error-1');
@@ -330,8 +341,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-info-1');
@@ -356,8 +368,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-verbose-1');
@@ -385,8 +398,9 @@ class McpServerFactoryTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
         );
-        $server = $factory->createServer([]);
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
 
         $payload = McpTestHelper::makeCallToolRequest('missing_tool', [], 'missing-invalid-level-1');

@@ -19,6 +19,7 @@ use Piwik\API\Request as ApiRequest;
 use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\FrontController;
+use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
@@ -427,6 +428,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
+                StaticContainer::get(LoggerInterface::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -456,6 +458,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
+                StaticContainer::get(LoggerInterface::class),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();

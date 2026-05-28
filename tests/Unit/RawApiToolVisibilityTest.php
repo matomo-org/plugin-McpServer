@@ -29,6 +29,7 @@ use Piwik\Plugins\McpServer\McpTools\ApiList;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\Support\Pagination\CursorPaginator;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
+use Piwik\Plugins\McpServer\tests\Framework\FixedMcpToolsProvider;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\StatefulSystemSettingsStub;
 use Psr\Container\ContainerInterface;
@@ -154,8 +155,9 @@ class RawApiToolVisibilityTest extends TestCase
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider($this->buildRawApiTools($systemSettings)),
         );
-        $server = $factory->createServer($this->buildRawApiTools($systemSettings));
+        $server = $factory->createServer();
         $sessionId = McpTestHelper::initializeSession($server);
         $payload = McpTestHelper::makeListToolsRequest('list-tools-1');
 

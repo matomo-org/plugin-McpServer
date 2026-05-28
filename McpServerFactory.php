@@ -26,25 +26,6 @@ use Piwik\Plugin\Manager;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpToolIcon;
-use Piwik\Plugins\McpServer\McpTools\ApiCallCreate;
-use Piwik\Plugins\McpServer\McpTools\ApiCallDelete;
-use Piwik\Plugins\McpServer\McpTools\ApiCallFull;
-use Piwik\Plugins\McpServer\McpTools\ApiCallRead;
-use Piwik\Plugins\McpServer\McpTools\ApiCallUpdate;
-use Piwik\Plugins\McpServer\McpTools\ApiGet;
-use Piwik\Plugins\McpServer\McpTools\ApiList;
-use Piwik\Plugins\McpServer\McpTools\DimensionGet;
-use Piwik\Plugins\McpServer\McpTools\DimensionList;
-use Piwik\Plugins\McpServer\McpTools\GoalGet;
-use Piwik\Plugins\McpServer\McpTools\GoalList;
-use Piwik\Plugins\McpServer\McpTools\ReportList;
-use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
-use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
-use Piwik\Plugins\McpServer\McpTools\SegmentGet;
-use Piwik\Plugins\McpServer\McpTools\SegmentList;
-use Piwik\Plugins\McpServer\McpTools\SiteGet;
-use Piwik\Plugins\McpServer\McpTools\SiteList;
-use Piwik\Plugins\McpServer\McpTools\SiteSearch;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
@@ -58,34 +39,6 @@ final class McpServerFactory
     /** @var array<int, string> */
     private const VALID_TOOL_CALL_LOG_LEVELS = ['ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE'];
 
-    /**
-     * Tools shipped by this plugin. Held as class-strings so DI/container
-     * construction stays in one place — see buildBuiltinTools().
-     *
-     * @var list<class-string<McpTool>>
-     */
-    private const BUILTIN_TOOL_CLASSES = [
-        ApiCallCreate::class,
-        ApiCallDelete::class,
-        ApiCallFull::class,
-        ApiCallRead::class,
-        ApiCallUpdate::class,
-        ApiGet::class,
-        ApiList::class,
-        DimensionGet::class,
-        DimensionList::class,
-        GoalGet::class,
-        GoalList::class,
-        ReportList::class,
-        ReportMetadata::class,
-        ReportProcessed::class,
-        SegmentGet::class,
-        SegmentList::class,
-        SiteGet::class,
-        SiteList::class,
-        SiteSearch::class,
-    ];
-
     /** @var array{server: Server, registry: Registry, callToolHandler: RequestHandlerInterface<mixed>}|null */
     private ?array $runtimeCache = null;
 
@@ -94,26 +47,12 @@ final class McpServerFactory
         private SessionStoreInterface $sessionStore,
         private ContainerInterface $container,
         private ToolCallParameterFormatter $toolCallParameterFormatter,
+        private McpToolsProviderInterface $toolsProvider,
     ) {
     }
 
-    /**
-     * @param list<McpTool>|null $tools Built-in tools to register. When null,
-     *                                  the factory resolves the shipped tool
-     *                                  set via its container. Tests inject an
-     *                                  explicit list to bypass DI.
-     *                                  An explicit list bypasses the runtime
-     *                                  cache and always builds a fresh server;
-     *                                  it is never written back to the cache,
-     *                                  so production calls (which pass null)
-     *                                  keep seeing the shipped tool set.
-     */
-    public function createServer(?array $tools = null): Server
+    public function createServer(): Server
     {
-        if ($tools !== null) {
-            return $this->buildRuntime($tools)['server'];
-        }
-
         return $this->resolveRuntime()['server'];
     }
 
@@ -165,12 +104,11 @@ final class McpServerFactory
     }
 
     /**
-     * @param list<McpTool>|null $tools
      * @return array{server: Server, registry: Registry, callToolHandler: RequestHandlerInterface<mixed>}
      */
-    private function buildRuntime(?array $tools = null): array
+    private function buildRuntime(): array
     {
-        $tools ??= $this->buildBuiltinTools();
+        $tools = $this->toolsProvider->getAllTools();
 
         $version = (string) Manager::getInstance()->getVersion('McpServer');
         $loggingConfig = $this->resolveLoggingConfig();
@@ -233,11 +171,15 @@ final class McpServerFactory
 
     private function registerTool(Builder $builder, McpTool $tool): void
     {
-        // Every McpTool subclass exposes its handler as a public execute() method;
-        // the SDK's ReferenceHandler resolves a fresh instance from the container
-        // and binds JSON-RPC arguments to execute()'s typed parameters on each call.
+        // Every McpTool subclass exposes its handler as a public callable execute()
+        // method. Register a closure bound to the resolved object so tools contributed
+        // through McpServer.addTools keep their constructor state while the SDK
+        // can still reflect execute()'s typed parameter contract.
+        $handler = [$tool, 'execute'];
+        assert(is_callable($handler));
+
         $builder->addTool(
-            handler: [$tool::class, 'execute'],
+            handler: \Closure::fromCallable($handler),
             name: $tool->getName(),
             title: $tool->getTitle(),
             description: $tool->getDescription(),
@@ -281,28 +223,6 @@ final class McpServerFactory
             ),
             $icons,
         );
-    }
-
-    /**
-     * Resolve the built-in tool class-strings into instances.
-     *
-     * @return list<McpTool>
-     */
-    private function buildBuiltinTools(): array
-    {
-        $tools = [];
-        foreach (self::BUILTIN_TOOL_CLASSES as $toolClass) {
-            $tool = $this->container->get($toolClass);
-            if (!$tool instanceof McpTool) {
-                throw new \LogicException(sprintf(
-                    '%s did not resolve to an McpTool instance.',
-                    $toolClass,
-                ));
-            }
-            $tools[] = $tool;
-        }
-
-        return $tools;
     }
 
     /**
