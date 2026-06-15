@@ -51,7 +51,7 @@ describe('McpServer', function () {
     {
         await page.click(settingsSaveButtonSelector);
         await page.waitForSelector('.confirm-password-modal.open', { visible: true });
-        await page.type('.confirm-password-modal input[name=currentUserPassword]', superUserPassword);
+        await page.type('.confirm-password-modal.open input[name=currentUserPassword]', superUserPassword);
         await (await page.jQuery('.confirm-password-modal.open .modal-close:not(.modal-no):visible')).click();
         await page.waitForSelector('.confirm-password-modal.open', { hidden: true });
         await page.waitForNetworkIdle();
