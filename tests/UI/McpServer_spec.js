@@ -51,7 +51,7 @@ describe('McpServer', function () {
     {
         await page.click(settingsSaveButtonSelector);
         await page.waitForSelector('.confirm-password-modal.open', { visible: true });
-        await page.type('.confirm-password-modal input[name=currentUserPassword]', superUserPassword);
+        await page.type('.confirm-password-modal.open input[name=currentUserPassword]', superUserPassword);
         await (await page.jQuery('.confirm-password-modal.open .modal-close:not(.modal-no):visible')).click();
         await page.waitForSelector('.confirm-password-modal.open', { hidden: true });
         await page.waitForNetworkIdle();
@@ -142,6 +142,23 @@ describe('McpServer', function () {
         return page.$eval(connectSelector, (el) => el.textContent.replace(/\s+/g, ' ').trim());
     }
 
+    async function stabiliseEndpointUrl()
+    {
+        // The displayed MCP endpoint URL embeds the Matomo host, which differs per
+        // environment (localhost on CI, *.ddev.site locally, ...). Normalise the host
+        // before capturing screenshots so the baselines stay stable everywhere.
+        await page.evaluate(function () {
+            var elements = document.querySelectorAll('.mcpServerLongCode, #McpServerPluginSettings code');
+
+            elements.forEach(function (el) {
+                el.textContent = el.textContent.replace(
+                    /https?:\/\/[^/\s]+(\/[^\s"']*index\.php\?module=API&method=McpServer\.mcp&format=mcp)/g,
+                    'http://localhost$1'
+                );
+            });
+        });
+    }
+
     before(function () {
         testEnvironment.pluginsToLoad = ['McpServer'];
         resetUserToSuperUser();
@@ -173,6 +190,8 @@ describe('McpServer', function () {
             .to.contain('idSite=1')
             .and.to.contain('period=day')
             .and.to.contain('date=yesterday');
+
+        await stabiliseEndpointUrl();
         expect(await page.screenshotSelector(settingsSelector)).to.matchImage('settings');
     });
 
@@ -235,6 +254,7 @@ describe('McpServer', function () {
             .and.to.contain('period=day')
             .and.to.contain('date=yesterday');
 
+        await stabiliseEndpointUrl();
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_enabled');
     });
 
@@ -284,6 +304,7 @@ describe('McpServer', function () {
             .and.to.contain('period=day')
             .and.to.contain('date=yesterday');
 
+        await stabiliseEndpointUrl();
         expect(await page.screenshotSelector(connectSelector)).to.matchImage('connect_oauth2');
     });
 
