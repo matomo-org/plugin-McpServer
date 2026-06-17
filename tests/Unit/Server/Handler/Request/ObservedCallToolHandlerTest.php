@@ -29,6 +29,7 @@ use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Support\Logging\McpToolCallOrigin;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Log\NullLogger;
 
@@ -427,6 +428,65 @@ class ObservedCallToolHandlerTest extends TestCase
 
         self::assertInstanceOf(Error::class, $error);
         self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+    }
+
+    public function testHttpOriginIsRecordedWhenSessionHasNoMarker(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('5a8f1a40-2bf4-4d7e-9a5a-7c1cf2c61c20');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-origin-http');
+
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(
+                self::isType('string'),
+                self::callback(static fn(array $context): bool => ($context['mcp_call_origin'] ?? null)
+                    === McpToolCallOrigin::ORIGIN_HTTP),
+            );
+
+        $handler = $this->createObservedHandler($registry, $logger, false);
+        $handler->handle($request, $session);
+    }
+
+    public function testInternalOriginIsRecordedWhenSessionMarkerIsSet(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('1b2cb118-3d23-4dbe-9d8a-32d7f0a3d911');
+        $session->set(McpToolCallOrigin::SESSION_KEY, McpToolCallOrigin::ORIGIN_INTERNAL);
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-origin-internal');
+
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(
+                self::isType('string'),
+                self::callback(static fn(array $context): bool => ($context['mcp_call_origin'] ?? null)
+                    === McpToolCallOrigin::ORIGIN_INTERNAL),
+            );
+
+        $handler = $this->createObservedHandler($registry, $logger, false);
+        $handler->handle($request, $session);
+    }
+
+    public function testUnknownOriginMarkerFallsBackToHttp(): void
+    {
+        $registry = new Registry();
+        $logger = $this->createMock(LoggerInterface::class);
+        $session = $this->createSession('2c3df229-4e34-4ecf-aeab-43e8014ee022');
+        $session->set(McpToolCallOrigin::SESSION_KEY, 'something-unexpected');
+        $request = (new CallToolRequest('missing_tool', []))->withId('r-origin-unknown');
+
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(
+                self::isType('string'),
+                self::callback(static fn(array $context): bool => ($context['mcp_call_origin'] ?? null)
+                    === McpToolCallOrigin::ORIGIN_HTTP),
+            );
+
+        $handler = $this->createObservedHandler($registry, $logger, false);
+        $handler->handle($request, $session);
     }
 
     public function testFailureLogsAtDebugWhenVerboseConfigured(): void

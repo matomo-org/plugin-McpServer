@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\tests\Unit\Contracts;
 
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
+use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 
 /**
  * @group McpServer
@@ -80,5 +81,37 @@ class McpToolTest extends TestCase
             }
         };
         self::fail(sprintf('Constructor unexpectedly returned an instance of %s.', $tool::class));
+    }
+
+    public function testConstructorAcceptsSubclassWithPartiallyDeclaredAnnotationHints(): void
+    {
+        // The base class deliberately does not require every behavioural hint
+        // to be non-null: McpToolAnnotations declares them as ?bool, the MCP
+        // spec leaves "unknown" interpretation to clients, and the in-process
+        // catalogue passes nulls straight through. This test pins that lenient
+        // contract so a future re-tightening cannot land silently.
+        $tool = new class () extends McpTool {
+            protected function init(): void
+            {
+                $this->name = 'test_tool_with_partial_annotations';
+                $this->inputSchema = ['type' => 'object'];
+                $this->annotations = new McpToolAnnotations(
+                    readOnlyHint: true,
+                    destructiveHint: null,
+                    idempotentHint: null,
+                    openWorldHint: false,
+                );
+            }
+
+            public function execute(): void
+            {
+            }
+        };
+
+        self::assertSame('test_tool_with_partial_annotations', $tool->getName());
+        self::assertTrue($tool->getAnnotations()->readOnlyHint);
+        self::assertNull($tool->getAnnotations()->destructiveHint);
+        self::assertNull($tool->getAnnotations()->idempotentHint);
+        self::assertFalse($tool->getAnnotations()->openWorldHint);
     }
 }

@@ -19,8 +19,11 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\API\Request as ApiRequest;
 use Piwik\Http\BadRequestException;
 use Piwik\NoAccessException;
-use Piwik\Piwik;
-use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
+use Piwik\Plugins\McpServer\Support\Access\McpUnavailableException;
+use Piwik\Plugins\McpServer\Support\Api\InternalApiAccessGuard;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCaller;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCatalog;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
@@ -34,7 +37,10 @@ class API extends \Piwik\Plugin\API
         private McpEndpointGuard $endpointGuard,
         private JsonRpcErrorResponseFactory $jsonRpcErrorResponseFactory,
         private JsonRpcRequestIdExtractor $jsonRpcRequestIdExtractor,
-        private SystemSettings $systemSettings,
+        private McpAccessGate $accessGate,
+        private InternalApiAccessGuard $internalAccessGuard,
+        private InternalToolCatalog $internalToolCatalog,
+        private InternalToolCaller $internalToolCaller,
     ) {
     }
 
@@ -79,8 +85,9 @@ class API extends \Piwik\Plugin\API
         }
 
         try {
-            $this->checkUserIsNotAnonymous();
-            $this->checkUserHasSomeViewAccess();
+            $this->accessGate->assertHttp();
+        } catch (McpUnavailableException | BadRequestException $e) {
+            return $this->createForbiddenResponse($requestMetadata['topLevelRequestId'], $e->getMessage());
         } catch (\Throwable $e) {
             if ($this->isUnauthorizedLike($e)) {
                 return $this->createUnauthorizedResponse($requestId);
@@ -92,14 +99,6 @@ class API extends \Piwik\Plugin\API
                 McpEndpointSpec::INTERNAL_ERROR,
                 $requestId,
             );
-        }
-
-        if (!$this->isMcpEnabled()) {
-            return $this->createDisabledResponse($requestMetadata['topLevelRequestId']);
-        }
-
-        if (!$this->isCurrentUserPrivilegeLevelAllowed()) {
-            return $this->createPrivilegeTooHighResponse($requestMetadata['topLevelRequestId']);
         }
 
         try {
@@ -117,19 +116,68 @@ class API extends \Piwik\Plugin\API
         }
     }
 
+    /**
+     * Returns the registered MCP tool catalogue for in-process consumers.
+     *
+     * Throws {@see \Piwik\NoAccessException} when the caller is anonymous or
+     * lacks view access, and {@see McpUnavailableException} when MCP is
+     * disabled site-wide; consumers can branch on the latter to surface a
+     * "feature off" message instead of a generic access error.
+     *
+     * @internal
+     * @return list<array{
+     *     name: string,
+     *     title: string|null,
+     *     description: string,
+     *     inputSchema: array<string, mixed>,
+     *     outputSchema: array<string, mixed>|null,
+     *     readOnly: bool|null,
+     *     destructive: bool|null,
+     *     idempotent: bool|null,
+     *     openWorld: bool|null
+     * }> Registered MCP tools with schemas and behaviour hints.
+     */
+    public function getInternalToolCatalog(): array
+    {
+        $this->internalAccessGuard->assertInternalContext();
+        $this->accessGate->assertBase();
+
+        return $this->internalToolCatalog->build($this->factory->createInternalAccess());
+    }
+
+    /**
+     * Calls a registered MCP tool for in-process consumers.
+     *
+     * Tool and protocol failures are returned as an `isError` payload; context
+     * and access failures throw as ordinary Matomo API exceptions
+     * ({@see \Piwik\NoAccessException} for anonymous / no-view callers,
+     * {@see McpUnavailableException} when MCP is disabled site-wide).
+     *
+     * @internal
+     * @unsanitized
+     * @param string $name Registered MCP tool name.
+     * @param array<string, mixed> $arguments Arguments validated against the tool input schema.
+     * @return array{
+     *     content: list<array<string, mixed>>,
+     *     structuredContent: array<string, mixed>|null,
+     *     isError: bool
+     * } Serialized MCP tool result payload.
+     */
+    public function callInternalTool(string $name, array $arguments = []): array
+    {
+        $this->internalAccessGuard->assertInternalContext();
+        $this->accessGate->assertBase();
+
+        return $this->internalToolCaller->call(
+            $this->factory->createInternalAccess(),
+            $name,
+            $arguments,
+        );
+    }
+
     protected function createRequestFromGlobals(): ServerRequestInterface
     {
         return (new Psr17Factory())->createServerRequestFromGlobals();
-    }
-
-    protected function checkUserHasSomeViewAccess(): void
-    {
-        Piwik::checkUserHasSomeViewAccess();
-    }
-
-    protected function checkUserIsNotAnonymous(): void
-    {
-        Piwik::checkUserIsNotAnonymous();
     }
 
     protected function createUnauthorizedResponse(string|int $requestId = ''): ResponseInterface
@@ -140,19 +188,6 @@ class API extends \Piwik\Plugin\API
             McpEndpointSpec::UNAUTHORIZED_ERROR,
             $requestId,
             ['WWW-Authenticate' => 'Bearer realm="mcp"'],
-        );
-    }
-
-    protected function isMcpEnabled(): bool
-    {
-        return $this->systemSettings->isMcpEnabled();
-    }
-
-    protected function isCurrentUserPrivilegeLevelAllowed(): bool
-    {
-        return !McpAccessLevel::exceedsMaximumAllowed(
-            McpAccessLevel::resolveCurrentUserLevel(),
-            $this->systemSettings->getMaximumAllowedMcpAccessLevel(),
         );
     }
 
@@ -181,7 +216,13 @@ class API extends \Piwik\Plugin\API
         return false;
     }
 
-    protected function createDisabledResponse(string|int|null $topLevelRequestId): ResponseInterface
+    /**
+     * Shape a 403 response for the HTTP mcp() path when {@see McpAccessGate::assertHttp()}
+     * rejected the request via {@see McpUnavailableException} (MCP disabled) or
+     * {@see BadRequestException} (privilege ceiling exceeded). The exception's
+     * message is the canonical text.
+     */
+    protected function createForbiddenResponse(string|int|null $topLevelRequestId, string $message): ResponseInterface
     {
         if ($topLevelRequestId === null) {
             return (new Psr17Factory())->createResponse(403);
@@ -190,21 +231,7 @@ class API extends \Piwik\Plugin\API
         return $this->jsonRpcErrorResponseFactory->create(
             403,
             JsonRpcError::INVALID_REQUEST,
-            McpEndpointSpec::DISABLED_ERROR,
-            $topLevelRequestId,
-        );
-    }
-
-    protected function createPrivilegeTooHighResponse(string|int|null $topLevelRequestId): ResponseInterface
-    {
-        if ($topLevelRequestId === null) {
-            return (new Psr17Factory())->createResponse(403);
-        }
-
-        return $this->jsonRpcErrorResponseFactory->create(
-            403,
-            JsonRpcError::INVALID_REQUEST,
-            McpAccessLevel::createTooHighPrivilegeMessage($this->systemSettings->getMaximumAllowedMcpAccessLevel()),
+            $message,
             $topLevelRequestId,
         );
     }

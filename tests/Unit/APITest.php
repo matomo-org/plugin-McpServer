@@ -20,15 +20,20 @@ use PHPUnit\Framework\TestCase;
 use Piwik\Access;
 use Piwik\Config;
 use Piwik\Container\StaticContainer;
+use Piwik\Http\BadRequestException;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\API;
 use Piwik\Plugins\McpServer\McpServerFactory;
+use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
+use Piwik\Plugins\McpServer\Support\Access\McpUnavailableException;
+use Piwik\Plugins\McpServer\Support\Api\InternalApiAccessGuard;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCaller;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCatalog;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
-use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 
 /**
@@ -46,6 +51,8 @@ class APITest extends TestCase
     /** @var array<string, mixed> */
     private array $originalPost = [];
 
+    private string $originalRootApiMethod = '';
+
     public function setUp(): void
     {
         parent::setUp();
@@ -61,6 +68,7 @@ class APITest extends TestCase
 
         $this->originalGet = $_GET;
         $this->originalPost = $_POST;
+        $this->originalRootApiMethod = (string) \Piwik\API\Request::getRootApiRequestMethod();
     }
 
     public function tearDown(): void
@@ -68,6 +76,7 @@ class APITest extends TestCase
         Config::getInstance()->McpServer = $this->originalMcpServerConfig;
         $_GET = $this->originalGet;
         $_POST = $this->originalPost;
+        \Piwik\API\Request::setIsRootRequestApiRequest($this->originalRootApiMethod);
 
         Access::getInstance()->setSuperUserAccess(false);
 
@@ -94,7 +103,7 @@ class APITest extends TestCase
 
     public function testMcpRejectsRequestWithoutMcpFormat(): void
     {
-        $this->expectException(\Piwik\Http\BadRequestException::class);
+        $this->expectException(BadRequestException::class);
         $this->expectExceptionMessage('MCP endpoint requires format=mcp.');
 
         $_GET['module'] = 'API';
@@ -156,35 +165,10 @@ class APITest extends TestCase
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
-        $factory = $this->createFactory();
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new \Piwik\NoAccessException('No access'));
 
-        $api = $this
-            ->getMockBuilder(API::class)
-            ->setConstructorArgs([
-                $factory,
-                new McpEndpointGuard(),
-                new JsonRpcErrorResponseFactory(),
-                new JsonRpcRequestIdExtractor(),
-                $this->createMock(SystemSettings::class),
-            ])
-            ->onlyMethods([
-                'createRequestFromGlobals',
-                'isCurrentApiRequestRoot',
-                'getRootApiRequestMethod',
-                'checkUserIsNotAnonymous',
-                'checkUserHasSomeViewAccess',
-            ])
-            ->getMock();
-
-        $api->method('createRequestFromGlobals')
-            ->willReturn($this->createRequest());
-        $api->method('isCurrentApiRequestRoot')
-            ->willReturn(true);
-        $api->method('getRootApiRequestMethod')
-            ->willReturn('McpServer.mcp');
-        $api->method('checkUserHasSomeViewAccess')
-            ->willThrowException(new \Piwik\NoAccessException('No access'));
-
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate);
         $result = $api->mcp();
 
         self::assertInstanceOf(ResponseInterface::class, $result);
@@ -203,37 +187,11 @@ class APITest extends TestCase
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
-        $factory = $this->createFactory();
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')
+            ->willThrowException(new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access')));
 
-        $api = $this
-            ->getMockBuilder(API::class)
-            ->setConstructorArgs([
-                $factory,
-                new McpEndpointGuard(),
-                new JsonRpcErrorResponseFactory(),
-                new JsonRpcRequestIdExtractor(),
-                $this->createMock(SystemSettings::class),
-            ])
-            ->onlyMethods([
-                'createRequestFromGlobals',
-                'isCurrentApiRequestRoot',
-                'getRootApiRequestMethod',
-                'checkUserIsNotAnonymous',
-                'checkUserHasSomeViewAccess',
-            ])
-            ->getMock();
-
-        $api->method('createRequestFromGlobals')
-            ->willReturn($this->createRequest());
-        $api->method('isCurrentApiRequestRoot')
-            ->willReturn(true);
-        $api->method('getRootApiRequestMethod')
-            ->willReturn('McpServer.mcp');
-        $api->method('checkUserHasSomeViewAccess')
-            ->willThrowException(
-                new \RuntimeException('wrapped', 0, new \Piwik\NoAccessException('No access')),
-            );
-
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate);
         $result = $api->mcp();
 
         self::assertSame(401, $result->getStatusCode());
@@ -250,36 +208,10 @@ class APITest extends TestCase
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
-        $factory = $this->createFactory();
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new \Piwik\NoAccessException('You must be logged in.'));
 
-        $api = $this
-            ->getMockBuilder(API::class)
-            ->setConstructorArgs([
-                $factory,
-                new McpEndpointGuard(),
-                new JsonRpcErrorResponseFactory(),
-                new JsonRpcRequestIdExtractor(),
-                $this->createMock(SystemSettings::class),
-            ])
-            ->onlyMethods([
-                'createRequestFromGlobals',
-                'isCurrentApiRequestRoot',
-                'getRootApiRequestMethod',
-                'checkUserIsNotAnonymous',
-                'checkUserHasSomeViewAccess',
-            ])
-            ->getMock();
-
-        $api->method('createRequestFromGlobals')
-            ->willReturn($this->createRequest());
-        $api->method('isCurrentApiRequestRoot')
-            ->willReturn(true);
-        $api->method('getRootApiRequestMethod')
-            ->willReturn('McpServer.mcp');
-        $api->method('checkUserIsNotAnonymous')
-            ->willThrowException(new \Piwik\NoAccessException('You must be logged in.'));
-        $api->expects(self::never())->method('checkUserHasSomeViewAccess');
-
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate);
         $result = $api->mcp();
 
         self::assertSame(401, $result->getStatusCode());
@@ -292,13 +224,15 @@ class APITest extends TestCase
 
     public function testMcpReturnsForbiddenErrorWhenMcpIsDisabledAndTopLevelIdExists(): void
     {
-        Access::getInstance()->setSuperUserAccess(true);
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new McpUnavailableException(McpEndpointSpec::DISABLED_ERROR));
+
         $request = $this->createRequest(McpTestHelper::makeInitializeRequest('disabled-1'));
-        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', false);
+        $api = $this->createApiWithRequest($request, gate: $gate);
         $response = $api->mcp();
 
         self::assertSame(403, $response->getStatusCode());
@@ -310,15 +244,17 @@ class APITest extends TestCase
 
     public function testMcpReturnsForbiddenWithoutBodyWhenMcpIsDisabledAndTopLevelIdIsMissing(): void
     {
-        Access::getInstance()->setSuperUserAccess(true);
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new McpUnavailableException(McpEndpointSpec::DISABLED_ERROR));
+
         $initialize = \json_decode(McpTestHelper::makeInitializeRequest('batch-1'), true, 512, \JSON_THROW_ON_ERROR);
         $batchPayload = \json_encode([$initialize], \JSON_THROW_ON_ERROR);
         $request = $this->createRequest($batchPayload);
-        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', false);
+        $api = $this->createApiWithRequest($request, gate: $gate);
         $response = $api->mcp();
 
         self::assertSame(403, $response->getStatusCode());
@@ -328,13 +264,17 @@ class APITest extends TestCase
 
     public function testMcpReturnsForbiddenErrorWhenPrivilegeLevelIsTooHighAndTopLevelIdExists(): void
     {
-        Access::getInstance()->setSuperUserAccess(true);
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new BadRequestException(
+            'Authenticated MCP access has too high privilege level. Maximum of Write access level is allowed.',
+        ));
+
         $request = $this->createRequest(McpTestHelper::makeInitializeRequest('privilege-1'));
-        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', true, false);
+        $api = $this->createApiWithRequest($request, gate: $gate);
         $response = $api->mcp();
 
         self::assertSame(403, $response->getStatusCode());
@@ -349,20 +289,54 @@ class APITest extends TestCase
 
     public function testMcpReturnsForbiddenWithoutBodyWhenPrivilegeLevelIsTooHighAndTopLevelIdIsMissing(): void
     {
-        Access::getInstance()->setSuperUserAccess(true);
         $_GET['module'] = 'API';
         $_GET['method'] = 'McpServer.mcp';
         $_GET['format'] = 'mcp';
 
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new BadRequestException(
+            'Authenticated MCP access has too high privilege level. Maximum of Write access level is allowed.',
+        ));
+
         $initialize = \json_decode(McpTestHelper::makeInitializeRequest('batch-1'), true, 512, \JSON_THROW_ON_ERROR);
         $batchPayload = \json_encode([$initialize], \JSON_THROW_ON_ERROR);
         $request = $this->createRequest($batchPayload);
-        $api = $this->createApiWithRequest($request, true, 'McpServer.mcp', true, false);
+        $api = $this->createApiWithRequest($request, gate: $gate);
         $response = $api->mcp();
 
         self::assertSame(403, $response->getStatusCode());
         self::assertSame('', $response->getHeaderLine('Content-Type'));
         self::assertSame('', McpTestHelper::getResponseBody($response));
+    }
+
+    public function testGetInternalToolCatalogRejectsAnonymousUser(): void
+    {
+        \Piwik\API\Request::setIsRootRequestApiRequest('');
+
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertBase')->willThrowException(new \Piwik\NoAccessException('You must be logged in.'));
+
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate);
+
+        $this->expectException(\Piwik\NoAccessException::class);
+        $this->expectExceptionMessage('You must be logged in.');
+
+        $api->getInternalToolCatalog();
+    }
+
+    public function testCallInternalToolRejectsUserWithoutViewAccess(): void
+    {
+        \Piwik\API\Request::setIsRootRequestApiRequest('');
+
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertBase')->willThrowException(new \Piwik\NoAccessException('No view access.'));
+
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate);
+
+        $this->expectException(\Piwik\NoAccessException::class);
+        $this->expectExceptionMessage('No view access.');
+
+        $api->callInternalTool('any_tool', []);
     }
 
     public function testMcpReturnsInternalErrorResponseWhenRequestCreationFails(): void
@@ -380,7 +354,10 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
-                $this->createMock(SystemSettings::class),
+                $this->permissiveGate(),
+                new InternalApiAccessGuard(),
+                new InternalToolCatalog(),
+                new InternalToolCaller(),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -427,17 +404,23 @@ class APITest extends TestCase
         );
     }
 
+    /**
+     * A gate that does nothing on either assertion — the happy-path default
+     * for tests that aren't exercising the access gate themselves. Tests that
+     * want a rejection construct their own throwing gate and pass it in.
+     */
+    private function permissiveGate(): McpAccessGate
+    {
+        return $this->createMock(McpAccessGate::class);
+    }
+
     private function createApiWithRequest(
         ServerRequestInterface $request,
         bool $isRootApiRequest = true,
         ?string $rootApiMethod = 'McpServer.mcp',
-        bool $isMcpEnabled = true,
-        bool $isCurrentUserPrivilegeLevelAllowed = true,
+        ?McpAccessGate $gate = null,
     ): API {
         $factory = $this->createFactory();
-        $systemSettings = $this->createMock(SystemSettings::class);
-        $systemSettings->method('getMaximumAllowedMcpAccessLevel')
-            ->willReturn('write');
 
         $api = $this
             ->getMockBuilder(API::class)
@@ -446,14 +429,15 @@ class APITest extends TestCase
                 new McpEndpointGuard(),
                 new JsonRpcErrorResponseFactory(),
                 new JsonRpcRequestIdExtractor(),
-                $systemSettings,
+                $gate ?? $this->permissiveGate(),
+                new InternalApiAccessGuard(),
+                new InternalToolCatalog(),
+                new InternalToolCaller(),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
                 'isCurrentApiRequestRoot',
                 'getRootApiRequestMethod',
-                'isMcpEnabled',
-                'isCurrentUserPrivilegeLevelAllowed',
             ])
             ->getMock();
 
@@ -463,10 +447,6 @@ class APITest extends TestCase
             ->willReturn($isRootApiRequest);
         $api->method('getRootApiRequestMethod')
             ->willReturn($rootApiMethod);
-        $api->method('isMcpEnabled')
-            ->willReturn($isMcpEnabled);
-        $api->method('isCurrentUserPrivilegeLevelAllowed')
-            ->willReturn($isCurrentUserPrivilegeLevelAllowed);
 
         return $api;
     }
