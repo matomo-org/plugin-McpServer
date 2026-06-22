@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: false
           persist-credentials: false
@@ -34,7 +34,7 @@ jobs:
           php-version: '8.1'
 
       - name: Check out github-action-tests repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: matomo-org/github-action-tests
           ref: main
