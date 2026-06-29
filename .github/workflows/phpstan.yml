@@ -53,7 +53,7 @@ jobs:
         working-directory: matomo
 
       - name: Restore result cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/phpstan # same as in phpstan.neon
           key: "phpstan-result-cache-${{ github.run_id }}"
@@ -65,7 +65,7 @@ jobs:
         working-directory: matomo
 
       - name: Save result cache
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         if: ${{ !cancelled() }}
         with:
           path: /tmp/phpstan # same as in phpstan.neon
