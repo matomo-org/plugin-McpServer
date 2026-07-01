@@ -36,6 +36,7 @@ class McpServerEvent
     public const METHOD_INITIALIZED = 'notifications/initialized';
     public const METHOD_TOOLS_LIST  = 'tools/list';
     public const METHOD_TOOLS_CALL  = 'tools/call';
+    public const METHOD_SESSION_END = 'session/end';
 
     public function __construct(
         public readonly string $method,

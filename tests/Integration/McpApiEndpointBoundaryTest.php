@@ -13,14 +13,19 @@ namespace Piwik\Plugins\McpServer\tests\Integration;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
+use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use Piwik\Access;
 use Piwik\API\Request as ApiRequest;
 use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\FrontController;
 use Piwik\Log\LoggerInterface;
+use Piwik\Piwik;
 use Piwik\Plugins\McpServer\API;
+use Piwik\Plugins\McpServer\Contracts\Events\McpServerEvent;
+use Piwik\Plugins\McpServer\Contracts\Events\McpSessionEndEvent;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
@@ -31,6 +36,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -403,18 +409,154 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertSame('superuser-1', $error->id);
     }
 
-    private function createRequest(string $payload): ServerRequestInterface
+    public function testAcceptedDeletePublishesSessionEndEvent(): void
     {
-        $factory = new Psr17Factory();
+        $this->setMcpEnabled(true);
+        Access::getInstance()->setSuperUserAccess(true);
 
-        return $factory
-            ->createServerRequest('POST', 'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp')
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $initializeApi = $this->createApiWithRequest(
+            $this->createRequest(McpTestHelper::makeInitializeRequest('delete-init-1')),
+        );
+        $initializeResponse = $initializeApi->mcp();
+        McpTestHelper::decodeResponse($initializeResponse);
+        $sessionId = $initializeResponse->getHeaderLine('Mcp-Session-Id');
+
+        $captured = [];
+        Piwik::addAction('McpServer.serverEvent', static function (McpServerEvent $event) use (&$captured): void {
+            $captured[] = $event;
+        });
+
+        $deleteApi = $this->createApiWithRequest(
+            $this->createRequest('', 'DELETE', ['Mcp-Session-Id' => $sessionId]),
+        );
+        $deleteResponse = $deleteApi->mcp();
+
+        self::assertSame(200, $deleteResponse->getStatusCode());
+        self::assertCount(1, $captured);
+        self::assertInstanceOf(McpSessionEndEvent::class, $captured[0]);
+        self::assertSame($sessionId, $captured[0]->sessionId);
+    }
+
+    public function testRejectedDeleteWithoutSessionIdDoesNotPublishSessionEndEvent(): void
+    {
+        $this->setMcpEnabled(true);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $captured = [];
+        Piwik::addAction('McpServer.serverEvent', static function (McpServerEvent $event) use (&$captured): void {
+            $captured[] = $event;
+        });
+
+        $api = $this->createApiWithRequest($this->createRequest('', 'DELETE'));
+        $response = $api->mcp();
+        $error = McpTestHelper::decodeError($response);
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
+        self::assertSame('Mcp-Session-Id header is required.', $error->message);
+        self::assertSame([], $captured);
+    }
+
+    public function testDeleteForUnknownSessionDoesNotPublishSessionEndEvent(): void
+    {
+        $this->setMcpEnabled(true);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $captured = [];
+        Piwik::addAction('McpServer.serverEvent', static function (McpServerEvent $event) use (&$captured): void {
+            $captured[] = $event;
+        });
+
+        $api = $this->createApiWithRequest(
+            $this->createRequest('', 'DELETE', ['Mcp-Session-Id' => Uuid::v4()->toRfc4122()]),
+        );
+        $response = $api->mcp();
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame([], $captured);
+    }
+
+    public function testSessionEndSubscriberFailureIsLoggedWithoutChangingResponse(): void
+    {
+        $this->setMcpEnabled(true);
+        Access::getInstance()->setSuperUserAccess(true);
+
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $initializeApi = $this->createApiWithRequest(
+            $this->createRequest(McpTestHelper::makeInitializeRequest('delete-init-2')),
+        );
+        $initializeResponse = $initializeApi->mcp();
+        McpTestHelper::decodeResponse($initializeResponse);
+        $sessionId = $initializeResponse->getHeaderLine('Mcp-Session-Id');
+
+        Piwik::addAction('McpServer.serverEvent', static function (): void {
+            throw new \RuntimeException('session-end subscriber failed');
+        });
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('debug')
+            ->with(self::stringContains('session-end subscriber failed'));
+        $publisher = new SessionEndEventPublisher(
+            StaticContainer::get(SessionStoreInterface::class),
+            $logger,
+        );
+
+        $deleteApi = $this->createApiWithRequest(
+            $this->createRequest('', 'DELETE', ['Mcp-Session-Id' => $sessionId]),
+            $publisher,
+        );
+        $deleteResponse = $deleteApi->mcp();
+
+        self::assertSame(200, $deleteResponse->getStatusCode());
+    }
+
+    /**
+     * @param array<string, string> $headers
+     */
+    private function createRequest(
+        string $payload,
+        string $method = 'POST',
+        array $headers = [],
+    ): ServerRequestInterface {
+        $factory = new Psr17Factory();
+        $request = $factory->createServerRequest(
+            $method,
+            'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp',
+        );
+
+        foreach ($headers as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        if ($payload === '') {
+            return $request;
+        }
+
+        return $request
             ->withHeader('Content-Type', 'application/json')
             ->withBody($factory->createStream($payload));
     }
 
-    private function createApiWithRequest(ServerRequestInterface $request): API
-    {
+    private function createApiWithRequest(
+        ServerRequestInterface $request,
+        ?SessionEndEventPublisher $sessionEndEventPublisher = null,
+    ): API {
         $factory = StaticContainer::get(McpServerFactory::class);
 
         $api = $this
@@ -429,6 +571,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
                 StaticContainer::get(LoggerInterface::class),
+                $sessionEndEventPublisher ?? StaticContainer::get(SessionEndEventPublisher::class),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -459,6 +602,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
                 StaticContainer::get(LoggerInterface::class),
+                StaticContainer::get(SessionEndEventPublisher::class),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();

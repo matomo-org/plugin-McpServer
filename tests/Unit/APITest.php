@@ -35,6 +35,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 
@@ -361,6 +362,10 @@ class APITest extends TestCase
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
                 $this->createMock(LoggerInterface::class),
+                new SessionEndEventPublisher(
+                    new InMemorySessionStore(),
+                    $this->createMock(LoggerInterface::class),
+                ),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -444,6 +449,10 @@ class APITest extends TestCase
                 new InternalToolCatalog(),
                 new InternalToolCaller(),
                 $this->createMock(LoggerInterface::class),
+                new SessionEndEventPublisher(
+                    new InMemorySessionStore(),
+                    $this->createMock(LoggerInterface::class),
+                ),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
