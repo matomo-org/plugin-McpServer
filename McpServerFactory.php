@@ -29,6 +29,7 @@ use Piwik\Plugins\McpServer\Contracts\McpToolIcon;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
+use Piwik\Plugins\McpServer\Server\ServerEventBridge;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Psr\Container\ContainerInterface;
 use Psr\Log\NullLogger;
@@ -159,6 +160,11 @@ final class McpServerFactory
             );
         }
         $builder->addRequestHandler($activeCallToolHandler);
+
+        // Observability seam: publish each completed request and received notification as a
+        // neutral McpServerEvent so other plugins can observe MCP usage without depending on the SDK.
+        // A no-op when nothing subscribes to McpServer.serverEvent.
+        $builder->setEventDispatcher(new ServerEventBridge($this->logger));
 
         $server = $builder->build();
 
