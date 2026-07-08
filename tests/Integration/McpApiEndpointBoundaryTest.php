@@ -184,6 +184,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $_GET['format'] = 'mcp';
 
         $output = FrontController::getInstance()->fetchDispatch('API');
+        self::assertIsString($output);
         self::assertNotSame('', trim($output));
 
         $decoded = \json_decode($output, true, 512, JSON_THROW_ON_ERROR);
