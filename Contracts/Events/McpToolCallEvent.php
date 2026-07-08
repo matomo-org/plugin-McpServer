@@ -21,6 +21,7 @@ final class McpToolCallEvent extends McpServerEvent
         public readonly string $toolName,
         public readonly bool $isError,
         public readonly int $durationMs,
+        public readonly ?int $errorCode = null,
     ) {
         parent::__construct(self::METHOD_TOOLS_CALL, $sessionId);
     }

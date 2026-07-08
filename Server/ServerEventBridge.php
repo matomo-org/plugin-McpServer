@@ -73,8 +73,7 @@ final class ServerEventBridge implements EventDispatcherInterface
             } elseif ($event instanceof NotificationEvent) {
                 $this->onNotification($event);
             } elseif ($event instanceof ErrorEvent) {
-                // Drop any pending timing so the map cannot grow in a long-running worker.
-                unset($this->startTimes[(string) $event->getRequest()->getId()]);
+                $this->onError($event);
             }
         } catch (\Throwable $e) {
             // Observability must never disrupt the MCP response.
@@ -124,6 +123,25 @@ final class ServerEventBridge implements EventDispatcherInterface
         }
 
         self::publishEvent(new McpServerEvent($event->getMethod(), $sessionId));
+    }
+
+    private function onError(ErrorEvent $event): void
+    {
+        $request = $event->getRequest();
+        if ($request instanceof CallToolRequest) {
+            self::publishEvent(new McpToolCallEvent(
+                $this->sessionId($event->getSession()),
+                $request->name,
+                true,
+                $this->takeDurationMs($request->getId()),
+                $event->getError()->code,
+            ));
+            return;
+        }
+
+        // Drop any pending timing for this request so the map does not retain stale entries.
+        unset($this->startTimes[(string) $request->getId()]);
+        self::publishEvent(new McpServerEvent($request::getMethod(), $this->sessionId($event->getSession())));
     }
 
     /**

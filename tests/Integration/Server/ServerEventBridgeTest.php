@@ -157,6 +157,7 @@ class ServerEventBridgeTest extends IntegrationTestCase
         self::assertSame('report_get', $event->toolName);
         self::assertFalse($event->isError);
         self::assertGreaterThanOrEqual(0, $event->durationMs);
+        self::assertNull($event->errorCode);
     }
 
     public function testCallToolResponseReflectsErrorResult(): void
@@ -167,6 +168,7 @@ class ServerEventBridgeTest extends IntegrationTestCase
 
         $event = $this->singleCaptured(McpToolCallEvent::class);
         self::assertTrue($event->isError);
+        self::assertNull($event->errorCode);
     }
 
     public function testCallToolResponseWithoutPriorRequestReportsZeroDuration(): void
@@ -190,7 +192,7 @@ class ServerEventBridgeTest extends IntegrationTestCase
         self::assertSame([], $this->captured);
     }
 
-    public function testErrorEventPublishesNothingAndDropsPendingTiming(): void
+    public function testToolErrorEventPublishesToolCallErrorAndDropsPendingTiming(): void
     {
         $bridge = $this->bridge();
         $session = $this->session();
@@ -200,13 +202,37 @@ class ServerEventBridgeTest extends IntegrationTestCase
         $bridge->dispatch(new RequestEvent($request, $session));
         $bridge->dispatch(new ErrorEvent($error, $request, $session, null));
 
-        self::assertSame([], $this->captured, 'ErrorEvent must not publish an event.');
+        $event = $this->singleCaptured(McpToolCallEvent::class);
+        self::assertSame(McpServerEvent::METHOD_TOOLS_CALL, $event->method);
+        self::assertSame(self::SESSION_UUID, $event->sessionId);
+        self::assertSame('report_get', $event->toolName);
+        self::assertTrue($event->isError);
+        self::assertGreaterThanOrEqual(0, $event->durationMs);
+        self::assertSame(JsonRpcError::INTERNAL_ERROR, $event->errorCode);
 
         // The pending start time was dropped, so a late response for the same id reports 0ms.
         $bridge->dispatch($this->responseEvent($request, $this->callToolResult(true), $session));
 
-        $event = $this->singleCaptured(McpToolCallEvent::class);
-        self::assertSame(0, $event->durationMs);
+        self::assertCount(2, $this->captured);
+        self::assertInstanceOf(McpToolCallEvent::class, $this->captured[1]);
+        self::assertSame(0, $this->captured[1]->durationMs);
+        self::assertNull($this->captured[1]->errorCode);
+    }
+
+    public function testNonToolErrorEventPublishesGenericEvent(): void
+    {
+        $request = $this->request(
+            new InitializeRequest('2025-03-26', new ClientCapabilities(), new Implementation('acme', '1.0')),
+            'init-error',
+        );
+        $error = new JsonRpcError('init-error', JsonRpcError::INTERNAL_ERROR, 'boom');
+
+        $this->bridge()->dispatch(new ErrorEvent($error, $request, $this->session(), null));
+
+        $event = $this->singleCaptured(McpServerEvent::class);
+        self::assertSame(McpServerEvent::class, $event::class);
+        self::assertSame(McpServerEvent::METHOD_INITIALIZE, $event->method);
+        self::assertSame(self::SESSION_UUID, $event->sessionId);
     }
 
     public function testInitializedNotificationPublishesInitializedEvent(): void
