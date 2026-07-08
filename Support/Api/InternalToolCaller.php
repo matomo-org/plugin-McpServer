@@ -16,8 +16,13 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\Session;
+use Piwik\Log\LoggerInterface;
+use Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
+use Piwik\Plugins\McpServer\Server\ServerEventBridge;
 use Piwik\Plugins\McpServer\Support\Logging\McpToolCallOrigin;
+use Piwik\SettingsPiwik;
+use Piwik\Version;
 
 /**
  * Invoke a single MCP tool via the same handler chain used by the public
@@ -27,6 +32,13 @@ use Piwik\Plugins\McpServer\Support\Logging\McpToolCallOrigin;
 final class InternalToolCaller
 {
     private const INTERNAL_REQUEST_ID = 'matomo-internal';
+    private const INTERNAL_SESSION_PREFIX = 'matomo-internal-';
+    private const INTERNAL_TRANSPORT = 'internal';
+    private const INTERNAL_CLIENT_NAME = 'Matomo';
+
+    public function __construct(private readonly LoggerInterface $logger)
+    {
+    }
 
     /**
      * @param array<string, mixed> $arguments
@@ -36,25 +48,37 @@ final class InternalToolCaller
      *     isError: bool
      * }
      */
-    public function call(InternalAccess $access, string $name, array $arguments): array
+    public function call(InternalAccess $access, string $name, array $arguments, ?string $sessionKey = null): array
     {
         $request = (new CallToolRequest($name, $arguments))->withId(self::INTERNAL_REQUEST_ID);
+        $sessionId = $this->internalSessionId($sessionKey);
+        $startedAt = microtime(true);
 
-        $response = $access->callToolHandler->handle($request, $this->createSession());
+        try {
+            $response = $access->callToolHandler->handle($request, $this->createSession());
+        } catch (\Throwable $e) {
+            $this->publishToolCallEvent($sessionId, $name, true, $startedAt, JsonRpcError::INTERNAL_ERROR);
+            throw $e;
+        }
 
         if ($response instanceof JsonRpcError) {
+            $this->publishToolCallEvent($sessionId, $name, true, $startedAt, $response->code);
             return $this->errorPayload($response->message);
         }
 
         $result = $response->result;
         if (!$result instanceof CallToolResult) {
+            $this->publishToolCallEvent($sessionId, $name, true, $startedAt, JsonRpcError::INTERNAL_ERROR);
             return $this->errorPayload('MCP call handler returned an unsupported result type.');
         }
 
         $content = $this->serializeContent($result->content);
         if ($content === null) {
+            $this->publishToolCallEvent($sessionId, $name, true, $startedAt, JsonRpcError::INTERNAL_ERROR);
             return $this->errorPayload('MCP call returned content that could not be serialised.');
         }
+
+        $this->publishToolCallEvent($sessionId, $name, $result->isError, $startedAt);
 
         return [
             'content' => $content,
@@ -135,6 +159,40 @@ final class InternalToolCaller
             'structuredContent' => null,
             'isError' => true,
         ];
+    }
+
+    private function internalSessionId(?string $sessionKey): string
+    {
+        $normalizedKey = is_string($sessionKey) ? trim($sessionKey) : '';
+        if ($normalizedKey !== '') {
+            return self::INTERNAL_SESSION_PREFIX . hash('sha256', SettingsPiwik::getSalt() . "\0" . $normalizedKey);
+        }
+
+        return self::INTERNAL_SESSION_PREFIX . bin2hex(random_bytes(16));
+    }
+
+    private function publishToolCallEvent(
+        string $sessionId,
+        string $toolName,
+        bool $isError,
+        float $startedAt,
+        ?int $errorCode = null,
+    ): void {
+        try {
+            ServerEventBridge::publishEvent(new McpToolCallEvent(
+                $sessionId,
+                $toolName,
+                $isError,
+                (int) round((microtime(true) - $startedAt) * 1000),
+                $errorCode,
+                self::INTERNAL_TRANSPORT,
+                self::INTERNAL_CLIENT_NAME,
+                Version::VERSION,
+            ));
+        } catch (\Throwable $e) {
+            // Observability must never disrupt an internal MCP bridge response.
+            $this->logger->debug('McpServer internal tool-call event was not published: ' . $e->getMessage());
+        }
     }
 
     /**

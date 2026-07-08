@@ -21,6 +21,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\EmptyResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use PHPUnit\Framework\TestCase;
+use Piwik\Log\LoggerInterface;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Support\Api\InternalToolCaller;
 use Piwik\Plugins\McpServer\Support\Logging\McpToolCallOrigin;
@@ -35,7 +36,7 @@ class InternalToolCallerTest extends TestCase
     {
         $handler = $this->stubHandler(new CallToolResult([new TextContent('hello world')], false));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'matomo_demo', ['k' => 'v']);
+        $result = ($this->caller())->call($this->access($handler), 'matomo_demo', ['k' => 'v']);
 
         self::assertFalse($result['isError']);
         self::assertNull($result['structuredContent']);
@@ -54,7 +55,7 @@ class InternalToolCallerTest extends TestCase
             $structured,
         ));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'matomo_demo', []);
+        $result = ($this->caller())->call($this->access($handler), 'matomo_demo', []);
 
         self::assertFalse($result['isError']);
         self::assertSame($structured, $result['structuredContent']);
@@ -76,7 +77,7 @@ class InternalToolCallerTest extends TestCase
             $structured,
         ));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'any', []);
+        $result = ($this->caller())->call($this->access($handler), 'any', []);
 
         self::assertIsArray($result['structuredContent']);
         self::assertSame($metaPlaceholder, $result['structuredContent']['_meta']);
@@ -89,7 +90,7 @@ class InternalToolCallerTest extends TestCase
     {
         $handler = $this->stubHandler(new JsonRpcError('matomo-internal', -32601, 'Tool not found'));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'missing', []);
+        $result = ($this->caller())->call($this->access($handler), 'missing', []);
 
         self::assertTrue($result['isError']);
         self::assertNull($result['structuredContent']);
@@ -103,7 +104,7 @@ class InternalToolCallerTest extends TestCase
         // rather than returning a half-built payload.
         $handler = $this->stubHandler(new EmptyResult());
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'any', []);
+        $result = ($this->caller())->call($this->access($handler), 'any', []);
 
         self::assertTrue($result['isError']);
         self::assertNull($result['structuredContent']);
@@ -137,7 +138,7 @@ class InternalToolCallerTest extends TestCase
         };
         $handler = $this->stubHandler(new CallToolResult([$block], false));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'any', []);
+        $result = ($this->caller())->call($this->access($handler), 'any', []);
 
         self::assertFalse($result['isError']);
         self::assertCount(1, $result['content']);
@@ -168,7 +169,7 @@ class InternalToolCallerTest extends TestCase
         };
         $handler = $this->stubHandler(new CallToolResult([$block], false));
 
-        $result = (new InternalToolCaller())->call($this->access($handler), 'any', []);
+        $result = ($this->caller())->call($this->access($handler), 'any', []);
 
         self::assertTrue($result['isError']);
         self::assertNull($result['structuredContent']);
@@ -201,7 +202,7 @@ class InternalToolCallerTest extends TestCase
             },
         );
 
-        $caller = new InternalToolCaller();
+        $caller = $this->caller();
         $caller->call($this->access($handler), 'matomo_demo', []);
         $caller->call($this->access($handler), 'matomo_demo', []);
 
@@ -244,5 +245,10 @@ class InternalToolCallerTest extends TestCase
         $registry = $this->createMock(RegistryInterface::class);
 
         return new InternalAccess($registry, $handler);
+    }
+
+    private function caller(): InternalToolCaller
+    {
+        return new InternalToolCaller($this->createMock(LoggerInterface::class));
     }
 }

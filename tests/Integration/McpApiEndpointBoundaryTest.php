@@ -569,7 +569,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpAccessGate(StaticContainer::get(SystemSettings::class)),
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
-                new InternalToolCaller(),
+                new InternalToolCaller(StaticContainer::get(LoggerInterface::class)),
                 StaticContainer::get(LoggerInterface::class),
                 $sessionEndEventPublisher ?? StaticContainer::get(SessionEndEventPublisher::class),
             ])
@@ -600,7 +600,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new McpAccessGate(StaticContainer::get(SystemSettings::class)),
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
-                new InternalToolCaller(),
+                new InternalToolCaller(StaticContainer::get(LoggerInterface::class)),
                 StaticContainer::get(LoggerInterface::class),
                 StaticContainer::get(SessionEndEventPublisher::class),
             ])
