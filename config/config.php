@@ -29,6 +29,8 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Sites\CoreSitesManagerGatewayInterfa
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteDetailQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\Sites\SiteSummaryQueryServiceInterface;
 use Piwik\Plugins\McpServer\Contracts\Ports\System\PluginCapabilityGatewayInterface;
+use Piwik\Plugins\McpServer\McpToolsProvider;
+use Piwik\Plugins\McpServer\McpToolsProviderInterface;
 use Piwik\Plugins\McpServer\Services\Api\ApiCallQueryService;
 use Piwik\Plugins\McpServer\Services\Api\ApiMethodSummaryQueryService;
 use Piwik\Plugins\McpServer\Services\Api\CoreApiCallGateway;
@@ -68,6 +70,7 @@ return [
     DimensionSummaryQueryServiceInterface::class => DI::autowire(DimensionSummaryQueryService::class),
     GoalDetailQueryServiceInterface::class => DI::autowire(GoalDetailQueryService::class),
     GoalSummaryQueryServiceInterface::class => DI::autowire(GoalSummaryQueryService::class),
+    McpToolsProviderInterface::class => DI::autowire(McpToolsProvider::class),
     PluginCapabilityGatewayInterface::class => DI::autowire(PluginCapabilityGateway::class),
     ReportMetadataQueryServiceInterface::class => DI::autowire(ReportMetadataQueryService::class),
     ReportProcessedQueryServiceInterface::class => DI::autowire(ReportProcessedQueryService::class),

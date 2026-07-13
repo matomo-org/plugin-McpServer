@@ -1,5 +1,9 @@
 ## Changelog
 
+### Unreleased
+
+- Added `McpServer.addTools` and `McpServer.filterTools` events so other plugins can contribute or restrict MCP tool registrations.
+
 ### 5.0.4
 
 - Updated `mcp/sdk` to 0.5.

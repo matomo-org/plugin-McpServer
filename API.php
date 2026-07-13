@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\API\Request as ApiRequest;
 use Piwik\Http\BadRequestException;
+use Piwik\Log\LoggerInterface;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessGate;
 use Piwik\Plugins\McpServer\Support\Access\McpUnavailableException;
@@ -41,6 +42,7 @@ class API extends \Piwik\Plugin\API
         private InternalApiAccessGuard $internalAccessGuard,
         private InternalToolCatalog $internalToolCatalog,
         private InternalToolCaller $internalToolCaller,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -63,6 +65,13 @@ class API extends \Piwik\Plugin\API
         try {
             $request = $this->createRequestFromGlobals();
         } catch (\Throwable $e) {
+            // The 500 the client receives is deliberately opaque, so log the
+            // real cause to keep the failure diagnosable.
+            $this->logger->error('MCP request could not be built from the incoming HTTP request: {message}', [
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
             return $errorFactory->create(
                 500,
                 JsonRpcError::INTERNAL_ERROR,
@@ -93,6 +102,14 @@ class API extends \Piwik\Plugin\API
                 return $this->createUnauthorizedResponse($requestId);
             }
 
+            // Expected rejections (MCP disabled, privilege ceiling, unauthorized)
+            // are handled above; anything reaching here is an unexpected failure,
+            // so log the real cause behind the opaque 500.
+            $this->logger->error('MCP access check failed unexpectedly: {message}', [
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
             return $errorFactory->create(
                 500,
                 JsonRpcError::INTERNAL_ERROR,
@@ -106,7 +123,15 @@ class API extends \Piwik\Plugin\API
             $transport = new StreamableHttpTransport($request);
 
             return $server->run($transport);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            // The 500 the client receives is deliberately opaque, so log the
+            // real cause (for example a plugin contributing a broken tool, or
+            // an unresolvable built-in) to make the failure diagnosable.
+            $this->logger->error('MCP server could not be built or run: {message}', [
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+
             return $errorFactory->create(
                 500,
                 JsonRpcError::INTERNAL_ERROR,

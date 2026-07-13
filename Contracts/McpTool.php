@@ -71,9 +71,9 @@ abstract class McpTool
         // signatures vary per tool — declaring abstract execute() with any concrete
         // signature would violate LSP for those overrides. A runtime check at boot
         // is the practical safety net; it fires the first time any tool is built.
-        if (!method_exists($this, 'execute')) {
+        if (!is_callable([$this, 'execute'])) {
             throw new \LogicException(sprintf(
-                '%s must define a public execute() method.',
+                '%s must define a public callable execute() method.',
                 static::class,
             ));
         }
