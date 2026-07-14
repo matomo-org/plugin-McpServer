@@ -87,6 +87,62 @@ class ReportListTest extends TestCase
         ], $actual);
     }
 
+    public function testSearchFiltersByNameCategoryOrUniqueIdCaseInsensitively(): void
+    {
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
+            {
+                return [
+                    new ReportSummaryRecord(
+                        'VisitsSummary_get',
+                        'VisitsSummary',
+                        'get',
+                        'Visits Summary',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'Actions_getPageUrls',
+                        'Actions',
+                        'getPageUrls',
+                        'Page URLs',
+                        'Behaviour',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'Referrers_getAll',
+                        'Referrers',
+                        'getAll',
+                        'All Channels',
+                        'Acquisition',
+                        [],
+                    ),
+                ];
+            }
+        };
+
+        $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
+
+        // Matches on the human name.
+        $byName = $tool->execute(1, search: 'page urls');
+        self::assertSame(['Actions_getPageUrls'], array_column($byName['reports'], 'uniqueId'));
+
+        // Matches on the uniqueId even though the name ("All Channels") does not contain the term.
+        $byUniqueId = $tool->execute(1, search: 'referrers');
+        self::assertSame(['Referrers_getAll'], array_column($byUniqueId['reports'], 'uniqueId'));
+
+        // Matches on the category, case-insensitively.
+        $byCategory = $tool->execute(1, search: 'VISITORS');
+        self::assertSame(['VisitsSummary_get'], array_column($byCategory['reports'], 'uniqueId'));
+
+        // A term that matches nothing yields an empty, well-formed page.
+        $none = $tool->execute(1, search: 'no-such-report');
+        self::assertSame([], $none['reports']);
+        self::assertSame(0, $none['total_rows']);
+        self::assertFalse($none['has_more']);
+        self::assertNull($none['next_cursor']);
+    }
+
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
         $wrapper = new class () implements ReportSummaryQueryServiceInterface {
@@ -190,5 +246,106 @@ class ReportListTest extends TestCase
         $this->expectExceptionMessage('Invalid cursor.');
 
         $tool->execute(2, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC);
+    }
+
+    public function testListRejectsCursorWhenSearchChanges(): void
+    {
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
+            {
+                return [
+                    new ReportSummaryRecord(
+                        'VisitsSummary_get',
+                        'VisitsSummary',
+                        'get',
+                        'Overview',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'VisitFrequency_get',
+                        'VisitFrequency',
+                        'get',
+                        'Visit Frequency',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'Actions_getPageUrls',
+                        'Actions',
+                        'getPageUrls',
+                        'Page URLs',
+                        'Behaviour',
+                        [],
+                    ),
+                ];
+            }
+        };
+
+        $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
+        $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC, search: 'visitors');
+        $cursor = $page['next_cursor'] ?? null;
+        self::assertIsString($cursor);
+
+        $this->expectException(McpToolCallException::class);
+        $this->expectExceptionMessage('Invalid cursor.');
+
+        $tool->execute(1, cursor: $cursor, sort: ReportsPagination::SORT_NAME_ASC, search: 'behaviour');
+    }
+
+    public function testListAcceptsCursorWhenEquivalentSearchNormalizationIsUsed(): void
+    {
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
+            {
+                return [
+                    new ReportSummaryRecord(
+                        'VisitsSummary_get',
+                        'VisitsSummary',
+                        'get',
+                        'Overview',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'VisitsSummary_getUsers',
+                        'VisitsSummary',
+                        'getUsers',
+                        'Users',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'Actions_getPageUrls',
+                        'Actions',
+                        'getPageUrls',
+                        'Page URLs',
+                        'Behaviour',
+                        [],
+                    ),
+                ];
+            }
+        };
+
+        $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
+
+        // The cursor context persists the normalized search key, so a differently
+        // spelled but equivalent term must keep the same paginated result set.
+        $firstPage = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC, search: ' Visits Summary ');
+        $cursor = $firstPage['next_cursor'] ?? null;
+        self::assertIsString($cursor);
+
+        $secondPage = $tool->execute(
+            1,
+            limit: 1,
+            cursor: $cursor,
+            sort: ReportsPagination::SORT_NAME_ASC,
+            search: 'VisitsSummary',
+        );
+
+        self::assertCount(1, $secondPage['reports']);
+        self::assertFalse($secondPage['has_more']);
+        self::assertNull($secondPage['next_cursor']);
+        self::assertSame(2, $secondPage['total_rows']);
     }
 }
