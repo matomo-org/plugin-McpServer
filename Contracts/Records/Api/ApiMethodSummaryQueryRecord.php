@@ -13,6 +13,7 @@ namespace Piwik\Plugins\McpServer\Contracts\Records\Api;
 
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
+use Piwik\Plugins\McpServer\Support\Search\SearchTermMatcher;
 
 final class ApiMethodSummaryQueryRecord
 {
@@ -33,7 +34,7 @@ final class ApiMethodSummaryQueryRecord
         return new self(
             accessMode: RawApiAccessMode::normalize($accessMode),
             module: strtolower(trim((string) $module)),
-            search: strtolower(trim((string) $search)),
+            search: SearchTermMatcher::key($search),
             operationCategory: ApiMethodOperationClassifier::normalizeCategory($operationCategory),
         );
     }

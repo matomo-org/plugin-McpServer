@@ -17,6 +17,7 @@ use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportSummaryQueryServiceInt
 use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportSummaryRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportSummaryToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Pagination\ReportsPagination;
+use Piwik\Plugins\McpServer\Support\Search\SearchTermMatcher;
 use Piwik\Plugins\McpServer\Support\Tooling\CursorContextBuilder;
 use Piwik\Plugins\McpServer\Support\Tooling\PaginatedCollectionResponder;
 
@@ -78,8 +79,10 @@ class ReportList extends McpTool
                 'search' => [
                     'type' => 'string',
                     'minLength' => 1,
-                    'description' => 'Optional case-insensitive substring filter on report name, '
-                        . 'category, or uniqueId.',
+                    'description' => 'Optional case- and separator-insensitive substring filter on '
+                        . 'report name, category, or uniqueId. Spaces, underscores, hyphens, and '
+                        . 'dots are ignored, so "Visits Summary", "VisitsSummary", and '
+                        . '"VisitsSummary.get" all match the same report.',
                 ],
             ],
             'required' => ['idSite'],
@@ -103,13 +106,13 @@ class ReportList extends McpTool
         ?string $sort = null,
         ?string $search = null,
     ): array {
-        $normalizedSearch = strtolower(trim((string) $search));
+        $searchKey = SearchTermMatcher::key($search);
         $cursorContext = CursorContextBuilder::forTool(
             self::TOOL_NAME,
-            ['idSite' => $idSite, 'search' => $normalizedSearch],
+            ['idSite' => $idSite, 'search' => $searchKey],
         );
         $response = $this->paginationResponder->paginateRecords(
-            $this->filterBySearch($this->queryService->getReportSummariesForSite($idSite), $normalizedSearch),
+            $this->filterBySearch($this->queryService->getReportSummariesForSite($idSite), $searchKey),
             static fn(ReportSummaryRecord $report): array => $report->toArray(),
             'reports',
             ReportsPagination::createConfig(),
@@ -130,28 +133,33 @@ class ReportList extends McpTool
     }
 
     /**
-     * Narrow the report list with a case-insensitive substring match against the
-     * selectors a caller reaches for - the human name, the category, and the
-     * uniqueId - mirroring the search matomo_api_list applies to its method names.
-     * Filtering here (before pagination) keeps the query service a plain fetch
-     * wrapper, since reports have no query record to carry filters.
+     * Narrow the report list with a separator-insensitive substring match
+     * against the selectors a caller reaches for - the human name, the category,
+     * and the uniqueId - mirroring the search matomo_api_list applies to its
+     * method names. Because SearchTermMatcher drops the connectors that vary
+     * between spellings, "Visits Summary", "VisitsSummary", and
+     * "VisitsSummary.get" all find VisitsSummary_get. Filtering here (before
+     * pagination) keeps the query service a plain fetch wrapper, since reports
+     * have no query record to carry filters.
      *
      * @param array<int, ReportSummaryRecord> $reports
+     * @param string $searchKey normalized via SearchTermMatcher::key()
      * @return array<int, ReportSummaryRecord>
      */
-    private function filterBySearch(array $reports, string $search): array
+    private function filterBySearch(array $reports, string $searchKey): array
     {
-        if ($search === '') {
+        if ($searchKey === '') {
             return $reports;
         }
 
         return array_values(array_filter(
             $reports,
-            static function (ReportSummaryRecord $report) use ($search): bool {
-                return str_contains(strtolower($report->name), $search)
-                    || str_contains(strtolower($report->category), $search)
-                    || str_contains(strtolower($report->uniqueId), $search);
-            },
+            static fn(ReportSummaryRecord $report): bool => SearchTermMatcher::matches(
+                $searchKey,
+                $report->name,
+                $report->category,
+                $report->uniqueId,
+            ),
         ));
     }
 }

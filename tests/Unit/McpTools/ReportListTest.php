@@ -143,6 +143,53 @@ class ReportListTest extends TestCase
         self::assertNull($none['next_cursor']);
     }
 
+    public function testSearchIgnoresSeparatorsAcrossSpellings(): void
+    {
+        $wrapper = new class () implements ReportSummaryQueryServiceInterface {
+            public function getReportSummariesForSite(int $idSite): array
+            {
+                return [
+                    new ReportSummaryRecord(
+                        'VisitsSummary_get',
+                        'VisitsSummary',
+                        'get',
+                        'Visits Summary',
+                        'Visitors',
+                        [],
+                    ),
+                    new ReportSummaryRecord(
+                        'Actions_getPageUrls',
+                        'Actions',
+                        'getPageUrls',
+                        'Page URLs',
+                        'Behaviour',
+                        [],
+                    ),
+                ];
+            }
+        };
+
+        $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
+
+        // Spaced human phrasing matches the camelCase uniqueId (no raw substring overlap).
+        self::assertSame(
+            ['VisitsSummary_get'],
+            array_column($tool->execute(1, search: 'Visits Summary')['reports'], 'uniqueId'),
+        );
+
+        // The dotted method spelling a caller often guesses as a uniqueId also matches.
+        self::assertSame(
+            ['VisitsSummary_get'],
+            array_column($tool->execute(1, search: 'VisitsSummary.get')['reports'], 'uniqueId'),
+        );
+
+        // Unspaced query matches the spaced human name.
+        self::assertSame(
+            ['Actions_getPageUrls'],
+            array_column($tool->execute(1, search: 'pageurls')['reports'], 'uniqueId'),
+        );
+    }
+
     public function testListPropagatesMalformedUpstreamPayloadErrorFromWrapper(): void
     {
         $wrapper = new class () implements ReportSummaryQueryServiceInterface {

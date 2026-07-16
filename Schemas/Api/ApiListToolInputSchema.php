@@ -47,8 +47,10 @@ final class ApiListToolInputSchema
             'search' => [
                 'type' => 'string',
                 'minLength' => 1,
-                'description' => 'Optional case-insensitive substring filter on the '
-                    . 'composite Module.action method name.',
+                'description' => 'Optional case- and separator-insensitive substring filter on the '
+                    . 'composite Module.action method name. Spaces, underscores, hyphens, and dots '
+                    . 'are ignored, so "VisitsSummary.get", "visitssummary get", and "VisitsSummaryget" '
+                    . 'all match VisitsSummary.get.',
             ],
             'category' => [
                 'type' => 'string',

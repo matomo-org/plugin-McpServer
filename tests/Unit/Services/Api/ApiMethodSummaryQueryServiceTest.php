@@ -329,6 +329,22 @@ class ApiMethodSummaryQueryServiceTest extends TestCase
         );
     }
 
+    public function testFilterRecordsSearchIgnoresSeparators(): void
+    {
+        $service = new ApiMethodSummaryQueryService();
+
+        // Spaced/reordered separators around the composite Module.action name still match:
+        // "sitesmanager delete-site" normalizes to the same key as "SitesManager.deleteSite".
+        $spaced = $service->filterRecords(
+            $this->createMethodRecords(),
+            ApiMethodSummaryQueryRecord::fromInputs('full', null, 'sitesmanager delete-site'),
+        );
+        self::assertSame(['SitesManager.deleteSite'], array_values(array_map(
+            static fn(ApiMethodSummaryRecord $record): string => $record->method,
+            $spaced,
+        )));
+    }
+
     /**
      * @dataProvider provideOperationCategoryFilters
      *
