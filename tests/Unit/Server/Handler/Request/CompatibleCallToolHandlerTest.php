@@ -89,6 +89,108 @@ class CompatibleCallToolHandlerTest extends TestCase
         self::assertStringContainsString('Invalid parameters for tool', $error->message);
     }
 
+    public function testCoercesPureIntegerStringToIntegerForIntegerProperty(): void
+    {
+        $registry = new Registry();
+        $capturedIdSite = null;
+        $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
+            'idSite' => '1',
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => [],
+        ]))->withId('coerce-int-string');
+
+        $registry->registerTool($this->createTool(ReportMetadata::TOOL_NAME), static function (
+            int $idSite,
+            string $apiModule,
+            string $apiAction,
+            array $apiParameters,
+        ) use (&$capturedIdSite): array {
+            $capturedIdSite = $idSite;
+
+            return ['idSite' => $idSite];
+        });
+
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $response = $handler->handle($request, $this->createSession('c0e7a2b1-2f3d-4a5b-8c9d-0e1f2a3b4c5d'));
+
+        self::assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(CallToolResult::class, $response->result);
+        self::assertFalse($response->result->isError);
+        self::assertSame(1, $capturedIdSite);
+    }
+
+    public function testRejectsNonIntegerStringForIntegerProperty(): void
+    {
+        $registry = new Registry();
+        $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
+            'idSite' => '1.5',
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => [],
+        ]))->withId('reject-non-int-string');
+
+        $registry->registerTool($this->createTool(ReportMetadata::TOOL_NAME), static function (): array {
+            return [];
+        });
+
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $error = $handler->handle($request, $this->createSession('d1f8b3c2-3a4e-5b6c-9d0e-1f2a3b4c5d6e'));
+
+        self::assertInstanceOf(Error::class, $error);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
+        self::assertStringContainsString('Invalid parameters for tool', $error->message);
+    }
+
+    public function testDoesNotCoerceStringWithinOneOfUnionButStillValidates(): void
+    {
+        $registry = new Registry();
+        $capturedIdGoal = 'unset';
+
+        // Union parameters are intentionally left untouched: the string form already passes
+        // validation and the handler receives the raw argument, so "1" stays a string.
+        $registry->registerTool($this->createTool(ReportMetadata::TOOL_NAME), static function (
+            int $idSite,
+            string $apiModule,
+            string $apiAction,
+            array $apiParameters,
+            int|string|null $idGoal = null,
+        ) use (&$capturedIdGoal): array {
+            $capturedIdGoal = $idGoal;
+
+            return [];
+        });
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+
+        $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
+            'idSite' => 1,
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => [],
+            'idGoal' => '1',
+        ]))->withId('union-numeric');
+
+        $response = $handler->handle($request, $this->createSession('e2a9c4d3-4b5f-6c7d-0e1f-2a3b4c5d6e7f'));
+
+        self::assertInstanceOf(Response::class, $response);
+        self::assertFalse($response->result->isError);
+        self::assertSame('1', $capturedIdGoal);
+
+        $nonNumericRequest = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
+            'idSite' => 1,
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+            'apiParameters' => [],
+            'idGoal' => 'ecommerceOrder',
+        ]))->withId('union-non-numeric');
+
+        $response = $handler->handle($nonNumericRequest, $this->createSession('f3b0d5e4-5c6a-7d8e-1f2a-3b4c5d6e7f80'));
+
+        self::assertInstanceOf(Response::class, $response);
+        self::assertFalse($response->result->isError);
+        self::assertSame('ecommerceOrder', $capturedIdGoal);
+    }
+
     private function createTool(string $name): \Matomo\Dependencies\McpServer\Mcp\Schema\Tool
     {
         return new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool($name, null, [
@@ -100,6 +202,12 @@ class CompatibleCallToolHandlerTest extends TestCase
                 'apiParameters' => [
                     'type' => 'object',
                     'additionalProperties' => true,
+                ],
+                'idGoal' => [
+                    'oneOf' => [
+                        ['type' => 'integer'],
+                        ['type' => 'string'],
+                    ],
                 ],
             ],
             'required' => ['idSite', 'apiModule', 'apiAction'],

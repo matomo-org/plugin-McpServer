@@ -65,7 +65,6 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
 
         $toolName = $request->name;
         $rawArguments = $request->arguments ?? [];
-        $validationArguments = $this->normalizeArgumentsForValidation($toolName, $rawArguments);
 
         $this->logger->debug('Executing tool', ['name' => $toolName, 'arguments' => $rawArguments]);
 
@@ -76,6 +75,12 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
 
             return new Error($request->getId(), Error::METHOD_NOT_FOUND, $e->getMessage());
         }
+
+        $validationArguments = $this->normalizeArgumentsForValidation($toolName, $rawArguments);
+        $validationArguments = $this->coerceIntegerStringsForValidation(
+            $validationArguments,
+            $reference->tool->inputSchema,
+        );
 
         $validationErrors = $this->schemaValidator->validateAgainstJsonSchema(
             $validationArguments,
@@ -150,6 +155,49 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
         }
 
         $arguments['apiParameters'] = new \stdClass();
+
+        return $arguments;
+    }
+
+    /**
+     * Losslessly promotes pure integer strings (e.g. "1") to integers for any top-level
+     * argument whose schema requires a bare `integer`. Clients - notably smaller LLMs -
+     * routinely emit stringified numbers; without this the strict `integer` check rejects
+     * them even though the handler would cast them fine on its own.
+     *
+     * Scope is deliberately limited to properties whose sole declared type is `integer`.
+     * Union parameters (e.g. `oneOf: [integer, string]`) already accept the string form at
+     * validation and the handler passes unions through untouched, so coercing them would be
+     * a no-op. Values that would change under the round-trip ("1.5", "01", "1e3", integer
+     * overflow) or are non-numeric are left untouched so they still surface the normal
+     * validation error.
+     *
+     * @param array<string, mixed> $arguments
+     * @param array<string, mixed> $inputSchema
+     *
+     * @return array<string, mixed>
+     */
+    private function coerceIntegerStringsForValidation(array $arguments, array $inputSchema): array
+    {
+        $properties = $inputSchema['properties'] ?? null;
+        if (!is_array($properties)) {
+            return $arguments;
+        }
+
+        foreach ($arguments as $name => $value) {
+            if (!is_string($value) || $value === '') {
+                continue;
+            }
+
+            $property = $properties[$name] ?? null;
+            if (!is_array($property) || ($property['type'] ?? null) !== 'integer') {
+                continue;
+            }
+
+            if ((string) (int) $value === $value) {
+                $arguments[$name] = (int) $value;
+            }
+        }
 
         return $arguments;
     }
