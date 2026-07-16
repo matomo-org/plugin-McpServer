@@ -1,7 +1,7 @@
 # Action for running tests
 # This file has been automatically created.
 # To recreate it you can run this command
-# ./console generate:test-action --plugin="McpServer" --php-versions="8.1,matomo5_max_php" --schedule-cron="0 5 * * 6"
+# ./console generate:test-action --plugin="McpServer" --php-versions="matomo6_min_php,matomo6_max_php" --schedule-cron="0 5 * * 6"
 
 name: Plugin McpServer Tests
 
@@ -42,8 +42,8 @@ jobs:
       fail-fast: false
       matrix:
         php:
-          - '8.1'
-          - matomo5_max_php
+          - matomo6_min_php
+          - matomo6_max_php
         target:
           - minimum_required_matomo
           - maximum_supported_matomo
@@ -78,8 +78,8 @@ jobs:
           plugin-name: McpServer
           matomo-test-branch: maximum_supported_matomo
           test-type: UI
-          php-version: matomo5_max_php
-          node-version: '16'
+          php-version: matomo6_max_php
+          node-version: '24'
           artifacts-pass: ${{ secrets.ARTIFACTS_PASS }}
           upload-artifacts: true
 

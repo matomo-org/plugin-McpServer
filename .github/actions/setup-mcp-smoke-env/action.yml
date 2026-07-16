@@ -47,7 +47,7 @@ runs:
     - name: Set up Node.js
       uses: actions/setup-node@v7
       with:
-        node-version: '22'
+        node-version: '24'
 
     - name: Check out github-action-tests repository
       uses: actions/checkout@v7

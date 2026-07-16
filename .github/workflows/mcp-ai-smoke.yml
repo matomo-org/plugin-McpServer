@@ -103,7 +103,7 @@ jobs:
     timeout-minutes: 30
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: matomo
@@ -202,7 +202,7 @@ jobs:
     timeout-minutes: 30
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: matomo
