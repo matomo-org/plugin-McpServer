@@ -3,6 +3,7 @@
 ### Unreleased
 
 - Added `McpServer.addTools` and `McpServer.filterTools` events so other plugins can contribute or restrict MCP tool registrations.
+- Added the `McpServer.serverEvent` event so other plugins can observe completed MCP requests, received notifications, and explicit session termination through SDK-agnostic events, with richer payloads for initialization and tool activity.
 
 ### 5.0.4
 

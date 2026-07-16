@@ -29,6 +29,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Request;
 
 class API extends \Piwik\Plugin\API
@@ -43,6 +44,7 @@ class API extends \Piwik\Plugin\API
         private InternalToolCatalog $internalToolCatalog,
         private InternalToolCaller $internalToolCaller,
         private LoggerInterface $logger,
+        private SessionEndEventPublisher $sessionEndEventPublisher,
     ) {
     }
 
@@ -121,8 +123,12 @@ class API extends \Piwik\Plugin\API
         try {
             $server = $this->factory->createServer();
             $transport = new StreamableHttpTransport($request);
+            $sessionId = $this->sessionEndEventPublisher->captureExistingSessionOnDelete($request);
 
-            return $server->run($transport);
+            $response = $server->run($transport);
+            $this->sessionEndEventPublisher->publishIfSessionEnded($sessionId, $response);
+
+            return $response;
         } catch (\Throwable $e) {
             // The 500 the client receives is deliberately opaque, so log the
             // real cause (for example a plugin contributing a broken tool, or

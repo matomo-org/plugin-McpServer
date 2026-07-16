@@ -102,6 +102,12 @@ Before editing:
 - Do not bypass existing support helpers if pagination, normalization, logging, or error mapping already has a home.
 - Prefer matching existing domain grouping and naming patterns over inventing a new layout for a small feature.
 
+### Extending MCP protocol handling
+
+- Keep `Server/ServerEventBridge.php` aligned with the server's protocol surface. Every completed MCP request and every received MCP notification handled through the SDK event seam must publish exactly one plugin-owned event through `McpServer.serverEvent`; explicit transport lifecycle signals such as session termination must be bridged at their nearest reliable boundary.
+- When adding support for a request, notification, or transport lifecycle signal, update the bridge and its integration tests in the same change. Preserve the generic `McpServerEvent` fallback for methods without a richer contract, and add a dedicated event subclass only when method-specific data is useful to subscribers.
+- Keep vendored SDK event and schema types inside the bridge or other infrastructure adapters. Public event payloads must use types under `Contracts/Events` so subscribers never depend on the bundled SDK.
+
 ### Testing expectations for new behavior
 
 - Cover externally visible behavior with integration tests first.
