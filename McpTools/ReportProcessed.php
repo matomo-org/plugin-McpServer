@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
+use Piwik\Plugins\McpServer\Support\Reports\PeriodDateNormalizer;
 
 /**
  * @phpstan-import-type ReportProcessedArray from ReportProcessedRecord
@@ -215,6 +216,10 @@ class ReportProcessed extends McpTool
         $apiParameters = $apiParameters === null
             ? null
             : ToolDataNormalizer::requireStringKeyedArrayOrEmptyList($apiParameters, 'apiParameters');
+
+        // Expand whole-bucket shorthand dates (year "2026", month "2026-01") into
+        // the full YYYY-MM-DD form Matomo requires; see PeriodDateNormalizer.
+        $date = PeriodDateNormalizer::normalize($period, $date);
 
         return $this->queryService->getProcessedReport(
             idSite: $idSite,
