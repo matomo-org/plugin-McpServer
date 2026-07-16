@@ -43,6 +43,35 @@ final class CoreProcessedReportGateway implements CoreProcessedReportGatewayInte
             }
         }
 
+        // Fallback: clients frequently send the API-method form "Module.action"
+        // instead of the report uniqueId "Module_action". Rather than rewriting
+        // dots in the caller's input - which would corrupt a parameter suffix,
+        // where dots survive urlencode() and legitimately occur (e.g.
+        // "..._idGoal--foo.bar") - derive each report's dotted alias from its
+        // own metadata and rewrite only the module/action separator. This can
+        // never alias a mistyped selector onto an unrelated parameterized
+        // report, and the exact-match pass above still wins.
+        if (str_contains($reportUniqueId, '.')) {
+            foreach ($reports as $report) {
+                $uniqueId = $report['uniqueId'] ?? null;
+                $module = $report['module'] ?? null;
+                $action = $report['action'] ?? null;
+                if (!is_string($uniqueId) || !is_string($module) || !is_string($action)) {
+                    continue;
+                }
+
+                $canonicalPrefix = $module . '_' . $action;
+                if (!str_starts_with($uniqueId, $canonicalPrefix)) {
+                    continue;
+                }
+
+                $dottedAlias = $module . '.' . $action . substr($uniqueId, strlen($canonicalPrefix));
+                if ($reportUniqueId === $dottedAlias) {
+                    return $report;
+                }
+            }
+        }
+
         throw new InfrastructureDataException('Report not found.');
     }
 

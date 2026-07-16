@@ -155,6 +155,95 @@ class ReportProcessedTest extends IntegrationTestCase
         }
     }
 
+    public function testCoercesIntegerStringArgumentsThroughRealToolStack(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        // Clients (notably smaller LLMs) routinely stringify numeric arguments.
+        // Passing idSite/filter_limit/filter_offset as strings must still clear
+        // the strict integer schema and execute, yielding integer pagination.
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => (string) $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'filter_limit' => '1',
+                'filter_offset' => '0',
+            ],
+            __METHOD__,
+        );
+
+        $pagination = $content['pagination'] ?? null;
+        self::assertIsArray($pagination);
+        self::assertSame(1, $pagination['filter_limit'] ?? null);
+        self::assertSame(0, $pagination['filter_offset'] ?? null);
+        self::assertSame(1, $pagination['returned_rows'] ?? null);
+        self::assertGreaterThanOrEqual(2, $pagination['total_rows'] ?? 0);
+    }
+
+    public function testExpandsWholePeriodShorthandDateThroughRealToolStack(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        // period=year + bare "2015" must expand to 2015-01-01 and resolve the
+        // year bucket containing the tracked 2015-01-03 hits. Without expansion
+        // the value would reach strtotime() and silently resolve elsewhere,
+        // returning an empty report.
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'year',
+                'date' => '2015',
+                'reportUniqueId' => $reportUniqueId,
+            ],
+            __METHOD__,
+        );
+
+        $pagination = $content['pagination'] ?? null;
+        self::assertIsArray($pagination);
+        self::assertGreaterThanOrEqual(2, $pagination['total_rows'] ?? 0);
+    }
+
+    public function testResolvesReportByDottedApiMethodSelectorThroughRealToolStack(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        // A client that sends the API-method form "Actions.getPageUrls" instead
+        // of the "Actions_getPageUrls" uniqueId must resolve the same report.
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => 'Actions.getPageUrls',
+            ],
+            __METHOD__,
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
     public function testRejectsDangerousApiParametersKey(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');

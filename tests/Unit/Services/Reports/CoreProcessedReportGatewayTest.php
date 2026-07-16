@@ -36,6 +36,91 @@ class CoreProcessedReportGatewayTest extends TestCase
         self::assertSame('Actions', $actual['module'] ?? null);
     }
 
+    public function testGetReportMetadataByUniqueIdRescuesDottedApiMethodForm(): void
+    {
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'VisitsSummary_get', 'module' => 'VisitsSummary', 'action' => 'get'],
+                ];
+            },
+        );
+        $actual = $gateway->getReportMetadataByUniqueId(1, 'VisitsSummary.get');
+
+        self::assertSame('VisitsSummary_get', $actual['uniqueId'] ?? null);
+    }
+
+    public function testGetReportMetadataByUniqueIdRescuesDottedFormWhilePreservingParameterSuffixDots(): void
+    {
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    [
+                        'uniqueId' => 'CustomReports_getCustomReport_idGoal--foo.bar',
+                        'module' => 'CustomReports',
+                        'action' => 'getCustomReport',
+                    ],
+                ];
+            },
+        );
+        // Only the module/action separator is a dot in the alias; dots inside the
+        // parameter suffix (which survive urlencode()) must be preserved verbatim.
+        $actual = $gateway->getReportMetadataByUniqueId(1, 'CustomReports.getCustomReport_idGoal--foo.bar');
+
+        self::assertSame('CustomReports_getCustomReport_idGoal--foo.bar', $actual['uniqueId'] ?? null);
+    }
+
+    public function testGetReportMetadataByUniqueIdDoesNotAliasDottedParameterValueOntoUnderscoreReport(): void
+    {
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    [
+                        'uniqueId' => 'CustomReports_getCustomReport_label--a_b',
+                        'module' => 'CustomReports',
+                        'action' => 'getCustomReport',
+                    ],
+                ];
+            },
+        );
+
+        // A selector whose parameter value contains a dot ("a.b") must not be
+        // rewritten to underscores and alias onto the "a_b" report.
+        $this->expectException(InfrastructureDataException::class);
+        $this->expectExceptionMessage('Report not found.');
+        $gateway->getReportMetadataByUniqueId(1, 'CustomReports.getCustomReport_label--a.b');
+    }
+
+    public function testGetReportMetadataByUniqueIdPrefersExactMatchOverDottedFallback(): void
+    {
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'VisitsSummary.get', 'module' => 'Exact', 'action' => 'get'],
+                    ['uniqueId' => 'VisitsSummary_get', 'module' => 'Normalized', 'action' => 'get'],
+                ];
+            },
+        );
+        $actual = $gateway->getReportMetadataByUniqueId(1, 'VisitsSummary.get');
+
+        self::assertSame('Exact', $actual['module'] ?? null);
+    }
+
+    public function testGetReportMetadataByUniqueIdStillFailsWhenDottedFormHasNoMatch(): void
+    {
+        $gateway = new CoreProcessedReportGateway(
+            static function (string $method, array $paramOverride, array $defaultRequest): array {
+                return [
+                    ['uniqueId' => 'VisitsSummary_get', 'module' => 'VisitsSummary', 'action' => 'get'],
+                ];
+            },
+        );
+
+        $this->expectException(InfrastructureDataException::class);
+        $this->expectExceptionMessage('Report not found.');
+        $gateway->getReportMetadataByUniqueId(1, 'Unknown.report');
+    }
+
     public function testGetReportMetadataByUniqueIdRejectsInvalidPayloadShape(): void
     {
         $gateway = new CoreProcessedReportGateway(

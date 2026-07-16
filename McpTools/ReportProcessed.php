@@ -83,7 +83,9 @@ class ReportProcessed extends McpTool
                 'reportUniqueId' => [
                     'type' => 'string',
                     'minLength' => 1,
-                    'description' => 'Preferred selector from matomo_report_list.',
+                    'description' => 'Preferred selector from matomo_report_list. Use the '
+                        . 'underscore form (e.g. VisitsSummary_get), not the API-method '
+                        . 'form VisitsSummary.get.',
                 ],
                 'apiModule' => [
                     'type' => 'string',
