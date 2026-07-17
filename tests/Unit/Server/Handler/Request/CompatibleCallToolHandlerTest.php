@@ -23,7 +23,6 @@ use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 use PHPUnit\Framework\TestCase;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
-use Psr\Log\NullLogger;
 
 /**
  * @group McpServer
@@ -58,7 +57,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             ];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
         $response = $handler->handle($request, $this->createSession('87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1'));
 
         self::assertInstanceOf(Response::class, $response);
@@ -81,7 +80,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             return [];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
         $error = $handler->handle($request, $this->createSession('e6b0fd2f-24a8-4a74-bf74-ec56d99963dd'));
 
         self::assertInstanceOf(Error::class, $error);
@@ -111,7 +110,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             return ['idSite' => $idSite];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
         $response = $handler->handle($request, $this->createSession('c0e7a2b1-2f3d-4a5b-8c9d-0e1f2a3b4c5d'));
 
         self::assertInstanceOf(Response::class, $response);
@@ -134,7 +133,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             return [];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
         $error = $handler->handle($request, $this->createSession('d1f8b3c2-3a4e-5b6c-9d0e-1f2a3b4c5d6e'));
 
         self::assertInstanceOf(Error::class, $error);
@@ -160,7 +159,7 @@ class CompatibleCallToolHandlerTest extends TestCase
 
             return [];
         });
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
 
         $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
             'idSite' => 1,

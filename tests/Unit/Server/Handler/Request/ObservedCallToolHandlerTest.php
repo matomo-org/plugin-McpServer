@@ -547,7 +547,7 @@ class ObservedCallToolHandlerTest extends TestCase
      */
     private function createCompatibleHandler(Registry $registry): RequestHandlerInterface
     {
-        return new CompatibleCallToolHandler($registry, new ReferenceHandler(), new NullLogger());
+        return new CompatibleCallToolHandler($registry, new ReferenceHandler());
     }
 
     private function createSdkHandler(Registry $registry): CallToolHandler

@@ -26,10 +26,27 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
 use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 /**
+ * Adaptation of the SDK's {@see \Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler}.
+ *
+ * The flow mirrors the SDK handler (look up the tool, validate arguments against the
+ * input schema, invoke the reference handler, wrap the result). It diverges only where
+ * the SDK's strict validation rejects input that our tools can handle, plus one exception
+ * type swap:
+ *
+ * - normalizeArgumentsForValidation(): LLM clients routinely emit an empty JSON array
+ *   (`[]`) where an object (`{}`) is expected. The report tools declare `apiParameters`
+ *   as an object, so an empty list would fail validation; we rewrite `[]` to an empty
+ *   object for those tools before validating.
+ * - coerceIntegerStringsForValidation(): promotes pure integer strings (e.g. "1") to
+ *   integers for `integer`-typed arguments, which smaller LLMs frequently stringify.
+ * - It catches this plugin's {@see McpToolCallException} rather than the SDK's
+ *   ToolCallException.
+ *
+ * Logging is intentionally omitted here: the SDK handler's logger plumbing is dropped and
+ * tool-call logging lives in the {@see ObservedCallToolHandler} decorator instead.
+ *
  * @implements RequestHandlerInterface<mixed>
  */
 final class CompatibleCallToolHandler implements RequestHandlerInterface
@@ -45,10 +62,9 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
     public function __construct(
         private readonly RegistryInterface $registry,
         private readonly ReferenceHandlerInterface $referenceHandler,
-        private readonly LoggerInterface $logger = new NullLogger(),
         ?SchemaValidator $schemaValidator = null,
     ) {
-        $this->schemaValidator = $schemaValidator ?? new SchemaValidator($logger);
+        $this->schemaValidator = $schemaValidator ?? new SchemaValidator();
     }
 
     public function supports(Request $request): bool
@@ -66,13 +82,9 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
         $toolName = $request->name;
         $rawArguments = $request->arguments ?? [];
 
-        $this->logger->debug('Executing tool', ['name' => $toolName, 'arguments' => $rawArguments]);
-
         try {
             $reference = $this->registry->getTool($toolName);
         } catch (ToolNotFoundException $e) {
-            $this->logger->error('Tool not found', ['name' => $toolName]);
-
             return new Error($request->getId(), Error::METHOD_NOT_FOUND, $e->getMessage());
         }
 
@@ -118,23 +130,10 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
                 $result = new CallToolResult($reference->formatResult($result), structuredContent: $structuredContent);
             }
 
-            $this->logger->debug('Tool executed successfully', [
-                'name' => $toolName,
-                'result_type' => gettype($result),
-                'structured_content' => $structuredContent,
-            ]);
-
             return new Response($request->getId(), $result);
         } catch (McpToolCallException $e) {
-            $this->logger->error(
-                sprintf('Error while executing tool "%s": "%s".', $toolName, $e->getMessage()),
-                ['tool' => $toolName, 'arguments' => $rawArguments],
-            );
-
             return new Response($request->getId(), CallToolResult::error([new TextContent($e->getMessage())]));
-        } catch (\Throwable $e) {
-            $this->logger->error('Unhandled error during tool execution', ['name' => $toolName, 'exception' => $e]);
-
+        } catch (\Throwable) {
             return Error::forInternalError('Error while executing tool', $request->getId());
         }
     }
