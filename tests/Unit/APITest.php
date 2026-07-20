@@ -393,7 +393,10 @@ class APITest extends TestCase
         $body = $factory->createStream($requestPayload);
 
         return $factory
-            ->createServerRequest('POST', 'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp')
+            ->createServerRequest(
+                'POST',
+                'https://' . McpTestHelper::requestHost() . '/index.php?module=API&method=McpServer.mcp&format=mcp',
+            )
             ->withHeader('Content-Type', 'application/json')
             ->withBody($body);
     }

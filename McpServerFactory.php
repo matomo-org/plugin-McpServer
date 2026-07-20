@@ -20,6 +20,9 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
+use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Config;
 use Piwik\Log\LoggerInterface;
 use Piwik\Plugin\Manager;
@@ -30,7 +33,9 @@ use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Server\ServerEventBridge;
+use Piwik\Plugins\McpServer\Server\Transport\MatomoHostValidationMiddleware;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
+use Piwik\Url;
 use Psr\Container\ContainerInterface;
 use Psr\Log\NullLogger;
 
@@ -285,5 +290,76 @@ final class McpServerFactory
         $config = Config::getInstance()->McpServer ?? [];
 
         return is_array($config) ? $config : [];
+    }
+
+    /**
+     * Build the streamable HTTP transport for the MCP endpoint.
+     *
+     * The SDK's default middleware stack only trusts localhost hosts, which
+     * 403s every real deployment. We replace its raw-`Host` DNS-rebinding check
+     * with {@see MatomoHostValidationMiddleware} — which validates the
+     * proxy-aware host, and a supplied `Origin`, against the deployment's own
+     * trusted hostnames — and keep the protocol-version middleware. Passing an
+     * explicit list is what disables the SDK defaults; see
+     * {@see StreamableHttpTransport::defaultMiddleware()}.
+     *
+     * We deliberately drop the SDK's `CorsMiddleware`: browser/CORS access to
+     * MCP is unsupported (see {@see MatomoHostValidationMiddleware}), and Matomo
+     * core already emits the `Access-Control-Allow-Origin` response header from
+     * `[General] cors_domains` at the API layer ({@see \Piwik\API\Request} →
+     * {@see \Piwik\API\CORSHandler}) for this endpoint like every other API
+     * method, so a transport-level CORS layer would only duplicate or conflict
+     * with it. A CORS preflight (`OPTIONS`) cannot complete anyway: it carries
+     * no bearer token, so {@see \Piwik\Plugins\McpServer\Support\Access\McpAccessGate::assertHttp()}
+     * rejects it as anonymous before the transport runs.
+     *
+     * Because we pin an explicit list, new SDK default protections are not
+     * inherited automatically — re-check {@see StreamableHttpTransport::defaultMiddleware()}
+     * against this list when bumping `mcp/sdk`.
+     *
+     * Host/Origin validation is defense-in-depth only: the endpoint is already
+     * token-authenticated before the transport runs. See
+     * {@see resolveAllowedOriginHosts()} for how the trusted-host allowlist is
+     * derived.
+     *
+     * Static because the middleware stack is derived solely from global config
+     * ({@see \Piwik\Config} and {@see \Piwik\Url}); it needs none of the
+     * factory's injected dependencies, so callers (including tests) can build a
+     * transport without resolving the factory from the container.
+     */
+    public static function createTransport(ServerRequestInterface $request): StreamableHttpTransport
+    {
+        $middleware = [
+            new MatomoHostValidationMiddleware(self::resolveAllowedOriginHosts()),
+            new ProtocolVersionMiddleware(),
+        ];
+
+        return new StreamableHttpTransport($request, middleware: $middleware);
+    }
+
+    /**
+     * The trusted-host allowlist for {@see MatomoHostValidationMiddleware}: the
+     * hostnames this deployment answers to, against which a supplied `Origin` is
+     * validated for DNS-rebinding protection. Derived only from
+     * `[General] trusted_hosts` — never `cors_domains`, which governs Matomo's
+     * CORS response headers, not who may reach the MCP endpoint. Accepting an
+     * `Origin` here is request validation, not CORS support; cross-origin
+     * browser MCP stays unsupported (see {@see createTransport()}).
+     *
+     * Always the full `trusted_hosts` list, independent of
+     * `[General] enable_trusted_host_check`: that flag relaxes Matomo's host
+     * check for no-`Origin` native requests, but must not waive validation of a
+     * supplied `Origin`. Entries are passed through verbatim — the middleware
+     * owns normalization (port/case/trailing-dot) so the allowlist and the
+     * incoming `Origin` reduce through one codepath. The list may be empty on a
+     * not-yet-configured instance, and an empty list makes the middleware reject
+     * every supplied `Origin` — fail-closed, because without a trusted-host
+     * policy the deployment's own hostnames are unknown.
+     *
+     * @return list<string>
+     */
+    private static function resolveAllowedOriginHosts(): array
+    {
+        return array_values(Url::getTrustedHostsFromConfig());
     }
 }

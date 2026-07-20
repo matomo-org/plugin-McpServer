@@ -13,7 +13,6 @@ namespace Piwik\Plugins\McpServer;
 
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
-use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\API\Request as ApiRequest;
@@ -122,7 +121,7 @@ class API extends \Piwik\Plugin\API
 
         try {
             $server = $this->factory->createServer();
-            $transport = new StreamableHttpTransport($request);
+            $transport = McpServerFactory::createTransport($request);
             $sessionId = $this->sessionEndEventPublisher->captureExistingSessionOnDelete($request);
 
             $response = $server->run($transport);

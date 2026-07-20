@@ -537,7 +537,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         $factory = new Psr17Factory();
         $request = $factory->createServerRequest(
             $method,
-            'https://example.test/index.php?module=API&method=McpServer.mcp&format=mcp',
+            'https://' . McpTestHelper::requestHost() . '/index.php?module=API&method=McpServer.mcp&format=mcp',
         );
 
         foreach ($headers as $name => $value) {
