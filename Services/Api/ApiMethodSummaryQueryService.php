@@ -20,6 +20,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryQueryRecord;
 use Piwik\Plugins\McpServer\Contracts\Records\Api\ApiMethodSummaryRecord;
 use Piwik\Plugins\McpServer\Support\Access\RawApiMethodPolicy;
 use Piwik\Plugins\McpServer\Support\Api\ApiMethodOperationClassifier;
+use Piwik\Plugins\McpServer\Support\Search\SearchTermMatcher;
 use ReflectionClass;
 
 final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryServiceInterface
@@ -310,7 +311,7 @@ final class ApiMethodSummaryQueryService implements ApiMethodSummaryQueryService
 
         return array_values(array_filter(
             $records,
-            static fn(ApiMethodSummaryRecord $record): bool => str_contains(strtolower($record->method), $searchTerm)
+            static fn(ApiMethodSummaryRecord $record): bool => SearchTermMatcher::matches($searchTerm, $record->method)
         ));
     }
 

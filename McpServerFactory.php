@@ -146,7 +146,6 @@ final class McpServerFactory
         $callToolHandler = new CompatibleCallToolHandler(
             $registry,
             new ReferenceHandler($this->container),
-            new NullLogger(),
         );
 
         $activeCallToolHandler = $callToolHandler;

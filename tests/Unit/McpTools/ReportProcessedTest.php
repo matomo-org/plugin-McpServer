@@ -96,6 +96,60 @@ class ReportProcessedTest extends TestCase
         self::assertSame(0, $wrapper->captured['filterOffset']);
     }
 
+    public function testGetExpandsWholeBucketShorthandDate(): void
+    {
+        $wrapper = new class () implements ReportProcessedQueryServiceInterface {
+            /** @var array<string, mixed> */
+            public array $captured = [];
+
+            /**
+             * @param list<int|string>|null $goalMetricsProcessGoals
+             */
+            public function getProcessedReport(
+                int $idSite,
+                string $period,
+                string $date,
+                ?string $reportUniqueId,
+                ?string $apiModule,
+                ?string $apiAction,
+                ?array $apiParameters,
+                ?string $goalMetricsMode,
+                ?array $goalMetricsProcessGoals,
+                ?string $segment,
+                int|string|null $idGoal,
+                ?int $idDimension,
+                ?int $idSubtable,
+                int $filterLimit,
+                int $filterOffset,
+            ): ReportProcessedRecord {
+                $this->captured = ['period' => $period, 'date' => $date];
+
+                return new ReportProcessedRecord(
+                    report: [],
+                    filterLimit: $filterLimit,
+                    filterOffset: $filterOffset,
+                    returnedRows: 0,
+                    totalRows: 0,
+                    hasMore: false,
+                    uniqueId: (string) $reportUniqueId,
+                    apiModule: 'VisitsSummary',
+                    apiAction: 'get',
+                    apiParameters: [],
+                );
+            }
+        };
+
+        (new ReportProcessed($wrapper))->execute(
+            idSite: 3,
+            period: 'year',
+            date: '2026',
+            reportUniqueId: 'VisitsSummary_get',
+        );
+
+        self::assertSame('year', $wrapper->captured['period']);
+        self::assertSame('2026-01-01', $wrapper->captured['date']);
+    }
+
     public function testGetPassesOptionalArguments(): void
     {
         $wrapper = new class () implements ReportProcessedQueryServiceInterface {

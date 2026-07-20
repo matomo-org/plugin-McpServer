@@ -19,6 +19,7 @@ use Piwik\Plugins\McpServer\Contracts\Records\Reports\ReportProcessedRecord;
 use Piwik\Plugins\McpServer\Schemas\Reports\ReportProcessedToolOutputSchema;
 use Piwik\Plugins\McpServer\Support\Normalization\ToolDataNormalizer;
 use Piwik\Plugins\McpServer\Support\Reports\GoalMetricsMode;
+use Piwik\Plugins\McpServer\Support\Reports\PeriodDateNormalizer;
 
 /**
  * @phpstan-import-type ReportProcessedArray from ReportProcessedRecord
@@ -63,17 +64,29 @@ class ReportProcessed extends McpTool
                 'period' => [
                     'type' => 'string',
                     'minLength' => 1,
-                    'description' => 'Matomo period (day, week, month, year, range).',
+                    'description' => 'Matomo period granularity: day, week, month, year, or range. Use range for one '
+                        . 'aggregate over a custom span - either an explicit "start,end" date or a rolling '
+                        . 'lastN/previousN window (e.g. period=range + date=last7 = one total over the last 7 days). '
+                        . 'For a single bucket use day/week/month/year with one date inside it.',
                 ],
                 'date' => [
                     'type' => 'string',
                     'minLength' => 1,
-                    'description' => 'Matomo date expression.',
+                    'description' => 'Matomo date, paired with period. A single date (YYYY-MM-DD) or keyword '
+                        . '(today, yesterday, lastWeek, lastMonth, lastYear) returns the one containing period as a '
+                        . 'flat result - prefer this for a whole day/week/month/year. With period=range, either '
+                        . '"YYYY-MM-DD,YYYY-MM-DD" or a rolling lastN/previousN window (measured in days, e.g. '
+                        . 'last7 = the last 7 days) returns ONE aggregate over the whole span. With '
+                        . 'period=day/week/month/year, lastN/previousN (N periods, not days: period=week + last7 = '
+                        . '7 weeks) or a comma date returns one entry PER sub-period - use only for an intended '
+                        . 'per-period breakdown.',
                 ],
                 'reportUniqueId' => [
                     'type' => 'string',
                     'minLength' => 1,
-                    'description' => 'Preferred selector from matomo_report_list.',
+                    'description' => 'Preferred selector from matomo_report_list. Use the '
+                        . 'underscore form (e.g. VisitsSummary_get), not the API-method '
+                        . 'form VisitsSummary.get.',
                 ],
                 'apiModule' => [
                     'type' => 'string',
@@ -203,6 +216,10 @@ class ReportProcessed extends McpTool
         $apiParameters = $apiParameters === null
             ? null
             : ToolDataNormalizer::requireStringKeyedArrayOrEmptyList($apiParameters, 'apiParameters');
+
+        // Expand whole-bucket shorthand dates (year "2026", month "2026-01") into
+        // the full YYYY-MM-DD form Matomo requires; see PeriodDateNormalizer.
+        $date = PeriodDateNormalizer::normalize($period, $date);
 
         return $this->queryService->getProcessedReport(
             idSite: $idSite,

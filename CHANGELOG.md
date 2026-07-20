@@ -2,8 +2,10 @@
 
 ### Unreleased
 
+- Added a search filter to `matomo_report_list` for finding reports by name.
 - Added `McpServer.addTools` and `McpServer.filterTools` events so other plugins can contribute or restrict MCP tool registrations.
 - Added the `McpServer.serverEvent` event so other plugins can observe completed MCP requests, received notifications, and explicit session termination through SDK-agnostic events, with richer payloads for initialization and tool activity.
+- Clarified the date/period semantics in the `matomo_report_processed` tool description.
 
 ### 5.0.4
 

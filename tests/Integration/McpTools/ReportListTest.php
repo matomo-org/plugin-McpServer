@@ -426,6 +426,88 @@ class ReportListTest extends IntegrationTestCase
         });
     }
 
+    public function testSearchFiltersReportsByTermCaseInsensitively(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        // Derive a guaranteed-present term from a real report's name so the test
+        // does not depend on which reports a given fixture install exposes.
+        $sample = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportList::TOOL_NAME,
+            ['idSite' => $this->idSite, 'limit' => 1, 'sort' => ReportsPagination::SORT_NAME_ASC],
+            __METHOD__ . '#sample',
+        );
+        $sampleReports = $sample['reports'] ?? null;
+        self::assertIsArray($sampleReports);
+        self::assertNotEmpty($sampleReports);
+        $sampleName = $sampleReports[0]['name'] ?? null;
+        self::assertIsString($sampleName);
+        self::assertNotSame('', $sampleName);
+        // Upper-case the first word of the name to also prove case-insensitivity.
+        $term = strtoupper(explode(' ', $sampleName)[0]);
+
+        $filtered = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportList::TOOL_NAME,
+            ['idSite' => $this->idSite, 'limit' => 100, 'search' => $term],
+            __METHOD__ . '#filtered',
+        );
+        $reports = $filtered['reports'] ?? null;
+        self::assertIsArray($reports);
+        self::assertNotEmpty($reports);
+
+        $needle = strtolower($term);
+        foreach ($reports as $report) {
+            self::assertIsArray($report);
+            $haystack = strtolower(
+                (string) ($report['name'] ?? '')
+                . ' ' . (string) ($report['category'] ?? '')
+                . ' ' . (string) ($report['uniqueId'] ?? ''),
+            );
+            self::assertStringContainsString($needle, $haystack);
+        }
+    }
+
+    public function testSearchWithNoMatchReturnsEmptyResult(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportList::TOOL_NAME,
+            ['idSite' => $this->idSite, 'search' => 'zzz-no-such-report-zzz'],
+            __METHOD__,
+        );
+
+        self::assertSame([], $content['reports'] ?? null);
+        self::assertSame(0, $content['total_rows'] ?? null);
+        self::assertSame(false, $content['has_more'] ?? null);
+        self::assertSame(null, $content['next_cursor'] ?? null);
+    }
+
+    public function testRejectsEmptySearch(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $message = McpTestHelper::callToolExpectInvalidParams(
+            $server,
+            $sessionId,
+            ReportList::TOOL_NAME,
+            ['idSite' => $this->idSite, 'search' => ''],
+            __METHOD__,
+        );
+        self::assertStringContainsString(
+            "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
+            $message->message ?? '',
+        );
+        self::assertStringContainsString('search', $message->message ?? '');
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
