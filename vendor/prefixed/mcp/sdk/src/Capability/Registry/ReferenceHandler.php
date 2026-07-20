@@ -12,6 +12,7 @@ namespace Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\RegistryException;
+use Matomo\Dependencies\McpServer\Mcp\Server\ClientGateway;
 use Matomo\Dependencies\McpServer\Mcp\Server\RequestContext;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Psr\Container\ContainerInterface;
@@ -28,6 +29,12 @@ final class ReferenceHandler implements ReferenceHandlerInterface
      */
     public function handle(ElementReference $reference, array $arguments) : mixed
     {
+        // Closures bound to this class as their scope consume the raw argument bag
+        // directly. Used by ExplicitElementLoader so reflection + name-based parameter
+        // mapping is bypassed for explicitly registered handler interfaces.
+        if ($reference->handler instanceof \Closure && self::class === (new \ReflectionFunction($reference->handler))->getClosureScopeClass()?->getName()) {
+            return ($reference->handler)($arguments);
+        }
         $session = $arguments['_session'];
         if (\is_string($reference->handler)) {
             if (class_exists($reference->handler) && method_exists($reference->handler, '__invoke')) {
@@ -81,6 +88,10 @@ final class ReferenceHandler implements ReferenceHandlerInterface
                 $typeName = $type->getName();
                 if (RequestContext::class === $typeName && isset($arguments['_session'], $arguments['_request'])) {
                     $finalArgs[$paramPosition] = new RequestContext($arguments['_session'], $arguments['_request']);
+                    continue;
+                }
+                if (ClientGateway::class === $typeName && isset($arguments['_session'])) {
+                    $finalArgs[$paramPosition] = new ClientGateway($arguments['_session']);
                     continue;
                 }
             }

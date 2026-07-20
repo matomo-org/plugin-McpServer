@@ -10,9 +10,12 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Capability\Discovery;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ElementReference;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 /**
  * Utility class to validate and resolve MCP element handlers.
+ *
+ * @phpstan-import-type Handler from ElementReference
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
@@ -23,11 +26,12 @@ class HandlerResolver
      *
      * A handler can be:
      * - A Closure: function() { ... }
-     * - An array: [ClassName::class, 'methodName'] (instance method)
+     * - An array: [ClassName::class, 'methodName'] (resolved on a new or container-provided instance)
+     * - An array: [$instance, 'methodName'] (method on a pre-built object instance)
      * - An array: [ClassName::class, 'staticMethod'] (static method, if callable)
      * - A string: InvokableClassName::class (which will resolve to its '__invoke' method)
      *
-     * @param \Closure|array{0: string, 1: string}|string $handler the handler to resolve
+     * @param Handler $handler the handler to resolve
      *
      * @throws InvalidArgumentException If the handler format is invalid, the class/method doesn't exist,
      *                                  or the method is unsuitable (e.g., private, abstract).
@@ -38,10 +42,16 @@ class HandlerResolver
             return new \ReflectionFunction($handler);
         }
         if (\is_array($handler)) {
-            if (2 !== \count($handler) || !isset($handler[0]) || !isset($handler[1]) || !\is_string($handler[0]) || !\is_string($handler[1])) {
-                throw new InvalidArgumentException('Invalid array handler format. Expected [ClassName::class, \'methodName\'].');
+            // A Closure in slot 0 must fall through to the format error rather than
+            // be treated as an instance, where "$closure::class" would yield the
+            // misleading class name "Closure".
+            $target = $handler[0] ?? null;
+            $hasValidTarget = (\is_string($target) || \is_object($target)) && !$target instanceof \Closure;
+            if (2 !== \count($handler) || !$hasValidTarget || !isset($handler[1]) || !\is_string($handler[1])) {
+                throw new InvalidArgumentException('Invalid array handler format. Expected [ClassName::class, \'methodName\'] or [$instance, \'methodName\'].');
             }
-            [$className, $methodName] = $handler;
+            [$classOrObject, $methodName] = $handler;
+            $className = \is_object($classOrObject) ? $classOrObject::class : $classOrObject;
             if (!class_exists($className)) {
                 throw new InvalidArgumentException(\sprintf('Handler class "%s" not found for array handler.', $className));
             }
@@ -65,7 +75,7 @@ class HandlerResolver
                 throw new InvalidArgumentException(\sprintf('Handler method "%s::%s" must be public.', $className, $methodName));
             }
             if ($reflectionMethod->isAbstract()) {
-                throw new InvalidArgumentException(\sprintf('Handler method "%s::%s" must be abstract.', $className, $methodName));
+                throw new InvalidArgumentException(\sprintf('Handler method "%s::%s" must not be abstract.', $className, $methodName));
             }
             if ($reflectionMethod->isConstructor() || $reflectionMethod->isDestructor()) {
                 throw new InvalidArgumentException(\sprintf('Handler method "%s::%s" cannot be a constructor or destructor.', $className, $methodName));

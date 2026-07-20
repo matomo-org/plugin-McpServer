@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\Completion\ProviderInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\CachedDiscoverer;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\Discoverer;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\DiscovererInterface;
@@ -17,23 +18,36 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaGeneratorInterf
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Container;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ElementReference;
-use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\ArrayLoader;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\ChainLoader;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\DiscoveryLoader;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\ExplicitElementLoader;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\LoaderInterface;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\Loader\ReflectedElementLoader;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandler;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\LogicException;
 use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Annotations;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Extension\ServerExtensionInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Icon;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Prompt;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\ElementHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Notification\NotificationHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\PromptHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\ResourceHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\ResourceTemplateHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\ToolHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SessionSubscriptionManager;
 use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SubscriptionManagerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
@@ -65,6 +79,8 @@ final class Builder
     private ?DiscovererInterface $discoverer = null;
     private ?SessionManagerInterface $sessionManager = null;
     private ?SessionStoreInterface $sessionStore = null;
+    private int $gcProbability = 1;
+    private int $gcDivisor = 100;
     private int $paginationLimit = 50;
     private ?string $instructions = null;
     private ?ProtocolVersion $protocolVersion = null;
@@ -83,6 +99,7 @@ final class Builder
      *     title: ?string,
      *     description: ?string,
      *     annotations: ?ToolAnnotations,
+     *     inputSchema: ?array<string, mixed>,
      *     icons: ?Icon[],
      *     meta: ?array<string, mixed>,
      *     outputSchema: ?array<string, mixed>,
@@ -94,6 +111,7 @@ final class Builder
      *     handler: Handler,
      *     uri: string,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     mimeType: ?string,
      *     size: int|null,
@@ -108,6 +126,7 @@ final class Builder
      *     handler: Handler,
      *     uriTemplate: string,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     mimeType: ?string,
      *     annotations: ?Annotations,
@@ -119,12 +138,29 @@ final class Builder
      * @var array{
      *     handler: Handler,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     icons: ?Icon[],
      *     meta: ?array<string, mixed>
      * }[]
      */
     private array $prompts = [];
+    /**
+     * @var list<array{definition: Tool, handler: ToolHandlerInterface}>
+     */
+    private array $explicitTools = [];
+    /**
+     * @var list<array{definition: ResourceDefinition, handler: ResourceHandlerInterface}>
+     */
+    private array $explicitResources = [];
+    /**
+     * @var list<array{definition: ResourceTemplate, handler: ResourceTemplateHandlerInterface, completionProviders: array<string, ProviderInterface>}>
+     */
+    private array $explicitResourceTemplates = [];
+    /**
+     * @var list<array{definition: Prompt, handler: PromptHandlerInterface, completionProviders: array<string, ProviderInterface>}>
+     */
+    private array $explicitPrompts = [];
     private ?string $discoveryBasePath = null;
     /**
      * @var string[]
@@ -134,11 +170,21 @@ final class Builder
      * @var array|string[]
      */
     private array $discoveryExcludeDirs = [];
+    /**
+     * @var string[]|null
+     */
+    private ?array $discoveryNamePatterns = null;
     private ?ServerCapabilities $serverCapabilities = null;
+    /**
+     * @var array<string, array<string, mixed>>
+     */
+    private array $extensions = [];
     /**
      * @var LoaderInterface[]
      */
     private array $loaders = [];
+    private bool $hasCustomRegistry = \false;
+    private bool $lazyLoading = \true;
     /**
      * Sets the server's identity. Required.
      *
@@ -175,6 +221,23 @@ final class Builder
     public function setCapabilities(ServerCapabilities $serverCapabilities) : self
     {
         $this->serverCapabilities = $serverCapabilities;
+        return $this;
+    }
+    /**
+     * Enable one or more MCP protocol extensions, announced to clients under
+     * `capabilities.extensions` during the initialize handshake.
+     *
+     * @throws LogicException if the same extension is enabled more than once
+     */
+    public function enableExtension(ServerExtensionInterface ...$extensions) : self
+    {
+        foreach ($extensions as $extension) {
+            $id = $extension->getId();
+            if (isset($this->extensions[$id])) {
+                throw new LogicException(\sprintf('Extension "%s" is already enabled.', $id));
+            }
+            $this->extensions[$id] = $extension->getCapabilities();
+        }
         return $this;
     }
     /**
@@ -222,6 +285,19 @@ final class Builder
     public function setRegistry(RegistryInterface $registry) : self
     {
         $this->registry = $registry;
+        $this->hasCustomRegistry = \true;
+        return $this;
+    }
+    /**
+     * Controls when configured loaders (manual elements, discovery, custom loaders) run.
+     *
+     * Lazy (the default) defers loading to the first registry read so a persistent runtime does not
+     * freeze the registry to a source not yet ready at build time. Disable to load eagerly at build.
+     * A registry supplied via setRegistry() is always loaded eagerly.
+     */
+    public function setLazyLoading(bool $lazyLoading = \true) : self
+    {
+        $this->lazyLoading = $lazyLoading;
         return $this;
     }
     /**
@@ -266,10 +342,18 @@ final class Builder
         $this->subscriptionManager = $subscriptionManager;
         return $this;
     }
-    public function setSession(?SessionStoreInterface $sessionStore = null, ?SessionManagerInterface $sessionManager = null) : self
+    /**
+     * Configures the session layer.
+     *
+     * @param int $gcProbability The numerator of the GC probability fraction (like PHP's session.gc_probability). Set to 0 to disable GC.
+     * @param int $gcDivisor     The denominator of the GC probability fraction (like PHP's session.gc_divisor). Probability = gcProbability/gcDivisor.
+     */
+    public function setSession(?SessionStoreInterface $sessionStore = null, ?SessionManagerInterface $sessionManager = null, int $gcProbability = 1, int $gcDivisor = 100) : self
     {
         $this->sessionStore = $sessionStore;
         $this->sessionManager = $sessionManager;
+        $this->gcProbability = $gcProbability;
+        $this->gcDivisor = $gcDivisor;
         if (null !== $sessionManager && null !== $sessionStore) {
             throw new InvalidArgumentException('Cannot set both SessionStore and SessionManager. Set only one or the other.');
         }
@@ -278,13 +362,15 @@ final class Builder
     /**
      * @param string[] $scanDirs
      * @param string[] $excludeDirs
+     * @param string[] $namePatterns
      */
-    public function setDiscovery(string $basePath, array $scanDirs = ['.', 'src'], array $excludeDirs = [], ?CacheInterface $cache = null) : self
+    public function setDiscovery(string $basePath, array $scanDirs = ['.', 'src'], array $excludeDirs = [], ?CacheInterface $cache = null, array $namePatterns = DiscovererInterface::DEFAULT_NAME_PATERNS) : self
     {
         $this->discoveryBasePath = $basePath;
         $this->discoveryScanDirs = $scanDirs;
         $this->discoveryExcludeDirs = $excludeDirs;
         $this->discoveryCache = $cache;
+        $this->discoveryNamePatterns = $namePatterns;
         return $this;
     }
     public function setProtocolVersion(ProtocolVersion $protocolVersion) : self
@@ -311,23 +397,25 @@ final class Builder
      * Manually registers a resource handler.
      *
      * @param Handler                   $handler
+     * @param ?string                   $title   Optional human-readable title for display in UI
      * @param ?Icon[]                   $icons
      * @param array<string, mixed>|null $meta
      */
-    public function addResource(\Closure|array|string $handler, string $uri, ?string $name = null, ?string $description = null, ?string $mimeType = null, ?int $size = null, ?Annotations $annotations = null, ?array $icons = null, ?array $meta = null) : self
+    public function addResource(\Closure|array|string $handler, string $uri, ?string $name = null, ?string $title = null, ?string $description = null, ?string $mimeType = null, ?int $size = null, ?Annotations $annotations = null, ?array $icons = null, ?array $meta = null) : self
     {
-        $this->resources[] = compact('handler', 'uri', 'name', 'description', 'mimeType', 'size', 'annotations', 'icons', 'meta');
+        $this->resources[] = compact('handler', 'uri', 'name', 'title', 'description', 'mimeType', 'size', 'annotations', 'icons', 'meta');
         return $this;
     }
     /**
      * Manually registers a resource template handler.
      *
      * @param Handler                   $handler
+     * @param ?string                   $title   Optional human-readable title for display in UI
      * @param array<string, mixed>|null $meta
      */
-    public function addResourceTemplate(\Closure|array|string $handler, string $uriTemplate, ?string $name = null, ?string $description = null, ?string $mimeType = null, ?Annotations $annotations = null, ?array $meta = null) : self
+    public function addResourceTemplate(\Closure|array|string $handler, string $uriTemplate, ?string $name = null, ?string $title = null, ?string $description = null, ?string $mimeType = null, ?Annotations $annotations = null, ?array $meta = null) : self
     {
-        $this->resourceTemplates[] = compact('handler', 'uriTemplate', 'name', 'description', 'mimeType', 'annotations', 'meta');
+        $this->resourceTemplates[] = compact('handler', 'uriTemplate', 'name', 'title', 'description', 'mimeType', 'annotations', 'meta');
         return $this;
     }
     /**
@@ -340,6 +428,35 @@ final class Builder
     public function addPrompt(\Closure|array|string $handler, ?string $name = null, ?string $title = null, ?string $description = null, ?array $icons = null, ?array $meta = null) : self
     {
         $this->prompts[] = compact('handler', 'name', 'title', 'description', 'icons', 'meta');
+        return $this;
+    }
+    /**
+     * Registers an element using an explicit schema value object paired with a handler interface.
+     *
+     * Use this entry point when an element's name, schema, or description is only known at
+     * runtime (e.g. config-driven integrations). For statically-known elements, prefer
+     * `addTool/addResource/addResourceTemplate/addPrompt`, which can derive metadata from
+     * reflection of the handler.
+     *
+     * Mismatched pairings (e.g. a `Tool` with a `PromptHandlerInterface`) raise
+     * `Mcp\Exception\InvalidArgumentException`. Completion providers are only supported on
+     * `Prompt` and `ResourceTemplate` definitions; supplying them with `Tool` or
+     * `ResourceDefinition` raises the same exception.
+     *
+     * @param array<string, ProviderInterface> $completionProviders Keyed by argument/variable name
+     */
+    public function add(Tool|ResourceDefinition|ResourceTemplate|Prompt $definition, ElementHandlerInterface $handler, array $completionProviders = []) : self
+    {
+        if ([] !== $completionProviders && ($definition instanceof Tool || $definition instanceof ResourceDefinition)) {
+            throw new InvalidArgumentException(\sprintf('Completion providers are only supported on Prompt and ResourceTemplate definitions, got %s.', $definition::class));
+        }
+        match (\true) {
+            $definition instanceof Tool && $handler instanceof ToolHandlerInterface => $this->explicitTools[] = ['definition' => $definition, 'handler' => $handler],
+            $definition instanceof ResourceDefinition && $handler instanceof ResourceHandlerInterface => $this->explicitResources[] = ['definition' => $definition, 'handler' => $handler],
+            $definition instanceof ResourceTemplate && $handler instanceof ResourceTemplateHandlerInterface => $this->explicitResourceTemplates[] = ['definition' => $definition, 'handler' => $handler, 'completionProviders' => $completionProviders],
+            $definition instanceof Prompt && $handler instanceof PromptHandlerInterface => $this->explicitPrompts[] = ['definition' => $definition, 'handler' => $handler, 'completionProviders' => $completionProviders],
+            default => throw new InvalidArgumentException(\sprintf('%s definition cannot be paired with %s; expected the matching handler interface.', $definition::class, $handler::class)),
+        };
         return $this;
     }
     /**
@@ -367,23 +484,39 @@ final class Builder
     {
         $logger = $this->logger ?? new NullLogger();
         $container = $this->container ?? new Container();
-        $registry = $this->registry ?? new Registry($this->eventDispatcher, $logger);
         $subscriptionManager = $this->subscriptionManager ?? new SessionSubscriptionManager($logger);
-        $loaders = [...$this->loaders, new ArrayLoader($this->tools, $this->resources, $this->resourceTemplates, $this->prompts, $logger, $this->schemaGenerator)];
-        $sessionManager = $this->sessionManager ?? new SessionManager($this->sessionStore ?? new InMemorySessionStore(), $logger);
+        $sessionManager = $this->sessionManager ?? new SessionManager($this->sessionStore ?? new InMemorySessionStore(), $logger, $this->gcProbability, $this->gcDivisor);
+        // ExplicitElementLoader and ReflectedElementLoader run before DiscoveryLoader so manual entries are seen first;
+        // DiscoveryLoader's identity check then preserves them against same-name discovered entries.
+        $loaders = [...$this->loaders, new ExplicitElementLoader($this->explicitTools, $this->explicitResources, $this->explicitResourceTemplates, $this->explicitPrompts), new ReflectedElementLoader($this->tools, $this->resources, $this->resourceTemplates, $this->prompts, $logger, $this->schemaGenerator)];
         if (null !== $this->discoveryBasePath) {
             if (null !== $this->discoverer || class_exists(Finder::class)) {
                 $discoverer = $this->discoverer ?? $this->createDiscoverer($logger);
-                $loaders[] = new DiscoveryLoader($this->discoveryBasePath, $this->discoveryScanDirs, $this->discoveryExcludeDirs, $discoverer);
+                $loaders[] = new DiscoveryLoader($this->discoveryBasePath, $this->discoveryScanDirs, $this->discoveryExcludeDirs, $discoverer, $this->discoveryNamePatterns, $logger);
             } else {
                 $logger->warning('File-based discovery requires symfony/finder. Skipping automatic discovery. Run: composer require symfony/finder');
             }
         }
-        foreach ($loaders as $loader) {
-            $loader->load($registry);
+        $chainLoader = new ChainLoader($loaders);
+        if ($this->hasCustomRegistry) {
+            // Builder can't inject the loader into an already-constructed instance, so load it eagerly.
+            $registry = $this->registry;
+            $chainLoader->load($registry);
+            $eagerlyLoaded = \true;
+        } else {
+            $registry = new Registry($this->eventDispatcher, $logger, loader: $chainLoader);
+            if (!$this->lazyLoading) {
+                $registry->load();
+            }
+            $eagerlyLoaded = !$this->lazyLoading;
         }
         $messageFactory = MessageFactory::make();
-        $capabilities = $this->serverCapabilities ?? new ServerCapabilities(tools: $registry->hasTools(), toolsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, resources: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesSubscribe: $registry->hasResources() || $registry->hasResourceTemplates(), resourcesListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, prompts: $registry->hasPrompts(), promptsListChanged: $this->eventDispatcher instanceof EventDispatcherInterface, logging: \true, completions: \true);
+        $capabilities = $this->serverCapabilities ?? $this->detectCapabilities($registry, $eagerlyLoaded);
+        // Extensions enabled via enableExtension() are folded into caller-supplied
+        // capabilities too, so setCapabilities() does not silently drop them.
+        if (null !== $this->serverCapabilities && [] !== $this->extensions) {
+            $capabilities = $capabilities->withExtensions($this->extensions);
+        }
         $serverInfo = $this->serverInfo ?? new Implementation();
         $configuration = new Configuration($serverInfo, $capabilities, $this->paginationLimit, $this->instructions, $this->protocolVersion);
         $referenceHandler = $this->referenceHandler ?? new ReferenceHandler($container);
@@ -391,6 +524,22 @@ final class Builder
         $notificationHandlers = array_merge($this->notificationHandlers, [new Handler\Notification\InitializedHandler()]);
         $protocol = new Protocol(requestHandlers: $requestHandlers, notificationHandlers: $notificationHandlers, messageFactory: $messageFactory, sessionManager: $sessionManager, logger: $logger, eventDispatcher: $this->eventDispatcher);
         return new Server($protocol, $logger);
+    }
+    /**
+     * When loaded, capabilities are read from the registry. When deferred, reading it would force
+     * the load, so they are advertised from the configured sources instead — opaque sources (custom
+     * loaders, discovery) advertise all kinds, and over-advertising is harmless per MCP semantics.
+     */
+    private function detectCapabilities(RegistryInterface $registry, bool $eagerlyLoaded) : ServerCapabilities
+    {
+        $listChanged = $this->eventDispatcher instanceof EventDispatcherInterface;
+        if ($eagerlyLoaded) {
+            $hasResources = $registry->hasResources() || $registry->hasResourceTemplates();
+            return new ServerCapabilities(tools: $registry->hasTools(), toolsListChanged: $listChanged, resources: $hasResources, resourcesSubscribe: $hasResources, resourcesListChanged: $listChanged, prompts: $registry->hasPrompts(), promptsListChanged: $listChanged, logging: \true, completions: \true, extensions: $this->extensions ?: null);
+        }
+        $hasOpaqueSources = [] !== $this->loaders || null !== $this->discoveryBasePath;
+        $hasResources = [] !== $this->resources || [] !== $this->explicitResources || [] !== $this->resourceTemplates || [] !== $this->explicitResourceTemplates || $hasOpaqueSources;
+        return new ServerCapabilities(tools: [] !== $this->tools || [] !== $this->explicitTools || $hasOpaqueSources, toolsListChanged: $listChanged, resources: $hasResources, resourcesSubscribe: $hasResources, resourcesListChanged: $listChanged, prompts: [] !== $this->prompts || [] !== $this->explicitPrompts || $hasOpaqueSources, promptsListChanged: $listChanged, logging: \true, completions: \true, extensions: $this->extensions ?: null);
     }
     private function createDiscoverer(LoggerInterface $logger) : DiscovererInterface
     {

@@ -23,9 +23,9 @@ class ToolReference extends ElementReference
     /**
      * @param Handler $handler
      */
-    public function __construct(public readonly Tool $tool, callable|array|string $handler, bool $isManual = \false)
+    public function __construct(public readonly Tool $tool, callable|array|string $handler)
     {
-        parent::__construct($handler, $isManual);
+        parent::__construct($handler);
     }
     /**
      * Formats the result of a tool execution into an array of MCP Content items.

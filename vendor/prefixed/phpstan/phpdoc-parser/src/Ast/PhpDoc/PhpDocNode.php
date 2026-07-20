@@ -85,6 +85,13 @@ class PhpDocNode implements Node
         return array_filter(array_column($this->getTagsByName($tagName), 'value'), static fn(PhpDocTagValueNode $value): bool => $value instanceof PureUnlessCallableIsImpureTagValueNode);
     }
     /**
+     * @return PureUnlessParameterIsPassedTagValueNode[]
+     */
+    public function getPureUnlessParameterIsPassedTagValues(string $tagName = '@pure-unless-parameter-passed') : array
+    {
+        return array_filter(array_column($this->getTagsByName($tagName), 'value'), static fn(PhpDocTagValueNode $value): bool => $value instanceof PureUnlessParameterIsPassedTagValueNode);
+    }
+    /**
      * @return TemplateTagValueNode[]
      */
     public function getTemplateTagValues(string $tagName = '@template') : array

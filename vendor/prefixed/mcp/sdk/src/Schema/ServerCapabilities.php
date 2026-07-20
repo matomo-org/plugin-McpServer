@@ -29,8 +29,9 @@ class ServerCapabilities implements \JsonSerializable
      * @param ?bool                 $logging              server emits structured log messages
      * @param ?bool                 $completions          Server supports argument autocompletion
      * @param ?array<string, mixed> $experimental         experimental, non-standard features that the server supports
+     * @param ?array<string, mixed> $extensions           protocol extensions the server supports (e.g. io.modelcontextprotocol/ui)
      */
-    public function __construct(public readonly ?bool $tools = \true, public readonly ?bool $toolsListChanged = \false, public readonly ?bool $resources = \true, public readonly ?bool $resourcesSubscribe = \false, public readonly ?bool $resourcesListChanged = \false, public readonly ?bool $prompts = \true, public readonly ?bool $promptsListChanged = \false, public readonly ?bool $logging = \false, public readonly ?bool $completions = \false, public readonly ?array $experimental = null)
+    public function __construct(public readonly ?bool $tools = \true, public readonly ?bool $toolsListChanged = \false, public readonly ?bool $resources = \true, public readonly ?bool $resourcesSubscribe = \false, public readonly ?bool $resourcesListChanged = \false, public readonly ?bool $prompts = \true, public readonly ?bool $promptsListChanged = \false, public readonly ?bool $logging = \false, public readonly ?bool $completions = \false, public readonly ?array $experimental = null, public readonly ?array $extensions = null)
     {
     }
     /**
@@ -41,6 +42,7 @@ class ServerCapabilities implements \JsonSerializable
      *     resources?: array{listChanged?: bool, subscribe?: bool}|object,
      *     tools?: object|array{listChanged?: bool},
      *     experimental?: array<string, mixed>,
+     *     extensions?: array<string, mixed>,
      * } $data
      */
     public static function fromArray(array $data) : self
@@ -80,7 +82,18 @@ class ServerCapabilities implements \JsonSerializable
                 $toolsListChanged = (bool) $data['tools']->listChanged;
             }
         }
-        return new self(tools: $toolsEnabled, toolsListChanged: $toolsListChanged, resources: $resourcesEnabled, resourcesSubscribe: $resourcesSubscribe, resourcesListChanged: $resourcesListChanged, prompts: $promptsEnabled, promptsListChanged: $promptsListChanged, logging: $loggingEnabled, completions: $completionsEnabled, experimental: $data['experimental'] ?? null);
+        return new self(tools: $toolsEnabled, toolsListChanged: $toolsListChanged, resources: $resourcesEnabled, resourcesSubscribe: $resourcesSubscribe, resourcesListChanged: $resourcesListChanged, prompts: $promptsEnabled, promptsListChanged: $promptsListChanged, logging: $loggingEnabled, completions: $completionsEnabled, experimental: \is_array($data['experimental'] ?? null) ? $data['experimental'] : null, extensions: \is_array($data['extensions'] ?? null) ? $data['extensions'] : null);
+    }
+    /**
+     * Returns a copy with the given protocol extensions merged into the existing ones.
+     *
+     * Entries in $extensions override existing ones sharing the same id.
+     *
+     * @param array<string, array<string, mixed>> $extensions
+     */
+    public function withExtensions(array $extensions) : self
+    {
+        return new self($this->tools, $this->toolsListChanged, $this->resources, $this->resourcesSubscribe, $this->resourcesListChanged, $this->prompts, $this->promptsListChanged, $this->logging, $this->completions, $this->experimental, [...$this->extensions ?? [], ...$extensions]);
     }
     /**
      * @return array{
@@ -90,6 +103,7 @@ class ServerCapabilities implements \JsonSerializable
      *     resources?: object,
      *     tools?: object,
      *     experimental?: object,
+     *     extensions?: object,
      * }
      */
     public function jsonSerialize() : array
@@ -124,6 +138,9 @@ class ServerCapabilities implements \JsonSerializable
         }
         if ($this->experimental) {
             $data['experimental'] = (object) $this->experimental;
+        }
+        if ($this->extensions) {
+            $data['extensions'] = (object) $this->extensions;
         }
         return $data;
     }

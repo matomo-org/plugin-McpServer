@@ -13,11 +13,15 @@ namespace Matomo\Dependencies\McpServer\Mcp\Server\Transport;
 use Matomo\Dependencies\McpServer\Http\Discovery\Psr17FactoryDiscovery;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\CorsMiddleware;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\DnsRebindingProtectionMiddleware;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\MiddlewareRequestHandler;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseFactoryInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\StreamFactoryInterface;
+use Matomo\Dependencies\McpServer\Psr\Http\Message\StreamInterface;
 use Matomo\Dependencies\McpServer\Psr\Http\Server\MiddlewareInterface;
 use Psr\Log\LoggerInterface;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
@@ -28,32 +32,47 @@ use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
  */
 class StreamableHttpTransport extends BaseTransport
 {
-    private const SESSION_HEADER = 'Mcp-Session-Id';
-    private const ALLOWED_HEADER = ['Accept', 'Authorization', 'Content-Type', 'Last-Event-ID', 'Mcp-Protocol-Version', self::SESSION_HEADER];
+    public const SESSION_HEADER = 'Mcp-Session-Id';
+    public const PROTOCOL_VERSION_HEADER = 'Mcp-Protocol-Version';
+    /**
+     * Upper bound on the request body read for a POST, guarding against memory
+     * exhaustion from an oversized (or unbounded chunked) payload.
+     */
+    public const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024;
     private ResponseFactoryInterface $responseFactory;
     private StreamFactoryInterface $streamFactory;
     private ?string $immediateResponse = null;
     private ?int $immediateStatusCode = null;
-    /** @var array<string, string> */
-    private array $corsHeaders;
     /** @var list<MiddlewareInterface> */
-    private array $middleware = [];
+    private array $middleware;
     /**
-     * @param array<string, string>         $corsHeaders
-     * @param iterable<MiddlewareInterface> $middleware
+     * @param iterable<MiddlewareInterface>|null $middleware `null` installs {@see self::defaultMiddleware()}; `[]` disables all middleware
      */
-    public function __construct(private ServerRequestInterface $request, ?ResponseFactoryInterface $responseFactory = null, ?StreamFactoryInterface $streamFactory = null, array $corsHeaders = [], ?LoggerInterface $logger = null, iterable $middleware = [])
+    public function __construct(private ServerRequestInterface $request, ?ResponseFactoryInterface $responseFactory = null, ?StreamFactoryInterface $streamFactory = null, ?LoggerInterface $logger = null, ?iterable $middleware = null, private readonly int $maxBodyBytes = self::DEFAULT_MAX_BODY_BYTES)
     {
         parent::__construct($logger);
+        if ($this->maxBodyBytes < 1) {
+            throw new InvalidArgumentException('maxBodyBytes must be at least 1.');
+        }
         $this->responseFactory = $responseFactory ?? Psr17FactoryDiscovery::findResponseFactory();
         $this->streamFactory = $streamFactory ?? Psr17FactoryDiscovery::findStreamFactory();
-        $this->corsHeaders = array_merge(['Access-Control-Allow-Origin' => '*', 'Access-Control-Allow-Methods' => 'GET, POST, DELETE, OPTIONS', 'Access-Control-Allow-Headers' => implode(',', self::ALLOWED_HEADER), 'Access-Control-Expose-Headers' => self::SESSION_HEADER], $corsHeaders);
-        foreach ($middleware as $m) {
-            if (!$m instanceof MiddlewareInterface) {
-                throw new InvalidArgumentException('Streamable HTTP middleware must implement Psr\\Http\\Server\\MiddlewareInterface.');
+        if (null === $middleware) {
+            $this->middleware = self::defaultMiddleware();
+        } else {
+            $this->middleware = self::normalizeMiddleware($middleware);
+            if ([] === $this->middleware) {
+                $this->logger->warning('Streamable HTTP transport started with an empty middleware list. Default security protections (CORS, DNS rebinding, protocol version validation) are disabled. Pass null (or omit the argument) to use the secure defaults, or include them via [...StreamableHttpTransport::defaultMiddleware(), $yourMiddleware].');
             }
-            $this->middleware[] = $m;
         }
+    }
+    /**
+     * Secure default middleware stack applied when no `$middleware` is provided to the constructor.
+     *
+     * @return list<MiddlewareInterface>
+     */
+    public static function defaultMiddleware() : array
+    {
+        return [new CorsMiddleware(), new DnsRebindingProtectionMiddleware(), new ProtocolVersionMiddleware()];
     }
     public function send(string $data, array $context) : void
     {
@@ -63,7 +82,7 @@ class StreamableHttpTransport extends BaseTransport
     public function listen() : ResponseInterface
     {
         $handler = new MiddlewareRequestHandler($this->middleware, \Closure::fromCallable([$this, 'handleRequest']));
-        return $this->withCorsHeaders($handler->handle($this->request));
+        return $handler->handle($this->request);
     }
     protected function handleOptionsRequest() : ResponseInterface
     {
@@ -71,7 +90,11 @@ class StreamableHttpTransport extends BaseTransport
     }
     protected function handlePostRequest() : ResponseInterface
     {
-        $body = $this->request->getBody()->getContents();
+        $body = $this->readBody($this->request->getBody());
+        if (null === $body) {
+            $this->logger->warning('Rejected POST body exceeding the maximum allowed size.', ['limit' => $this->maxBodyBytes]);
+            return $this->createErrorResponse(Error::forInvalidRequest(\sprintf('Request body exceeds the maximum allowed size of %d bytes.', $this->maxBodyBytes)), 413);
+        }
         $this->handleMessage($body, $this->sessionId);
         if (null !== $this->immediateResponse) {
             $response = $this->responseFactory->createResponse($this->immediateStatusCode ?? 200)->withHeader('Content-Type', 'application/json')->withBody($this->streamFactory->createStream($this->immediateResponse));
@@ -95,7 +118,7 @@ class StreamableHttpTransport extends BaseTransport
     {
         $outgoingMessages = $this->getOutgoingMessages($this->sessionId);
         if (empty($outgoingMessages)) {
-            return $this->responseFactory->createResponse(202);
+            return $this->responseFactory->createResponse(202)->withHeader('Content-Type', 'application/json');
         }
         $messages = array_column($outgoingMessages, 'message');
         $responseBody = 1 === \count($messages) ? $messages[0] : '[' . implode(',', $messages) . ']';
@@ -190,20 +213,63 @@ class StreamableHttpTransport extends BaseTransport
         }
         return $response;
     }
-    protected function withCorsHeaders(ResponseInterface $response) : ResponseInterface
+    /**
+     * Reads the request body, bounded by {@see self::$maxBodyBytes}.
+     *
+     * Returns the body contents, or `null` when the payload exceeds the cap. When
+     * the stream advertises a size we reject up-front; otherwise (e.g. chunked
+     * transfer with unknown size) we read incrementally and stop at the cap so an
+     * unbounded stream cannot exhaust memory.
+     */
+    private function readBody(StreamInterface $body) : ?string
     {
-        foreach ($this->corsHeaders as $name => $value) {
-            if (!$response->hasHeader($name)) {
-                $response = $response->withHeader($name, $value);
+        $size = $body->getSize();
+        if (null !== $size && $size > $this->maxBodyBytes) {
+            return null;
+        }
+        $contents = '';
+        while (!$body->eof()) {
+            $chunk = $body->read(8192);
+            if ('' === $chunk) {
+                break;
+            }
+            $contents .= $chunk;
+            if (\strlen($contents) > $this->maxBodyBytes) {
+                return null;
             }
         }
-        return $response;
+        return $contents;
+    }
+    /**
+     * @param iterable<MiddlewareInterface> $middleware
+     *
+     * @return list<MiddlewareInterface>
+     */
+    private static function normalizeMiddleware(iterable $middleware) : array
+    {
+        $normalized = [];
+        foreach ($middleware as $m) {
+            if (!$m instanceof MiddlewareInterface) {
+                throw new InvalidArgumentException('Streamable HTTP middleware must implement Psr\\Http\\Server\\MiddlewareInterface.');
+            }
+            $normalized[] = $m;
+        }
+        return $normalized;
     }
     private function handleRequest(ServerRequestInterface $request) : ResponseInterface
     {
         $this->request = $request;
-        $sessionIdString = $request->getHeaderLine(self::SESSION_HEADER);
-        $this->sessionId = $sessionIdString ? Uuid::fromString($sessionIdString) : null;
+        $sessionIdHeaders = $request->getHeader(self::SESSION_HEADER);
+        if (\count($sessionIdHeaders) > 1) {
+            return $this->createErrorResponse(Error::forInvalidRequest(self::SESSION_HEADER . ' header must not be repeated.'), 400);
+        }
+        $sessionIdString = $sessionIdHeaders[0] ?? '';
+        try {
+            $this->sessionId = $sessionIdString ? Uuid::fromString($sessionIdString) : null;
+            // Symfony UID 5.4/6.4 throw the global parent; newer versions throw a namespaced subclass.
+        } catch (\InvalidArgumentException) {
+            return $this->createErrorResponse(Error::forInvalidRequest(self::SESSION_HEADER . ' header must be a valid UUID.'), 400);
+        }
         return match ($request->getMethod()) {
             'OPTIONS' => $this->handleOptionsRequest(),
             'POST' => $this->handlePostRequest(),

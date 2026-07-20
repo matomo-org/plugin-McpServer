@@ -34,6 +34,7 @@ use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValue
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\PropertyTagValueNode;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\PureUnlessCallableIsImpureTagValueNode;
+use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\PureUnlessParameterIsPassedTagValueNode;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\RequireExtendsTagValueNode;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\RequireImplementsTagValueNode;
 use Matomo\Dependencies\McpServer\PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
@@ -267,6 +268,9 @@ final class Printer
             return trim("{$node->type} {$node->parameterName} {$node->description}");
         }
         if ($node instanceof PureUnlessCallableIsImpureTagValueNode) {
+            return trim("{$node->parameterName} {$node->description}");
+        }
+        if ($node instanceof PureUnlessParameterIsPassedTagValueNode) {
             return trim("{$node->parameterName} {$node->description}");
         }
         if ($node instanceof PropertyTagValueNode) {

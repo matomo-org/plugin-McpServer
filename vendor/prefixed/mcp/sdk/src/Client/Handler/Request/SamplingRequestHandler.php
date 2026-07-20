@@ -47,7 +47,7 @@ class SamplingRequestHandler implements RequestHandlerInterface
             $result = $this->callback->__invoke($request);
             return new Response($request->getId(), $result);
         } catch (SamplingException $e) {
-            $this->logger->error('Sampling failed: ' . $e->getMessage());
+            $this->logger->error('Sampling failed: ' . $e->getMessage(), ['exception' => $e]);
             return Error::forInternalError($e->getMessage(), $request->getId());
         } catch (\Throwable $e) {
             $this->logger->error('Unexpected error during sampling', ['exception' => $e]);

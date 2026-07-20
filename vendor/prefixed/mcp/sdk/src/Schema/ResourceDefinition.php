@@ -17,9 +17,10 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
  * @phpstan-import-type AnnotationsData from Annotations
  * @phpstan-import-type IconData from Icon
  *
- * @phpstan-type ResourceData array{
+ * @phpstan-type ResourceDefinitionData array{
  *     uri: string,
  *     name: string,
+ *     title?: string,
  *     description?: string,
  *     mimeType?: string,
  *     annotations?: AnnotationsData,
@@ -30,30 +31,29 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
-class Resource implements \JsonSerializable
+class ResourceDefinition implements \JsonSerializable
 {
     /**
      * Resource name pattern regex - must contain only alphanumeric characters, underscores, and hyphens.
      */
     private const RESOURCE_NAME_PATTERN = '/^[a-zA-Z0-9_-]+$/';
     /**
-     * URI pattern regex - requires a valid scheme, followed by colon and optional path.
-     * Example patterns: config://, file://path, db://table, etc.
+     * URI pattern regex - requires a valid scheme followed by colon and optional path (RFC 3986).
+     * Example patterns: file://path, db://table, urn:isbn:123, config:key, etc.
      */
-    private const URI_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:\\/\\/[^\\s]*$/';
+    private const URI_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:[^\\s]*$/';
     /**
      * @param string                $uri         the URI of this resource
-     * @param string                $name        A human-readable name for this resource. This can be used by clients to populate UI elements.
-     * @param ?string               $description A description of what this resource represents. This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a "hint" to the model.
+     * @param string                $name        a short identifier for this resource
+     * @param ?string               $title       optional human-readable title for display in UI
+     * @param ?string               $description A description of what this resource represents. This can be used by clients to improve the LLM's understanding of available resources.
      * @param ?string               $mimeType    the MIME type of this resource, if known
      * @param ?Annotations          $annotations optional annotations for the client
-     * @param ?int                  $size        The size of the raw resource content, in bytes (i.e., before base64 encoding or any tokenization), if known.
+     * @param ?int                  $size        the size of the raw resource content, in bytes (before base64 encoding or any tokenization), if known
      * @param ?Icon[]               $icons       optional icons representing the resource
-     * @param ?array<string, mixed> $meta        Optional metadata
-     *
-     * This can be used by Hosts to display file sizes and estimate context window usage
+     * @param ?array<string, mixed> $meta        optional metadata
      */
-    public function __construct(public readonly string $uri, public readonly string $name, public readonly ?string $description = null, public readonly ?string $mimeType = null, public readonly ?Annotations $annotations = null, public readonly ?int $size = null, public readonly ?array $icons = null, public readonly ?array $meta = null)
+    public function __construct(public readonly string $uri, public readonly string $name, public readonly ?string $title = null, public readonly ?string $description = null, public readonly ?string $mimeType = null, public readonly ?Annotations $annotations = null, public readonly ?int $size = null, public readonly ?array $icons = null, public readonly ?array $meta = null)
     {
         if (!preg_match(self::RESOURCE_NAME_PATTERN, $name)) {
             throw new InvalidArgumentException(\sprintf('Invalid resource name "%s": must contain only alphanumeric characters, underscores, and hyphens.', $name));
@@ -63,25 +63,26 @@ class Resource implements \JsonSerializable
         }
     }
     /**
-     * @param ResourceData $data
+     * @param ResourceDefinitionData $data
      */
     public static function fromArray(array $data) : self
     {
         if (empty($data['uri']) || !\is_string($data['uri'])) {
-            throw new InvalidArgumentException('Invalid or missing "uri" in Resource data.');
+            throw new InvalidArgumentException('Invalid or missing "uri" in ResourceDefinition data.');
         }
         if (empty($data['name']) || !\is_string($data['name'])) {
-            throw new InvalidArgumentException('Invalid or missing "name" in Resource data.');
+            throw new InvalidArgumentException('Invalid or missing "name" in ResourceDefinition data.');
         }
         if (!empty($data['_meta']) && !\is_array($data['_meta'])) {
-            throw new InvalidArgumentException('Invalid "_meta" in Resource data.');
+            throw new InvalidArgumentException('Invalid "_meta" in ResourceDefinition data.');
         }
-        return new self(uri: $data['uri'], name: $data['name'], description: $data['description'] ?? null, mimeType: $data['mimeType'] ?? null, annotations: isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null, size: isset($data['size']) ? (int) $data['size'] : null, icons: isset($data['icons']) && \is_array($data['icons']) ? array_map(Icon::fromArray(...), $data['icons']) : null, meta: isset($data['_meta']) ? $data['_meta'] : null);
+        return new self(uri: $data['uri'], name: $data['name'], title: isset($data['title']) && \is_string($data['title']) ? $data['title'] : null, description: $data['description'] ?? null, mimeType: $data['mimeType'] ?? null, annotations: isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null, size: isset($data['size']) ? (int) $data['size'] : null, icons: isset($data['icons']) && \is_array($data['icons']) ? array_map(Icon::fromArray(...), $data['icons']) : null, meta: isset($data['_meta']) ? $data['_meta'] : null);
     }
     /**
      * @return array{
      *     uri: string,
      *     name: string,
+     *     title?: string,
      *     description?: string,
      *     mimeType?: string,
      *     annotations?: Annotations,
@@ -93,6 +94,9 @@ class Resource implements \JsonSerializable
     public function jsonSerialize() : array
     {
         $data = ['uri' => $this->uri, 'name' => $this->name];
+        if (null !== $this->title) {
+            $data['title'] = $this->title;
+        }
         if (null !== $this->description) {
             $data['description'] = $this->description;
         }

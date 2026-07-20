@@ -26,7 +26,7 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\ExceptionInterface;
 use Matomo\Dependencies\McpServer\Mcp\Exception\RuntimeException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Prompt;
 use Matomo\Dependencies\McpServer\Mcp\Schema\PromptArgument;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Resource;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Psr\Log\LoggerInterface;
@@ -58,14 +58,16 @@ final class Discoverer implements DiscovererInterface
     /**
      * Discover MCP elements in the specified directories and return the discovery state.
      *
-     * @param string        $basePath    the base path for resolving directories
-     * @param array<string> $directories list of directories (relative to base path) to scan
-     * @param array<string> $excludeDirs list of directories (relative to base path) to exclude from the scan
+     * @param string        $basePath     the base path for resolving directories
+     * @param array<string> $directories  list of directories (relative to base path) to scan
+     * @param array<string> $excludeDirs  list of directories (relative to base path) to exclude from the scan
+     * @param array<string> $namePatterns list of file name patterns for the scan. Compatible with Finder->name()
      */
-    public function discover(string $basePath, array $directories, array $excludeDirs = []) : DiscoveryState
+    public function discover(string $basePath, array $directories, array $excludeDirs = [], array $namePatterns = self::DEFAULT_NAME_PATERNS) : DiscoveryState
     {
         $startTime = microtime(\true);
         $discoveredCount = ['tools' => 0, 'resources' => 0, 'prompts' => 0, 'resourceTemplates' => 0];
+        $namePatterns = !empty($namePatterns) ? $namePatterns : self::DEFAULT_NAME_PATERNS;
         $tools = [];
         $resources = [];
         $prompts = [];
@@ -83,12 +85,12 @@ final class Discoverer implements DiscovererInterface
                 $this->logger->warning('No valid discovery directories found to scan.', ['configured_paths' => $directories, 'base_path' => $basePath]);
                 return new DiscoveryState();
             }
-            $finder->files()->in($absolutePaths)->exclude($excludeDirs)->name('*.php');
+            $finder->files()->in($absolutePaths)->exclude($excludeDirs)->name($namePatterns);
             foreach ($finder as $file) {
                 $this->processFile($file, $discoveredCount, $tools, $resources, $prompts, $resourceTemplates);
             }
         } catch (\Throwable $e) {
-            $this->logger->error('Error during file finding process for MCP discovery' . json_encode($e->getTrace(), \JSON_PRETTY_PRINT), ['exception' => $e, 'trace' => $e->getTraceAsString()]);
+            $this->logger->error('Error during file finding process for MCP discovery' . json_encode($e->getTrace(), \JSON_PRETTY_PRINT), ['exception' => $e]);
         }
         $duration = microtime(\true) - $startTime;
         $this->logger->info('Attribute discovery finished.', ['duration_sec' => round($duration, 3), 'tools' => $discoveredCount['tools'], 'resources' => $discoveredCount['resources'], 'prompts' => $discoveredCount['prompts'], 'resourceTemplates' => $discoveredCount['resourceTemplates']]);
@@ -148,7 +150,7 @@ final class Discoverer implements DiscovererInterface
         } catch (\ReflectionException $e) {
             $this->logger->error('Reflection error processing file for MCP discovery', ['file' => $file->getPathname(), 'class' => $className, 'exception' => $e]);
         } catch (\Throwable $e) {
-            $this->logger->error('Unexpected error processing file for MCP discovery', ['file' => $file->getPathname(), 'class' => $className, 'exception' => $e, 'trace' => $e->getTraceAsString()]);
+            $this->logger->error('Unexpected error processing file for MCP discovery', ['file' => $file->getPathname(), 'class' => $className, 'exception' => $e]);
         }
     }
     /**
@@ -179,15 +181,15 @@ final class Discoverer implements DiscovererInterface
                     $inputSchema = $this->schemaGenerator->generate($method);
                     $outputSchema = $this->schemaGenerator->generateOutputSchema($method);
                     $tool = new Tool(name: $name, title: $instance->title, inputSchema: $inputSchema, description: $description, annotations: $instance->annotations, icons: $instance->icons, meta: $instance->meta, outputSchema: $outputSchema);
-                    $tools[$name] = new ToolReference($tool, [$className, $methodName], \false);
+                    $tools[$name] = new ToolReference($tool, [$className, $methodName]);
                     ++$discoveredCount['tools'];
                     break;
                 case McpResource::class:
                     $docBlock = $this->docBlockParser->parseDocBlock($method->getDocComment() ?? null);
                     $name = $instance->name ?? ('__invoke' === $methodName ? $classShortName : $methodName);
                     $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
-                    $resource = new Resource($instance->uri, $name, $description, $instance->mimeType, $instance->annotations, $instance->size, $instance->icons, $instance->meta);
-                    $resources[$instance->uri] = new ResourceReference($resource, [$className, $methodName], \false);
+                    $resource = new ResourceDefinition($instance->uri, $name, $instance->title, $description, $instance->mimeType, $instance->annotations, $instance->size, $instance->icons, $instance->meta);
+                    $resources[$instance->uri] = new ResourceReference($resource, [$className, $methodName]);
                     ++$discoveredCount['resources'];
                     break;
                 case McpPrompt::class:
@@ -206,7 +208,7 @@ final class Discoverer implements DiscovererInterface
                     }
                     $prompt = new Prompt($name, $instance->title, $description, $arguments, $instance->icons, $instance->meta);
                     $completionProviders = $this->getCompletionProviders($method);
-                    $prompts[$name] = new PromptReference($prompt, [$className, $methodName], \false, $completionProviders);
+                    $prompts[$name] = new PromptReference($prompt, [$className, $methodName], $completionProviders);
                     ++$discoveredCount['prompts'];
                     break;
                 case McpResourceTemplate::class:
@@ -216,16 +218,16 @@ final class Discoverer implements DiscovererInterface
                     $mimeType = $instance->mimeType;
                     $annotations = $instance->annotations;
                     $meta = $instance->meta ?? null;
-                    $resourceTemplate = new ResourceTemplate($instance->uriTemplate, $name, $description, $mimeType, $annotations, $meta);
+                    $resourceTemplate = new ResourceTemplate($instance->uriTemplate, $name, $instance->title, $description, $mimeType, $annotations, $meta);
                     $completionProviders = $this->getCompletionProviders($method);
-                    $resourceTemplates[$instance->uriTemplate] = new ResourceTemplateReference($resourceTemplate, [$className, $methodName], \false, $completionProviders);
+                    $resourceTemplates[$instance->uriTemplate] = new ResourceTemplateReference($resourceTemplate, [$className, $methodName], $completionProviders);
                     ++$discoveredCount['resourceTemplates'];
                     break;
             }
         } catch (ExceptionInterface $e) {
-            $this->logger->error("Failed to process MCP attribute on {$className}::{$methodName}", ['attribute' => $attributeClassName, 'exception' => $e, 'trace' => $e->getPrevious() ? $e->getPrevious()->getTraceAsString() : $e->getTraceAsString()]);
+            $this->logger->error("Failed to process MCP attribute on {$className}::{$methodName}", ['attribute' => $attributeClassName, 'exception' => $e]);
         } catch (\Throwable $e) {
-            $this->logger->error("Unexpected error processing attribute on {$className}::{$methodName}", ['attribute' => $attributeClassName, 'exception' => $e, 'trace' => $e->getTraceAsString()]);
+            $this->logger->error("Unexpected error processing attribute on {$className}::{$methodName}", ['attribute' => $attributeClassName, 'exception' => $e]);
         }
     }
     /**

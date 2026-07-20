@@ -91,7 +91,7 @@ class HttpTransport extends BaseTransport
             $this->sessionId = $response->getHeaderLine('Mcp-Session-Id');
             $this->logger->debug('Received session ID', ['session_id' => $this->sessionId]);
         }
-        $contentType = $response->getHeaderLine('Content-Type');
+        $contentType = strtolower($response->getHeaderLine('Content-Type'));
         if (str_contains($contentType, 'text/event-stream')) {
             $this->activeStream = $response->getBody();
             $this->sseBuffer = '';
@@ -130,7 +130,7 @@ class HttpTransport extends BaseTransport
                 $this->httpClient->sendRequest($request);
                 $this->logger->info('Session closed', ['session_id' => $this->sessionId]);
             } catch (\Throwable $e) {
-                $this->logger->warning('Failed to close session', ['error' => $e->getMessage()]);
+                $this->logger->warning('Failed to close session', ['exception' => $e]);
             }
         }
         $this->sessionId = null;
