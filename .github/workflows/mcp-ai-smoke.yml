@@ -1,8 +1,6 @@
 name: MCP AI Smoke
 
 on:
-  pull_request:
-    types: [opened, synchronize]
   workflow_dispatch:
     inputs:
       codex_model:
@@ -13,6 +11,8 @@ on:
         description: Claude model
         required: false
         default: sonnet
+  schedule:
+    - cron: '0 5 * * 6'
 
 permissions:
   actions: read
@@ -75,7 +75,7 @@ jobs:
 
           if [ "$has_codex" = false ] && [ "$has_claude" = false ]; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "reason=No provider secret is available in this context (likely fork PR)." >> "$GITHUB_OUTPUT"
+            echo "reason=No provider secret is configured, so there is nothing to run." >> "$GITHUB_OUTPUT"
           else
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             echo "reason=Ready to run smoke checks for one or more providers." >> "$GITHUB_OUTPUT"
