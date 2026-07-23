@@ -1,0 +1,1 @@
+Use exactly one MCP tool call: matomo_api_call_read with arguments {"method": "API.getMatomoVersion"}. Return only the Matomo version string.

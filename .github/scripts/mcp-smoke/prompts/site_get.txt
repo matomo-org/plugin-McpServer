@@ -1,0 +1,1 @@
+Use exactly one MCP tool call: matomo_site_get with arguments {"idSite": {{idSite}}}. Return a one-line summary only.

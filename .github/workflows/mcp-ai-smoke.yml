@@ -1,0 +1,383 @@
+name: MCP AI Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      codex_model:
+        description: Codex model
+        required: false
+        default: gpt-5-mini
+      claude_model:
+        description: Claude model
+        required: false
+        default: sonnet
+  schedule:
+    - cron: '0 5 * * 6'
+
+permissions:
+  actions: read
+  checks: none
+  contents: read
+  deployments: none
+  issues: none
+  packages: none
+  pull-requests: read
+  repository-projects: none
+  security-events: none
+  statuses: none
+
+concurrency:
+  group: mcp-ai-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLUGIN_NAME: McpServer
+  MATOMO_DIR: ${{ github.workspace }}/matomo
+  BASE_URL: http://127.0.0.1:8000
+  MYSQL_HOST: 127.0.0.1
+  MYSQL_PORT: 3306
+  MYSQL_USER: root
+  MYSQL_PASSWORD: root
+  MYSQL_DATABASE: matomo
+  CODEX_MODEL: ${{ github.event.inputs.codex_model || 'gpt-5-mini' }}
+  CLAUDE_MODEL: ${{ github.event.inputs.claude_model || 'sonnet' }}
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-24.04
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+      has_codex: ${{ steps.check.outputs.has_codex }}
+      has_claude: ${{ steps.check.outputs.has_claude }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - id: check
+        name: Check secret availability
+        env:
+          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
+          CLAUDE_APIKEY: ${{ secrets.CLAUDE_APIKEY }}
+        run: |
+          set -euo pipefail
+          has_codex=false
+          has_claude=false
+
+          if [ -n "${OPENAI_APIKEY:-}" ]; then
+            has_codex=true
+          fi
+
+          if [ -n "${CLAUDE_APIKEY:-}" ]; then
+            has_claude=true
+          fi
+
+          echo "has_codex=${has_codex}" >> "$GITHUB_OUTPUT"
+          echo "has_claude=${has_claude}" >> "$GITHUB_OUTPUT"
+
+          if [ "$has_codex" = false ] && [ "$has_claude" = false ]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "reason=No provider secret is configured, so there is nothing to run." >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "reason=Ready to run smoke checks for one or more providers." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Preflight summary
+        run: |
+          {
+            echo "## MCP AI Smoke Preflight"
+            echo
+            echo "- should_run: ${{ steps.check.outputs.should_run }}"
+            echo "- Codex available: ${{ steps.check.outputs.has_codex }}"
+            echo "- Claude available: ${{ steps.check.outputs.has_claude }}"
+            echo "- reason: ${{ steps.check.outputs.reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  smoke_codex:
+    name: Codex smoke
+    runs-on: ubuntu-24.04
+    needs: preflight
+    if: needs.preflight.outputs.has_codex == 'true'
+    continue-on-error: true
+    outputs:
+      provider_outcome: ${{ steps.confirm_provider_outcome.outputs.provider_outcome }}
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: matomo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          lfs: false
+          persist-credentials: false
+
+      - name: Setup shared smoke environment
+        uses: ./.github/actions/setup-mcp-smoke-env
+        with:
+          plugin_name: ${{ env.PLUGIN_NAME }}
+          matomo_dir: ${{ env.MATOMO_DIR }}
+          base_url: ${{ env.BASE_URL }}
+          mysql_host: ${{ env.MYSQL_HOST }}
+          mysql_port: ${{ env.MYSQL_PORT }}
+          mysql_user: ${{ env.MYSQL_USER }}
+          mysql_password: ${{ env.MYSQL_PASSWORD }}
+          mysql_database: ${{ env.MYSQL_DATABASE }}
+          matomo_test_target: maximum_supported_matomo
+
+      # Intentionally install the latest release: this smoke job monitors CLI/MCP compatibility.
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+
+      - name: Codex MCP smoke suite
+        id: smoke_suite
+        continue-on-error: true
+        run: ./.github/scripts/mcp-smoke/run-codex-smoke.sh
+        env:
+          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}
+          CODEX_MODEL: ${{ env.CODEX_MODEL }}
+          BASE_URL: ${{ env.BASE_URL }}
+          STATE_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/.state.json
+          CASES_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/cases.json
+          PROMPTS_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/prompts
+          ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
+          MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
+          PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
+
+      - name: Set Codex provider outcome
+        id: set_provider_outcome
+        if: always()
+        run: |
+          provider_outcome="success"
+
+          if [ "${{ job.status }}" != "success" ] || [ "${{ steps.smoke_suite.outcome }}" = "failure" ]; then
+            provider_outcome="failure"
+          elif [ "${{ steps.smoke_suite.outcome }}" = "cancelled" ]; then
+            provider_outcome="cancelled"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
+      - name: Finalize Codex smoke job
+        if: always()
+        uses: ./.github/actions/finalize-mcp-smoke-job
+        with:
+          provider_label: Codex
+          artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/codex
+          artifact_name: mcp-ai-smoke-codex
+          job_status: ${{ steps.set_provider_outcome.outputs.provider_outcome }}
+
+      - name: Confirm Codex provider outcome
+        id: confirm_provider_outcome
+        if: always()
+        run: |
+          # Runs after finalization so a failing summary/artifact-upload step is
+          # not masked by continue-on-error: downgrade a "success" outcome when
+          # the job status is no longer success.
+          provider_outcome="${{ steps.set_provider_outcome.outputs.provider_outcome }}"
+
+          if [ "$provider_outcome" = "success" ] && [ "${{ job.status }}" != "success" ]; then
+            provider_outcome="failure"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
+  smoke_claude:
+    name: Claude smoke
+    runs-on: ubuntu-24.04
+    needs: preflight
+    if: needs.preflight.outputs.has_claude == 'true'
+    continue-on-error: true
+    outputs:
+      provider_outcome: ${{ steps.confirm_provider_outcome.outputs.provider_outcome }}
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: matomo
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          lfs: false
+          persist-credentials: false
+
+      - name: Setup shared smoke environment
+        uses: ./.github/actions/setup-mcp-smoke-env
+        with:
+          plugin_name: ${{ env.PLUGIN_NAME }}
+          matomo_dir: ${{ env.MATOMO_DIR }}
+          base_url: ${{ env.BASE_URL }}
+          mysql_host: ${{ env.MYSQL_HOST }}
+          mysql_port: ${{ env.MYSQL_PORT }}
+          mysql_user: ${{ env.MYSQL_USER }}
+          mysql_password: ${{ env.MYSQL_PASSWORD }}
+          mysql_database: ${{ env.MYSQL_DATABASE }}
+          matomo_test_target: maximum_supported_matomo
+
+      # Intentionally install the latest release: this smoke job monitors CLI/MCP compatibility.
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Claude MCP smoke suite
+        id: smoke_suite
+        continue-on-error: true
+        run: ./.github/scripts/mcp-smoke/run-claude-smoke.sh
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_APIKEY }}
+          CLAUDE_MODEL: ${{ env.CLAUDE_MODEL }}
+          BASE_URL: ${{ env.BASE_URL }}
+          STATE_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/.state.json
+          CASES_FILE: ${{ github.workspace }}/.github/scripts/mcp-smoke/cases.json
+          PROMPTS_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/prompts
+          ARTIFACT_DIR: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts
+          MATOMO_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/matomo.log
+          PHP_SERVER_LOG_FILE: ${{ env.MATOMO_DIR }}/tmp/logs/php-server.log
+
+      - name: Set Claude provider outcome
+        id: set_provider_outcome
+        if: always()
+        run: |
+          provider_outcome="success"
+
+          if [ "${{ job.status }}" != "success" ] || [ "${{ steps.smoke_suite.outcome }}" = "failure" ]; then
+            provider_outcome="failure"
+          elif [ "${{ steps.smoke_suite.outcome }}" = "cancelled" ]; then
+            provider_outcome="cancelled"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
+      - name: Finalize Claude smoke job
+        if: always()
+        uses: ./.github/actions/finalize-mcp-smoke-job
+        with:
+          provider_label: Claude
+          artifact_dir: ${{ github.workspace }}/.github/scripts/mcp-smoke/artifacts/claude
+          artifact_name: mcp-ai-smoke-claude
+          job_status: ${{ steps.set_provider_outcome.outputs.provider_outcome }}
+
+      - name: Confirm Claude provider outcome
+        id: confirm_provider_outcome
+        if: always()
+        run: |
+          # Runs after finalization so a failing summary/artifact-upload step is
+          # not masked by continue-on-error: downgrade a "success" outcome when
+          # the job status is no longer success.
+          provider_outcome="${{ steps.set_provider_outcome.outputs.provider_outcome }}"
+
+          if [ "$provider_outcome" = "success" ] && [ "${{ job.status }}" != "success" ]; then
+            provider_outcome="failure"
+          fi
+
+          echo "provider_outcome=${provider_outcome}" >> "$GITHUB_OUTPUT"
+
+  summary:
+    name: Final status
+    runs-on: ubuntu-24.04
+    needs: [preflight, smoke_codex, smoke_claude]
+    # Must use always(): an if without a status function has an implicit
+    # success(), which is false whenever a provider job is skipped (only one
+    # secret configured). Without this the gate below is skipped and a failing
+    # single-provider run would leave the workflow green.
+    if: ${{ always() && needs.preflight.outputs.should_run == 'true' }}
+    steps:
+      - name: Normalize provider outcomes
+        id: normalize_provider_outcomes
+        env:
+          CODEX_AVAILABLE: ${{ needs.preflight.outputs.has_codex }}
+          CODEX_OUTCOME: ${{ needs.smoke_codex.outputs.provider_outcome }}
+          CLAUDE_AVAILABLE: ${{ needs.preflight.outputs.has_claude }}
+          CLAUDE_OUTCOME: ${{ needs.smoke_claude.outputs.provider_outcome }}
+        run: |
+          set -euo pipefail
+
+          normalize_provider_outcome() {
+            local available="$1"
+            local outcome="$2"
+
+            if [ "$available" != "true" ]; then
+              echo "skipped"
+              return
+            fi
+
+            case "$outcome" in
+              success|failure|cancelled)
+                echo "$outcome"
+                ;;
+              *)
+                echo "failure"
+                ;;
+            esac
+          }
+
+          codex_result=$(normalize_provider_outcome "$CODEX_AVAILABLE" "$CODEX_OUTCOME")
+          claude_result=$(normalize_provider_outcome "$CLAUDE_AVAILABLE" "$CLAUDE_OUTCOME")
+
+          echo "codex_result=${codex_result}" >> "$GITHUB_OUTPUT"
+          echo "claude_result=${claude_result}" >> "$GITHUB_OUTPUT"
+
+      - name: Final status summary
+        run: |
+          {
+            echo "## MCP AI Smoke Result"
+            echo
+            echo "- preflight: ${{ needs.preflight.outputs.should_run }}"
+            echo "- Codex available: ${{ needs.preflight.outputs.has_codex }}"
+            echo "- Claude available: ${{ needs.preflight.outputs.has_claude }}"
+            echo "- reason: ${{ needs.preflight.outputs.reason }}"
+            echo "- Codex provider outcome: ${{ steps.normalize_provider_outcomes.outputs.codex_result }}"
+            echo "- Claude provider outcome: ${{ steps.normalize_provider_outcomes.outputs.claude_result }}"
+            echo
+            echo "Detailed per-case results remain in the individual provider jobs and uploaded artifacts."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Evaluate overall result
+        run: |
+          set -euo pipefail
+
+          codex_result="${{ steps.normalize_provider_outcomes.outputs.codex_result }}"
+          claude_result="${{ steps.normalize_provider_outcomes.outputs.claude_result }}"
+
+          ran_providers=0
+          failed_providers=0
+
+          for result in "$codex_result" "$claude_result"; do
+            if [ "$result" != "skipped" ]; then
+              ran_providers=$((ran_providers + 1))
+            fi
+
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              failed_providers=$((failed_providers + 1))
+            fi
+          done
+
+          if [ "$ran_providers" -eq 0 ]; then
+            echo "No provider jobs ran."
+            exit 0
+          fi
+
+          if [ "$failed_providers" -gt 0 ]; then
+            echo "$failed_providers provider job(s) failed."
+            exit 1
+          fi
+
+          echo "All provider jobs succeeded."

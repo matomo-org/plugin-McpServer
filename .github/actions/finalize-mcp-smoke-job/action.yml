@@ -1,0 +1,71 @@
+name: Finalize MCP Smoke Job
+description: Append the provider smoke summary and upload provider artifacts.
+
+inputs:
+  provider_label:
+    description: Human-readable provider name shown in the job summary.
+    required: true
+  artifact_dir:
+    description: Provider-specific artifact directory to upload.
+    required: true
+  artifact_name:
+    description: Artifact name used for upload-artifact.
+    required: true
+  job_status:
+    description: Job status to print in the step summary.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Build provider summary
+      shell: bash
+      env:
+        ARTIFACT_DIR: ${{ inputs.artifact_dir }}
+        PROVIDER_LABEL: ${{ inputs.provider_label }}
+        JOB_STATUS: ${{ inputs.job_status }}
+      run: |
+        set -euo pipefail
+        RESULTS_FILE="$ARTIFACT_DIR/results.json"
+        {
+          echo "## $PROVIDER_LABEL Smoke"
+          echo
+          echo "- job result: $JOB_STATUS"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        if [ ! -f "$RESULTS_FILE" ]; then
+          {
+            echo
+            echo "No results.json was produced."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        total=$(jq 'length' "$RESULTS_FILE")
+        passed=$(jq '[.[] | select(.status == "pass")] | length' "$RESULTS_FILE")
+        skipped=$(jq '[.[] | select(.status == "skip")] | length' "$RESULTS_FILE")
+        failed=$(jq '[.[] | select(.status == "fail")] | length' "$RESULTS_FILE")
+
+        {
+          echo
+          echo "| Case | Expected Tool | Status | Reason |"
+          echo "|---|---|---|---|"
+          jq -r '.[] | "| \(.case_id) | \(.expected_tool) | \(.status) | \(.reason) |"' "$RESULTS_FILE"
+          echo
+          echo "- Total checks: ${total}"
+          echo "- Passed: ${passed}"
+          echo "- Skipped: ${skipped}"
+          echo "- Failed: ${failed}"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload provider artifacts
+      # Always upload: composite steps have no implicit always(), so a failing
+      # summary step above would otherwise skip this and drop the diagnostics
+      # artifact precisely when it is most needed (report-first behavior).
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ inputs.artifact_dir }}
+        if-no-files-found: warn
+        retention-days: 7

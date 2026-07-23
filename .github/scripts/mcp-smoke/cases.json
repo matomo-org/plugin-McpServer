@@ -1,0 +1,6 @@
+[
+  {"id":"api_call_read","tool":"matomo_api_call_read","prompt_file":"api_call_read.txt","expect_log_contains":["method: \"API.getMatomoVersion\""]},
+  {"id":"report_processed","tool":"matomo_report_processed","prompt_file":"report_processed.txt","expect_log_contains":["idSite: {{idSite}}","period: \"day\"","date: \"2012-08-09\"","reportUniqueId: \"{{reportUniqueId}}\"","filter_limit: 2","filter_offset: 0"]},
+  {"id":"site_get","tool":"matomo_site_get","prompt_file":"site_get.txt","expect_log_contains":["idSite: {{idSite}}"]},
+  {"id":"site_list","tool":"matomo_site_list","prompt_file":"site_list.txt","expect_log_contains":["limit: 5"]}
+]

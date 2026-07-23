@@ -1,0 +1,85 @@
+name: Setup MCP Smoke Env
+description: Prepare the shared Matomo environment used by MCP AI smoke jobs.
+
+inputs:
+  plugin_name:
+    description: Plugin name passed to checkout_matomo.sh.
+    required: true
+  matomo_dir:
+    description: Absolute path to the checked-out Matomo directory.
+    required: true
+  base_url:
+    description: Base URL used by the local Matomo smoke instance.
+    required: true
+  mysql_host:
+    description: MySQL host for the smoke environment.
+    required: true
+  mysql_port:
+    description: MySQL port for the smoke environment.
+    required: true
+  mysql_user:
+    description: MySQL user for the smoke environment.
+    required: true
+  mysql_password:
+    description: MySQL password for the smoke environment.
+    required: true
+  mysql_database:
+    description: MySQL database name for the smoke environment.
+    required: true
+  matomo_test_target:
+    description: Matomo checkout target used by checkout_matomo.sh.
+    required: false
+    default: maximum_supported_matomo
+
+runs:
+  using: composite
+  steps:
+    - name: Test smoke harness argument matching
+      shell: bash
+      run: ./.github/scripts/mcp-smoke/tests/argument-evidence-test.sh
+
+    - name: Set up PHP
+      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, mysqli
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: '22'
+
+    - name: Check out github-action-tests repository
+      uses: actions/checkout@v7
+      with:
+        repository: matomo-org/github-action-tests
+        ref: main
+        path: github-action-tests
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Check out Matomo for plugin builds
+      shell: bash
+      run: ${{ github.workspace }}/github-action-tests/scripts/bash/checkout_matomo.sh
+      env:
+        PLUGIN_NAME: ${{ inputs.plugin_name }}
+        WORKSPACE: ${{ github.workspace }}
+        ACTION_PATH: ${{ github.workspace }}/github-action-tests
+        MATOMO_TEST_TARGET: ${{ inputs.matomo_test_target }}
+
+    - name: Prepare Matomo composer setup
+      shell: bash
+      run: composer install --ignore-platform-reqs --no-interaction --no-progress
+      working-directory: ${{ inputs.matomo_dir }}
+
+    - name: Setup Matomo with OmniFixture
+      shell: bash
+      run: ./.github/scripts/mcp-smoke/setup-matomo-omnifixture.sh
+      env:
+        MATOMO_DIR: ${{ inputs.matomo_dir }}
+        BASE_URL: ${{ inputs.base_url }}
+        MYSQL_HOST: ${{ inputs.mysql_host }}
+        MYSQL_PORT: ${{ inputs.mysql_port }}
+        MYSQL_USER: ${{ inputs.mysql_user }}
+        MYSQL_PASSWORD: ${{ inputs.mysql_password }}
+        MYSQL_DATABASE: ${{ inputs.mysql_database }}
