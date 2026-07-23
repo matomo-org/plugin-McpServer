@@ -25,7 +25,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Annotations;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Icon;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Prompt;
 use Matomo\Dependencies\McpServer\Mcp\Schema\PromptArgument;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Resource;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
@@ -37,7 +37,7 @@ use Psr\Log\NullLogger;
  *
  * @phpstan-import-type Handler from ElementReference
  */
-final class ArrayLoader implements LoaderInterface
+final class ReflectedElementLoader implements LoaderInterface
 {
     /**
      * @param array{
@@ -54,6 +54,7 @@ final class ArrayLoader implements LoaderInterface
      *     handler: Handler,
      *     uri: string,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     mimeType: ?string,
      *     size: int|null,
@@ -65,6 +66,7 @@ final class ArrayLoader implements LoaderInterface
      *     handler: Handler,
      *     uriTemplate: string,
      *     name: ?string,
+     *     title: ?string,
      *     description: ?string,
      *     mimeType: ?string,
      *     annotations: ?Annotations,
@@ -101,7 +103,7 @@ final class ArrayLoader implements LoaderInterface
                 }
                 $inputSchema = $data['inputSchema'] ?? $schemaGenerator->generate($reflection);
                 $tool = new Tool(name: $name, title: $data['title'] ?? null, inputSchema: $inputSchema, description: $description, annotations: $data['annotations'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null, outputSchema: $data['outputSchema'] ?? null);
-                $registry->registerTool($tool, $data['handler'], \true);
+                $registry->registerTool($tool, $data['handler']);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);
                 $this->logger->debug("Registered manual tool {$name} from handler {$handlerDesc}");
             } catch (\Throwable $e) {
@@ -123,8 +125,8 @@ final class ArrayLoader implements LoaderInterface
                     $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
                     $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
                 }
-                $resource = new Resource(uri: $data['uri'], name: $name, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, size: $data['size'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
-                $registry->registerResource($resource, $data['handler'], \true);
+                $resource = new ResourceDefinition(uri: $data['uri'], name: $name, title: $data['title'] ?? null, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, size: $data['size'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
+                $registry->registerResource($resource, $data['handler']);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);
                 $this->logger->debug("Registered manual resource {$name} from handler {$handlerDesc}");
             } catch (\Throwable $e) {
@@ -146,9 +148,9 @@ final class ArrayLoader implements LoaderInterface
                     $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
                     $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
                 }
-                $template = new ResourceTemplate(uriTemplate: $data['uriTemplate'], name: $name, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, meta: $data['meta'] ?? null);
+                $template = new ResourceTemplate(uriTemplate: $data['uriTemplate'], name: $name, title: $data['title'] ?? null, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, meta: $data['meta'] ?? null);
                 $completionProviders = $this->getCompletionProviders($reflection);
-                $registry->registerResourceTemplate($template, $data['handler'], $completionProviders, \true);
+                $registry->registerResourceTemplate($template, $data['handler'], $completionProviders);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);
                 $this->logger->debug("Registered manual template {$name} from handler {$handlerDesc}");
             } catch (\Throwable $e) {
@@ -183,7 +185,7 @@ final class ArrayLoader implements LoaderInterface
                 }
                 $prompt = new Prompt(name: $name, title: $data['title'] ?? null, description: $description, arguments: $arguments, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
                 $completionProviders = $this->getCompletionProviders($reflection);
-                $registry->registerPrompt($prompt, $data['handler'], $completionProviders, \true);
+                $registry->registerPrompt($prompt, $data['handler'], $completionProviders);
                 $handlerDesc = $this->getHandlerDescription($data['handler']);
                 $this->logger->debug("Registered manual prompt {$name} from handler {$handlerDesc}");
             } catch (\Throwable $e) {

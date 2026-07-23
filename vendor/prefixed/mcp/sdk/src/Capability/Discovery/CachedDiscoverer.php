@@ -31,11 +31,12 @@ final class CachedDiscoverer implements DiscovererInterface
     /**
      * Discover MCP elements in the specified directories with caching.
      *
-     * @param string        $basePath    the base path for resolving directories
-     * @param array<string> $directories list of directories (relative to base path) to scan
-     * @param array<string> $excludeDirs list of directories (relative to base path) to exclude from the scan
+     * @param string        $basePath     the base path for resolving directories
+     * @param array<string> $directories  list of directories (relative to base path) to scan
+     * @param array<string> $excludeDirs  list of directories (relative to base path) to exclude from the scan
+     * @param array<string> $namePatterns list of file name patterns for the scan. Compatible with Finder->name()
      */
-    public function discover(string $basePath, array $directories, array $excludeDirs = []) : DiscoveryState
+    public function discover(string $basePath, array $directories, array $excludeDirs = [], array $namePatterns = self::DEFAULT_NAME_PATERNS) : DiscoveryState
     {
         $cacheKey = $this->generateCacheKey($basePath, $directories, $excludeDirs);
         $cachedResult = $this->cache->get($cacheKey);
@@ -44,7 +45,7 @@ final class CachedDiscoverer implements DiscovererInterface
             return $cachedResult;
         }
         $this->logger->debug('Cache miss, performing fresh discovery', ['cache_key' => $cacheKey, 'base_path' => $basePath, 'directories' => $directories]);
-        $discoveryState = $this->discoverer->discover($basePath, $directories, $excludeDirs);
+        $discoveryState = $this->discoverer->discover($basePath, $directories, $excludeDirs, $namePatterns);
         $this->cache->set($cacheKey, $discoveryState);
         return $discoveryState;
     }

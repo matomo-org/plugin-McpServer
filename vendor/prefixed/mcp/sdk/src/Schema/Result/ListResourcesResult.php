@@ -13,19 +13,19 @@ namespace Matomo\Dependencies\McpServer\Mcp\Schema\Result;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\ResultInterface;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Resource as ResourceSchema;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
 /**
  * The server's response to a resources/list request from the client.
  *
- * @phpstan-import-type ResourceData from ResourceSchema
+ * @phpstan-import-type ResourceDefinitionData from ResourceDefinition
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
 class ListResourcesResult implements ResultInterface
 {
     /**
-     * @param array<ResourceSchema> $resources  the list of resource definitions
-     * @param string|null           $nextCursor An opaque token representing the pagination position after the last returned result.
+     * @param array<ResourceDefinition> $resources  the list of resource definitions
+     * @param string|null               $nextCursor An opaque token representing the pagination position after the last returned result.
      *
      * If present, there may be more results available.
      */
@@ -34,7 +34,7 @@ class ListResourcesResult implements ResultInterface
     }
     /**
      * @param array{
-     *     resources: array<ResourceData>,
+     *     resources: array<ResourceDefinitionData>,
      *     nextCursor?: string,
      * } $data
      */
@@ -43,11 +43,11 @@ class ListResourcesResult implements ResultInterface
         if (!isset($data['resources']) || !\is_array($data['resources'])) {
             throw new InvalidArgumentException('Missing or invalid "resources" array in ListResourcesResult data.');
         }
-        return new self(array_map(static fn(array $resource) => ResourceSchema::fromArray($resource), $data['resources']), $data['nextCursor'] ?? null);
+        return new self(array_map(static fn(array $resource) => ResourceDefinition::fromArray($resource), $data['resources']), $data['nextCursor'] ?? null);
     }
     /**
      * @return array{
-     *     resources: array<ResourceSchema>,
+     *     resources: array<ResourceDefinition>,
      *     nextCursor?: string,
      * }
      */

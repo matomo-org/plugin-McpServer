@@ -76,11 +76,15 @@
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\DiscoveryUserProfile\\": "examples\/server\/discovery-userprofile\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\EnvVariables\\": "examples\/server\/env-variables\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\ExplicitRegistration\\": "examples\/server\/explicit-registration\/",
+            "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\McpApps\\": "examples\/server\/mcp-apps\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\OAuthKeycloak\\": "examples\/server\/oauth-keycloak\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\OAuthMicrosoft\\": "examples\/server\/oauth-microsoft\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Example\\Server\\SchemaShowcase\\": "examples\/server\/schema-showcase\/",
             "Matomo\\Dependencies\\McpServer\\Mcp\\Tests\\": "tests\/"
-        }
+        },
+        "classmap": [
+            "tests\/Unit\/Capability\/Discovery\/Fixtures\/AlternativeFileNameToolHandler.class.inc"
+        ]
     },
     "config": {
         "allow-plugins": {

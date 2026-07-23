@@ -1,5 +1,16 @@
 # MCP PHP SDK
 
+<div align="center">
+
+[![Latest Version](https://img.shields.io/packagist/v/mcp/sdk.svg)](https://packagist.org/packages/mcp/sdk)
+[![CI](https://github.com/modelcontextprotocol/php-sdk/actions/workflows/pipeline.yaml/badge.svg)](https://github.com/modelcontextprotocol/php-sdk/actions/workflows/pipeline.yaml)
+[![PHP Version](https://img.shields.io/packagist/php-v/mcp/sdk.svg)](https://packagist.org/packages/mcp/sdk)
+[![License](https://img.shields.io/packagist/l/mcp/sdk.svg)](LICENSE)
+[![Server Conformance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/modelcontextprotocol/php-sdk/badges/server-conformance.json)](https://github.com/modelcontextprotocol/php-sdk/actions/workflows/conformance-weekly.yaml)
+[![Client Conformance](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/modelcontextprotocol/php-sdk/badges/client-conformance.json)](https://github.com/modelcontextprotocol/php-sdk/actions/workflows/conformance-weekly.yaml)
+
+</div>
+
 The official PHP SDK for Model Context Protocol (MCP). It provides a framework-agnostic API for implementing MCP servers
 and clients in PHP.
 
@@ -199,6 +210,7 @@ $client->disconnect();
 - **Resource Access**: Read static and dynamic resources
 - **Prompt Management**: List and retrieve prompt templates
 - **Completion Support**: Request argument completion suggestions
+- **Sampling & Elicitation**: Respond to server-initiated LLM sampling and user-input requests
 
 ### Advanced Features
 
@@ -219,6 +231,15 @@ $samplingHandler = new SamplingRequestHandler($myCallback);
 $client = Client::builder()
     ->setCapabilities(new ClientCapabilities(sampling: true))
     ->addRequestHandler($samplingHandler)
+    ->build();
+```
+
+- **Elicitation Support**: Respond to server requests for user input
+```php
+$elicitationHandler = new ElicitationRequestHandler($myCallback);
+$client = Client::builder()
+    ->setCapabilities(new ClientCapabilities(elicitation: true))
+    ->addRequestHandler($elicitationHandler)
     ->build();
 ```
 
@@ -262,6 +283,8 @@ $client->connect($transport);
 - **[Transports](docs/transports.md)** — STDIO and HTTP transport setup and usage
 - **[MCP Elements](docs/mcp-elements.md)** — Creating tools, resources, prompts, and templates
 - **[Server-Client Communication](docs/server-client-communication.md)** — Sampling, logging, progress, and notifications
+- **[Protocol Extensions](docs/extensions.md)** — Opt-in protocol extensions announced during capability negotiation, including MCP Apps (HTML UI resources)
+- **[Authorization](docs/authorization.md)** — OAuth and authorization setup for HTTP transport
 - **[Events](docs/events.md)** — Hooking into server lifecycle with events
 
 ### Learning & Examples
@@ -277,9 +300,15 @@ $client->connect($transport);
 
 ## PHP Libraries Using the MCP SDK
 
-- [pronskiy/mcp](https://github.com/pronskiy/mcp) — Additional developer experience layer
+- [api-platform/mcp](https://github.com/api-platform/mcp) — MCP integration for API Platform
+- [bnomei/kirby-mcp](https://github.com/bnomei/kirby-mcp) — MCP server for the Kirby CMS
+- [drupal/mcp_server](https://www.drupal.org/project/mcp_server) — MCP server for Drupal exposing configuration and entities as MCP elements
+- [josbeir/cakephp-synapse](https://github.com/josbeir/cakephp-synapse) — CakePHP plugin exposing application functionality over MCP
+- [nette/mcp-inspector](https://github.com/nette/mcp-inspector) — MCP server for introspecting Nette applications
+- [symfony/ai-mate](https://github.com/symfony/ai-mate) — AI development assistant MCP server for Symfony projects
 - [symfony/mcp-bundle](https://github.com/symfony/mcp-bundle) — Symfony integration bundle
-- [josbeir/cakephp-synapse](https://github.com/josbeir/cakephp-synapse) — CakePHP integration plugin
+
+Building something on top of the SDK? Open a pull request to add it to this list.
 
 ## Contributing
 

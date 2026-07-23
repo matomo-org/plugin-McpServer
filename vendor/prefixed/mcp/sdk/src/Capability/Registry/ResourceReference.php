@@ -12,7 +12,7 @@ namespace Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Formatter\ResourceResultFormatter;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\ResourceContents;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Resource;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
 /**
  * @phpstan-import-type Handler from ElementReference
  *
@@ -23,9 +23,9 @@ class ResourceReference extends ElementReference
     /**
      * @param Handler $handler
      */
-    public function __construct(public readonly Resource $resource, callable|array|string $handler, bool $isManual = \false)
+    public function __construct(public readonly ResourceDefinition $resource, callable|array|string $handler)
     {
-        parent::__construct($handler, $isManual);
+        parent::__construct($handler);
     }
     /**
      * Formats the raw result of a resource read operation into MCP ResourceContent items.

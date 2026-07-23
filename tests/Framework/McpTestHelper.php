@@ -29,7 +29,6 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\InitializeResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListToolsResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server;
-use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use PHPUnit\Framework\Assert;
 use Piwik\Access;
@@ -38,6 +37,7 @@ use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Access\RawApiAccessMode;
 use Piwik\Plugins\McpServer\SystemSettings;
+use Piwik\Url;
 
 /**
  * @phpstan-import-type ToolData from Tool
@@ -70,6 +70,28 @@ final class McpTestHelper
         $factory = StaticContainer::get(McpServerFactory::class);
 
         return $factory->createServer();
+    }
+
+    /**
+     * A request host the MCP transport will accept.
+     *
+     * {@see McpServerFactory::createTransport()} enforces DNS-rebinding
+     * protection against `[General] trusted_hosts` whenever that setting is
+     * configured, so requests built for the transport must originate from a
+     * trusted host or they are rejected with a 403 before reaching the server.
+     * An unconfigured allowlist disables the check, hence the localhost
+     * fallback. Tests that construct their own transport request (rather than
+     * going through {@see sendRequest}) should build the URI from this host.
+     */
+    public static function requestHost(): string
+    {
+        foreach (Url::getTrustedHostsFromConfig() as $trustedHost) {
+            if ($trustedHost !== '') {
+                return $trustedHost;
+            }
+        }
+
+        return 'localhost';
     }
 
     /**
@@ -170,7 +192,7 @@ final class McpTestHelper
         }
 
         $factory = new Psr17Factory();
-        $uri = 'https://example.test/mcp';
+        $uri = 'https://' . self::requestHost() . '/mcp';
         $tokenAuth = McpAuthTestHelper::getForcedTokenAuth() ?? Access::getInstance()->getTokenAuth();
         $request = $factory->createServerRequest($method, $uri);
 
@@ -188,7 +210,7 @@ final class McpTestHelper
             $request = $request->withHeader($name, $value);
         }
 
-        $transport = new StreamableHttpTransport($request);
+        $transport = McpServerFactory::createTransport($request);
 
         $hadAuthorizationHeader = array_key_exists('HTTP_AUTHORIZATION', $_SERVER);
         $previousAuthorizationHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? null;

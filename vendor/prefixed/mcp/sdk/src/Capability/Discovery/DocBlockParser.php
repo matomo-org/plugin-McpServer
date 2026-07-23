@@ -40,7 +40,7 @@ class DocBlockParser
             return $this->docBlockFactory->create($docComment);
         } catch (\Throwable $e) {
             // Log error or handle gracefully if invalid DocBlock syntax is encountered
-            $this->logger->warning('Failed to parse DocBlock', ['error' => $e->getMessage(), 'exception_trace' => $e->getTraceAsString()]);
+            $this->logger->warning('Failed to parse DocBlock', ['exception' => $e]);
             return null;
         }
     }

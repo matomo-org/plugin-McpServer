@@ -24,9 +24,9 @@ class PromptReference extends ElementReference
      * @param Handler                            $handler
      * @param array<string, class-string|object> $completionProviders
      */
-    public function __construct(public readonly Prompt $prompt, \Closure|array|string $handler, bool $isManual = \false, public readonly array $completionProviders = [])
+    public function __construct(public readonly Prompt $prompt, \Closure|array|string $handler, public readonly array $completionProviders = [])
     {
-        parent::__construct($handler, $isManual);
+        parent::__construct($handler);
     }
     /**
      * Formats the raw result of a prompt generator into an array of MCP PromptMessages.

@@ -20,7 +20,7 @@ class ElementReference
     /**
      * @param Handler $handler
      */
-    public function __construct(public readonly \Closure|array|string $handler, public readonly bool $isManual = \false)
+    public function __construct(public readonly \Closure|array|string $handler)
     {
     }
 }

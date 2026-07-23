@@ -11,6 +11,7 @@
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Completion\ProviderInterface;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ResourceTemplateReference;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
 use Matomo\Dependencies\McpServer\Mcp\Exception\PromptNotFoundException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ResourceNotFoundException;
@@ -48,11 +49,10 @@ final class CompletionCompleteHandler implements RequestHandlerInterface
         $name = $request->argument['name'] ?? '';
         $value = $request->argument['value'] ?? '';
         try {
-            $reference = match (\true) {
-                $request->ref instanceof PromptReference => $this->registry->getPrompt($request->ref->name),
-                $request->ref instanceof ResourceReference => $this->registry->getResource($request->ref->uri),
+            $providers = match (\true) {
+                $request->ref instanceof PromptReference => $this->registry->getPrompt($request->ref->name)->completionProviders,
+                $request->ref instanceof ResourceReference => $this->resourceCompletionProviders($request->ref->uri),
             };
-            $providers = $reference->completionProviders;
             $provider = $providers[$name] ?? null;
             if (null === $provider) {
                 return new Response($request->getId(), new CompletionCompleteResult([]));
@@ -76,5 +76,13 @@ final class CompletionCompleteHandler implements RequestHandlerInterface
         } catch (\Throwable $e) {
             return Error::forInternalError('Error while handling completion request', $request->getId());
         }
+    }
+    /**
+     * @return array<string, class-string|object>
+     */
+    private function resourceCompletionProviders(string $uri) : array
+    {
+        $reference = $this->registry->getResource($uri);
+        return $reference instanceof ResourceTemplateReference ? $reference->completionProviders : [];
     }
 }

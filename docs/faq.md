@@ -10,6 +10,7 @@ Use the API endpoint:
 - The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
 - Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
 - Authenticate with Matomo credentials by sending a Bearer token. If your MCP client supports OAuth2 and the Matomo `OAuth2` plugin is installed and enabled, OAuth2 is the recommended option; create an OAuth2 client there if needed. Otherwise use a Matomo `token_auth` as the Bearer token.
+- Direct cross-origin browser MCP is not supported. When a request supplies an `Origin` header, its host is validated (for DNS-rebinding protection) against Matomo's trusted deployment hostnames (`[General] trusted_hosts`): an `Origin` outside those hosts is rejected with `403`. This is request validation, not CORS support. Matomo may emit `Access-Control-Allow-Origin` according to `[General] cors_domains`, but the MCP endpoint does not provide the complete CORS flow required by browser clients: it does not handle preflight, and a CORS preflight (`OPTIONS`) cannot succeed because it arrives without the Bearer token. This `Origin` validation stays active even when `[General] enable_trusted_host_check` is disabled (that setting only affects requests without an `Origin`). Connect through an MCP client or a same-origin backend instead.
 
 ## Configuration
 

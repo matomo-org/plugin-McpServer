@@ -121,7 +121,7 @@ final class Builder
     {
         $logger = $this->logger ?? new NullLogger();
         $clientInfo = new Implementation($this->name, $this->version, $this->description);
-        $config = new Configuration(clientInfo: $clientInfo, capabilities: $this->capabilities ?? new ClientCapabilities(), protocolVersion: $this->protocolVersion ?? ProtocolVersion::V2025_06_18, initTimeout: $this->initTimeout, requestTimeout: $this->requestTimeout, maxRetries: $this->maxRetries);
+        $config = new Configuration(clientInfo: $clientInfo, capabilities: $this->capabilities ?? new ClientCapabilities(), protocolVersion: $this->protocolVersion ?? ProtocolVersion::V2025_11_25, initTimeout: $this->initTimeout, requestTimeout: $this->requestTimeout, maxRetries: $this->maxRetries);
         $protocol = new Protocol(requestHandlers: $this->requestHandlers, notificationHandlers: $this->notificationHandlers, logger: $logger);
         return new Client($protocol, $config, $logger);
     }
