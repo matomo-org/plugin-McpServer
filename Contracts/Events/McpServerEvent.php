@@ -14,8 +14,8 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
 /**
  * Immutable, SDK-agnostic description of one observed MCP server interaction.
  *
- * Posted on the `McpServer.serverEvent` event so other plugins can observe MCP usage on the
- * public endpoint without depending on the bundled MCP SDK. This base type is the stable
+ * Posted on the `McpServer.serverEvent` event so other plugins can observe MCP usage without
+ * depending on the bundled MCP SDK. This base type is the stable
  * contract: it carries only the discriminator ({@see $method}) and the session id common to
  * every interaction. Selected methods expose richer data through subclasses in this namespace
  * (e.g. {@see McpToolCallEvent}); other methods use this base event directly.

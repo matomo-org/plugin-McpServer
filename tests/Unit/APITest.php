@@ -360,7 +360,7 @@ class APITest extends TestCase
                 $this->permissiveGate(),
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
-                new InternalToolCaller(),
+                new InternalToolCaller($this->createMock(LoggerInterface::class)),
                 $this->createMock(LoggerInterface::class),
                 new SessionEndEventPublisher(
                     new InMemorySessionStore(),
@@ -450,7 +450,7 @@ class APITest extends TestCase
                 $gate ?? $this->permissiveGate(),
                 new InternalApiAccessGuard(),
                 new InternalToolCatalog(),
-                new InternalToolCaller(),
+                new InternalToolCaller($this->createMock(LoggerInterface::class)),
                 $this->createMock(LoggerInterface::class),
                 new SessionEndEventPublisher(
                     new InMemorySessionStore(),

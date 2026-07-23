@@ -187,13 +187,14 @@ class API extends \Piwik\Plugin\API
      * @unsanitized
      * @param string $name Registered MCP tool name.
      * @param array<string, mixed> $arguments Arguments validated against the tool input schema.
+     * @param string|null $sessionKey Optional logical session key for grouping related internal calls.
      * @return array{
      *     content: list<array<string, mixed>>,
      *     structuredContent: array<string, mixed>|null,
      *     isError: bool
      * } Serialized MCP tool result payload.
      */
-    public function callInternalTool(string $name, array $arguments = []): array
+    public function callInternalTool(string $name, array $arguments = [], ?string $sessionKey = null): array
     {
         $this->internalAccessGuard->assertInternalContext();
         $this->accessGate->assertBase();
@@ -202,6 +203,7 @@ class API extends \Piwik\Plugin\API
             $this->factory->createInternalAccess(),
             $name,
             $arguments,
+            $sessionKey,
         );
     }
 

@@ -11,18 +11,28 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration;
 
+use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Piwik\Access;
 use Piwik\API\Proxy;
 use Piwik\API\Request as ApiRequest;
 use Piwik\Container\StaticContainer;
+use Piwik\Log\LoggerInterface;
 use Piwik\NoAccessException;
+use Piwik\Piwik;
 use Piwik\Plugins\McpServer\API;
+use Piwik\Plugins\McpServer\Contracts\Events\McpServerEvent;
+use Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent;
 use Piwik\Plugins\McpServer\McpTools\SiteList;
+use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Support\Access\McpAccessLevel;
 use Piwik\Plugins\McpServer\Support\Access\McpUnavailableException;
+use Piwik\Plugins\McpServer\Support\Api\InternalToolCaller;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Tests\Framework\Fixture;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
+use Piwik\Version;
 
 /**
  * @group McpServer
@@ -33,6 +43,8 @@ class InternalToolApiTest extends IntegrationTestCase
     private string $originalRootApiMethod = '';
     private bool $originalEnableMcp = false;
     private string $originalMaximumAllowedMcpAccessLevel = McpAccessLevel::UNLIMITED;
+    /** @var list<McpServerEvent> */
+    private array $capturedEvents = [];
 
     public function setUp(): void
     {
@@ -48,6 +60,11 @@ class InternalToolApiTest extends IntegrationTestCase
         });
         ApiRequest::setIsRootRequestApiRequest('');
         API::unsetInstance();
+
+        $this->capturedEvents = [];
+        Piwik::addAction('McpServer.serverEvent', function (McpServerEvent $event): void {
+            $this->capturedEvents[] = $event;
+        });
     }
 
     public function tearDown(): void
@@ -98,6 +115,14 @@ class InternalToolApiTest extends IntegrationTestCase
 
         self::assertTrue($result['isError']);
         self::assertNotEmpty($result['content']);
+
+        $event = $this->singleCapturedToolCallEvent();
+        self::assertSame('matomo_nonexistent_tool', $event->toolName);
+        self::assertTrue($event->isError);
+        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $event->errorCode);
+        self::assertSame('internal', $event->transport);
+        self::assertSame('Matomo', $event->clientName);
+        self::assertSame(Version::VERSION, $event->clientVersion);
     }
 
     public function testCallInternalToolDispatchesRegisteredReadOnlyTool(): void
@@ -120,6 +145,75 @@ class InternalToolApiTest extends IntegrationTestCase
 
         $ids = array_map(static fn(array $site): int => (int) ($site['idsite'] ?? 0), $payload['sites']);
         self::assertContains($idSite, $ids);
+
+        $event = $this->singleCapturedToolCallEvent();
+        self::assertSame(SiteList::TOOL_NAME, $event->toolName);
+        self::assertFalse($event->isError);
+        self::assertStringStartsWith('matomo-internal-', (string) $event->sessionId);
+        self::assertSame('internal', $event->transport);
+        self::assertSame('Matomo', $event->clientName);
+        self::assertSame(Version::VERSION, $event->clientVersion);
+        self::assertGreaterThanOrEqual(0, $event->durationMs);
+    }
+
+    public function testCallInternalToolUsesFreshSyntheticSessionWhenSessionKeyIsOmitted(): void
+    {
+        Fixture::createWebsite('2020-01-01 00:00:00', 0, 'Internal tool ungrouped session site');
+
+        $this->api()->callInternalTool(SiteList::TOOL_NAME, ['limit' => 10]);
+        $this->api()->callInternalTool(SiteList::TOOL_NAME, ['limit' => 10]);
+
+        $events = $this->capturedToolCallEvents();
+        self::assertCount(2, $events);
+        self::assertNotSame($events[0]->sessionId, $events[1]->sessionId);
+        self::assertStringStartsWith('matomo-internal-', (string) $events[0]->sessionId);
+        self::assertStringStartsWith('matomo-internal-', (string) $events[1]->sessionId);
+    }
+
+    public function testCallInternalToolUsesStableSyntheticSessionForSessionKey(): void
+    {
+        Fixture::createWebsite('2020-01-01 00:00:00', 0, 'Internal tool grouped session site');
+
+        $this->api()->callInternalTool(SiteList::TOOL_NAME, ['limit' => 10], 'workflow-123');
+        $this->api()->callInternalTool(SiteList::TOOL_NAME, ['limit' => 10], 'workflow-123');
+        $this->api()->callInternalTool(SiteList::TOOL_NAME, ['limit' => 10], 'workflow-456');
+
+        $events = $this->capturedToolCallEvents();
+        self::assertCount(3, $events);
+        self::assertSame($events[0]->sessionId, $events[1]->sessionId);
+        self::assertNotSame($events[0]->sessionId, $events[2]->sessionId);
+        self::assertStringNotContainsString('workflow-123', (string) $events[0]->sessionId);
+    }
+
+    public function testCallInternalToolPublishesErrorEventAndRethrowsWhenHandlerThrows(): void
+    {
+        // The real handler chain converts tool throwables into JSON-RPC errors,
+        // so the caller's own catch/rethrow guard is only reachable with a
+        // handler that throws before that conversion. Stub one to prove the
+        // observability event still fires (with an internal-error code) and the
+        // original throwable propagates unchanged.
+        $boom = new \RuntimeException('handler boom');
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->method('handle')->willThrowException($boom);
+        $access = new InternalAccess($this->createMock(RegistryInterface::class), $handler);
+
+        $caller = new InternalToolCaller($this->createMock(LoggerInterface::class));
+
+        $caught = null;
+        try {
+            $caller->call($access, 'matomo_exploding_tool', []);
+        } catch (\RuntimeException $e) {
+            $caught = $e;
+        }
+
+        self::assertSame($boom, $caught, 'The handler throwable must propagate unchanged.');
+
+        $event = $this->singleCapturedToolCallEvent();
+        self::assertSame('matomo_exploding_tool', $event->toolName);
+        self::assertTrue($event->isError);
+        self::assertSame(JsonRpcError::INTERNAL_ERROR, $event->errorCode);
+        self::assertSame('internal', $event->transport);
+        self::assertSame('Matomo', $event->clientName);
     }
 
     public function testGetInternalToolCatalogIsReachableViaProcessRequest(): void
@@ -285,5 +379,24 @@ class InternalToolApiTest extends IntegrationTestCase
         } finally {
             $access->setSuperUserAccess($had);
         }
+    }
+
+    /**
+     * @return list<McpToolCallEvent>
+     */
+    private function capturedToolCallEvents(): array
+    {
+        return array_values(array_filter(
+            $this->capturedEvents,
+            static fn (McpServerEvent $event): bool => $event instanceof McpToolCallEvent,
+        ));
+    }
+
+    private function singleCapturedToolCallEvent(): McpToolCallEvent
+    {
+        $events = $this->capturedToolCallEvents();
+        self::assertCount(1, $events);
+
+        return $events[0];
     }
 }

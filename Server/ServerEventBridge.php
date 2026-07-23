@@ -34,7 +34,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 /**
  * Wires into the bundled MCP SDK via the server builder's PSR-14 seam and publishes one neutral
  * {@see McpServerEvent} for each completed request and received notification on the
- * `McpServer.serverEvent` Matomo event.
+ * `McpServer.serverEvent` Matomo event. Internal MCP bridge calls publish through the same Matomo
+ * event directly.
  *
  * This is the single place that knows the SDK's event/schema types: it translates them into the
  * plugin-owned, immutable {@see McpServerEvent} contract so subscribers depend only on that
@@ -157,6 +158,7 @@ final class ServerEventBridge implements EventDispatcherInterface
          * Successful and failed JSON-RPC requests and notifications observed through the bundled
          * SDK are published here. The streamable-HTTP DELETE session-termination signal is also
          * published after the SDK accepts it, because it does not cross the SDK event seam.
+         * Internal tool calls use the same event with synthetic internal session ids.
          *
          * Lets other plugins observe MCP usage without depending on the bundled MCP SDK: the
          * payload is an immutable, plugin-owned {@see McpServerEvent}. Selected methods use richer
