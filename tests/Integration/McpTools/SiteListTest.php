@@ -66,13 +66,15 @@ class SiteListTest extends IntegrationTestCase
             ['limit' => 2],
             __METHOD__ . '#1',
         );
-        self::assertIsArray($firstPage['sites'] ?? null);
-        self::assertCount(2, $firstPage['sites']);
+        $firstSites = $firstPage['sites'] ?? null;
+        self::assertIsArray($firstSites);
+        /** @var list<array<string, mixed>> $firstSites */
+        self::assertCount(2, $firstSites);
         self::assertTrue($firstPage['has_more']);
         self::assertNotEmpty($firstPage['next_cursor']);
         self::assertSame(3, $firstPage['total_rows'] ?? null);
-        self::assertSame('MCP Test Site Alpha', $firstPage['sites'][0]['name'] ?? null);
-        self::assertSame('MCP Test Site Beta', $firstPage['sites'][1]['name'] ?? null);
+        self::assertSame('MCP Test Site Alpha', $firstSites[0]['name'] ?? null);
+        self::assertSame('MCP Test Site Beta', $firstSites[1]['name'] ?? null);
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -81,12 +83,14 @@ class SiteListTest extends IntegrationTestCase
             ['limit' => 2, 'cursor' => $firstPage['next_cursor']],
             __METHOD__ . '#2',
         );
-        self::assertIsArray($secondPage['sites'] ?? null);
-        self::assertCount(1, $secondPage['sites']);
+        $secondSites = $secondPage['sites'] ?? null;
+        self::assertIsArray($secondSites);
+        /** @var list<array<string, mixed>> $secondSites */
+        self::assertCount(1, $secondSites);
         self::assertFalse($secondPage['has_more']);
         self::assertNull($secondPage['next_cursor']);
         self::assertSame(3, $secondPage['total_rows'] ?? null);
-        self::assertSame('MCP Test Site Gamma', $secondPage['sites'][0]['name'] ?? null);
+        self::assertSame('MCP Test Site Gamma', $secondSites[0]['name'] ?? null);
     }
 
     public function testSupportsSortByIdDesc(): void
@@ -102,6 +106,7 @@ class SiteListTest extends IntegrationTestCase
         );
         $sites = $content['sites'] ?? null;
         self::assertIsArray($sites);
+        /** @var list<array<string, mixed>> $sites */
         self::assertSame($this->idSiteGamma, $sites[0]['idsite'] ?? null);
         self::assertSame($this->idSiteBeta, $sites[1]['idsite'] ?? null);
         self::assertSame($this->idSiteAlpha, $sites[2]['idsite'] ?? null);
@@ -120,6 +125,7 @@ class SiteListTest extends IntegrationTestCase
         );
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
+        /** @var list<array<string, mixed>> $sites */
         self::assertSame('MCP Test Site Alpha', $sites[0]['name'] ?? null);
         self::assertSame('MCP Test Site Beta', $sites[1]['name'] ?? null);
         self::assertIsString($firstPage['next_cursor'] ?? null);
@@ -140,6 +146,7 @@ class SiteListTest extends IntegrationTestCase
         );
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
+        /** @var list<array<string, mixed>> $sites */
         self::assertSame('MCP Test Site Gamma', $sites[0]['name'] ?? null);
         self::assertSame('MCP Test Site Delta', $sites[1]['name'] ?? null);
     }
@@ -157,6 +164,7 @@ class SiteListTest extends IntegrationTestCase
         );
         $sites = $firstPage['sites'] ?? null;
         self::assertIsArray($sites);
+        /** @var list<array<string, mixed>> $sites */
         self::assertSame('MCP Test Site Alpha', $sites[0]['name'] ?? null);
         self::assertSame('MCP Test Site Beta', $sites[1]['name'] ?? null);
         self::assertIsString($firstPage['next_cursor'] ?? null);
@@ -177,6 +185,7 @@ class SiteListTest extends IntegrationTestCase
         );
         $sites = $secondPage['sites'] ?? null;
         self::assertIsArray($sites);
+        /** @var list<array<string, mixed>> $sites */
 
         self::assertCount(1, $sites);
         self::assertSame('MCP Test Site Gamma', $sites[0]['name'] ?? null);
@@ -195,9 +204,9 @@ class SiteListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -213,9 +222,9 @@ class SiteListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SiteList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void

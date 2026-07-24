@@ -143,7 +143,12 @@ class InternalToolApiTest extends IntegrationTestCase
         self::assertArrayHasKey('sites', $payload);
         self::assertIsArray($payload['sites']);
 
-        $ids = array_map(static fn(array $site): int => (int) ($site['idsite'] ?? 0), $payload['sites']);
+        /** @var list<array<string, mixed>> $sites */
+        $sites = $payload['sites'];
+        $ids = array_map(static function (array $site): int {
+            $id = $site['idsite'] ?? null;
+            return is_numeric($id) ? (int) $id : 0;
+        }, $sites);
         self::assertContains($idSite, $ids);
 
         $event = $this->singleCapturedToolCallEvent();
@@ -247,16 +252,23 @@ class InternalToolApiTest extends IntegrationTestCase
         ]);
 
         self::assertIsArray($result);
+        /** @var array{content: list<array<string, mixed>>, isError: bool} $result */
         self::assertFalse($result['isError']);
         self::assertNotEmpty($result['content']);
 
         $first = $result['content'][0];
         self::assertSame('text', $first['type'] ?? null);
-        $payload = json_decode($first['text'], true);
+        $text = $first['text'] ?? null;
+        self::assertIsString($text);
+        $payload = json_decode($text, true);
         self::assertIsArray($payload);
+        /** @var array{sites: list<array<string, mixed>>} $payload */
         self::assertArrayHasKey('sites', $payload);
 
-        $ids = array_map(static fn(array $site): int => (int) ($site['idsite'] ?? 0), $payload['sites']);
+        $ids = array_map(static function (array $site): int {
+            $id = $site['idsite'] ?? null;
+            return is_numeric($id) ? (int) $id : 0;
+        }, $payload['sites']);
         self::assertContains($idSite, $ids);
     }
 

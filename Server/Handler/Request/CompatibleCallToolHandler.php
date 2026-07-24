@@ -97,7 +97,7 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
         \assert($request instanceof CallToolRequest);
 
         $toolName = $request->name;
-        $rawArguments = $request->arguments ?? [];
+        $rawArguments = $request->arguments;
 
         try {
             $reference = $this->registry->getTool($toolName);

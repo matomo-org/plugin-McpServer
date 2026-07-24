@@ -33,10 +33,10 @@ use Psr\Container\ContainerInterface;
  */
 class McpServerFactoryTest extends TestCase
 {
-    /** @var array<string, mixed>|null */
+    /** @var array<mixed>|null */
     private ?array $originalMcpServerConfig = null;
 
-    /** @var array<string, mixed>|null */
+    /** @var array<mixed>|null */
     private ?array $originalGeneralConfig = null;
 
     /** @var array<string, string|null> */

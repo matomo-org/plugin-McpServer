@@ -116,6 +116,7 @@ class GoalListTest extends IntegrationTestCase
         );
         $goals = $content['goals'] ?? null;
         self::assertIsArray($goals);
+        /** @var list<array<string, mixed>> $goals */
         self::assertCount(3, $goals);
         self::assertGreaterThan($goals[1]['idgoal'] ?? 0, $goals[0]['idgoal'] ?? 0);
     }
@@ -215,9 +216,9 @@ class GoalListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -233,9 +234,9 @@ class GoalListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . GoalList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void

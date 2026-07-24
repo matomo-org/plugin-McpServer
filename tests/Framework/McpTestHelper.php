@@ -380,7 +380,10 @@ final class McpTestHelper
         Assert::assertFalse($result->isError);
         Assert::assertIsArray($result->structuredContent);
 
-        return $result->structuredContent;
+        /** @var array<string, mixed> $structuredContent */
+        $structuredContent = $result->structuredContent;
+
+        return $structuredContent;
     }
 
     public static function assertToolError(CallToolResult $result, ?string $expectedText = null): void

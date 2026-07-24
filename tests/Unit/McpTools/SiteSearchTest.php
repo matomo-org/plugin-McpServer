@@ -123,7 +123,7 @@ class SiteSearchTest extends TestCase
 
         $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute('site', limit: 1, sort: SitesPagination::SORT_ID_DESC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -151,7 +151,7 @@ class SiteSearchTest extends TestCase
 
         $tool = new SiteSearch($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute('alpha', limit: 1, sort: SitesPagination::SORT_NAME_ASC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -185,7 +185,7 @@ class SiteSearchTest extends TestCase
         $searchTool = new SiteSearch($wrapper, $responder);
 
         $page = $listTool->execute(limit: 1, sort: SitesPagination::SORT_NAME_ASC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);

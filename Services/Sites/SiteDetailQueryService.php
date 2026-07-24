@@ -77,7 +77,7 @@ final class SiteDetailQueryService implements SiteDetailQueryServiceInterface
             return true;
         }
 
-        $message = strtolower(trim((string) $e->getMessage()));
+        $message = strtolower(trim($e->getMessage()));
 
         return str_contains($message, 'does not exist')
             || str_contains($message, 'website')

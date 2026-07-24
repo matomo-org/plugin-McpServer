@@ -139,7 +139,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -159,7 +159,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -255,7 +255,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -329,7 +329,7 @@ class SegmentGetTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentGet::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 

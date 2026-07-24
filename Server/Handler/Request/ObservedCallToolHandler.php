@@ -53,7 +53,7 @@ final class ObservedCallToolHandler implements RequestHandlerInterface
     public function handle(Request $request, SessionInterface $session): Response|Error
     {
         $toolName = $request->name;
-        $rawArguments = $request->arguments ?? [];
+        $rawArguments = $request->arguments;
         $loggingMode = $this->fullParameterLoggingEnabled ? 'full' : 'redacted';
 
         $baseContext = [

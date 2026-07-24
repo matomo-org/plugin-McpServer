@@ -122,8 +122,12 @@ class DimensionListTest extends IntegrationTestCase
 
         $dimensions = $content['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertNotEmpty($dimensions);
-        $ids = array_map(static fn(array $row): int => (int) ($row['iddimension'] ?? 0), $dimensions);
+        $ids = array_map(static function (array $row): int {
+            $id = $row['iddimension'] ?? null;
+            return is_numeric($id) ? (int) $id : 0;
+        }, $dimensions);
         self::assertContains($this->idDimensionAlpha, $ids);
         self::assertContains($this->idDimensionBeta, $ids);
         self::assertContains($this->idDimensionGamma, $ids);
@@ -147,6 +151,7 @@ class DimensionListTest extends IntegrationTestCase
         );
         $dimensions = $content['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertCount(3, $dimensions);
         self::assertGreaterThan($dimensions[1]['iddimension'] ?? 0, $dimensions[0]['iddimension'] ?? 0);
     }
@@ -164,6 +169,7 @@ class DimensionListTest extends IntegrationTestCase
         );
         $dimensions = $firstPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertCount(2, $dimensions);
         self::assertIsString($firstPage['next_cursor'] ?? null);
 
@@ -188,8 +194,12 @@ class DimensionListTest extends IntegrationTestCase
         );
         $dimensions = $secondPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertCount(2, $dimensions);
-        $ids = array_map(static fn(array $row): int => (int) ($row['iddimension'] ?? 0), $dimensions);
+        $ids = array_map(static function (array $row): int {
+            $id = $row['iddimension'] ?? null;
+            return is_numeric($id) ? (int) $id : 0;
+        }, $dimensions);
         self::assertContains($newDimensionId, $ids);
     }
 
@@ -206,6 +216,7 @@ class DimensionListTest extends IntegrationTestCase
         );
         $dimensions = $firstPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertCount(2, $dimensions);
         self::assertIsString($firstPage['next_cursor'] ?? null);
 
@@ -230,8 +241,10 @@ class DimensionListTest extends IntegrationTestCase
         );
         $dimensions = $secondPage['dimensions'] ?? null;
         self::assertIsArray($dimensions);
+        /** @var list<array<string, mixed>> $dimensions */
         self::assertCount(1, $dimensions);
-        self::assertSame($this->idDimensionGamma, (int) ($dimensions[0]['iddimension'] ?? 0));
+        $iddimension = $dimensions[0]['iddimension'] ?? null;
+        self::assertSame($this->idDimensionGamma, is_numeric($iddimension) ? (int) $iddimension : 0);
     }
 
     public function testRejectsInvalidLimit(): void
@@ -247,9 +260,9 @@ class DimensionListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -265,9 +278,9 @@ class DimensionListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . DimensionList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void

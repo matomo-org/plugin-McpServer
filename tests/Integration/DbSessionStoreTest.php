@@ -246,7 +246,7 @@ class DbSessionStoreTest extends IntegrationTestCase
             [$id->toRfc4122()],
         );
 
-        if (!array_key_exists('expires_at', $row) || $row['expires_at'] === null) {
+        if (!is_array($row) || !isset($row['expires_at'])) {
             return null;
         }
 
@@ -260,7 +260,7 @@ class DbSessionStoreTest extends IntegrationTestCase
             [$id->toRfc4122()],
         );
 
-        if (!array_key_exists('login', $row) || $row['login'] === null || !is_scalar($row['login'])) {
+        if (!is_array($row) || !isset($row['login'])) {
             return null;
         }
 
@@ -274,7 +274,7 @@ class DbSessionStoreTest extends IntegrationTestCase
             [$id->toRfc4122()],
         );
 
-        if (!array_key_exists('data', $row) || $row['data'] === null || !is_scalar($row['data'])) {
+        if (!is_array($row) || !isset($row['data'])) {
             return null;
         }
 

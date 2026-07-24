@@ -110,7 +110,7 @@ class DimensionListTest extends TestCase
 
         $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute(1, limit: 1, sort: DimensionsPagination::SORT_ID_DESC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -133,7 +133,7 @@ class DimensionListTest extends TestCase
 
         $tool = new DimensionList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute(1, limit: 1, sort: DimensionsPagination::SORT_ID_ASC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);

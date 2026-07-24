@@ -231,7 +231,7 @@ class ApiListTest extends TestCase
             $settings,
         );
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC);
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $rawApiAccessMode = 'full';
@@ -249,7 +249,7 @@ class ApiListTest extends TestCase
         );
 
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: 'get');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -266,7 +266,7 @@ class ApiListTest extends TestCase
         );
 
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, category: 'read');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -283,7 +283,7 @@ class ApiListTest extends TestCase
         );
 
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: 'UsersManager');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -300,7 +300,7 @@ class ApiListTest extends TestCase
         );
 
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, module: ' UsersManager ');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $secondPage = $tool->execute(
@@ -325,7 +325,7 @@ class ApiListTest extends TestCase
         );
 
         $firstPage = $tool->execute(limit: 1, sort: ApiMethodsPagination::SORT_METHOD_ASC, search: '  GET ');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $secondPage = $tool->execute(

@@ -83,7 +83,7 @@ class McpToolsProviderTest extends TestCase
         $eventDispatcher->addObserver('McpServer.filterTools', static function (array &$tools) use ($extra): void {
             $tools = array_values(array_filter(
                 $tools,
-                static fn(McpTool $tool): bool => $tool === $extra,
+                static fn(mixed $tool): bool => $tool === $extra,
             ));
         });
 

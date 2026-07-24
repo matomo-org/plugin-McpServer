@@ -325,7 +325,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -748,7 +748,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -761,7 +761,7 @@ class ReportMetadataTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -792,7 +792,10 @@ class ReportMetadataTest extends IntegrationTestCase
             if (!is_array($left) || !is_array($right)) {
                 continue;
             }
+            /** @var array<string, mixed> $left */
+            /** @var array<string, mixed> $right */
 
+            /** @var list<string> $diffFields */
             $diffFields = [];
             $leftCategory = $left['category'] ?? null;
             $rightCategory = $right['category'] ?? null;

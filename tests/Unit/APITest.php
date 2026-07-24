@@ -45,13 +45,13 @@ use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
  */
 class APITest extends TestCase
 {
-    /** @var array<string, mixed>|null */
+    /** @var array<mixed>|null */
     private ?array $originalMcpServerConfig = null;
 
-    /** @var array<string, mixed> */
+    /** @var array<mixed> */
     private array $originalGet = [];
 
-    /** @var array<string, mixed> */
+    /** @var array<mixed> */
     private array $originalPost = [];
 
     private string $originalRootApiMethod = '';

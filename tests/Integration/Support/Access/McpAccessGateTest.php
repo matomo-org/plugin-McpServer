@@ -59,9 +59,9 @@ class McpAccessGateTest extends IntegrationTestCase
     {
         Access::getInstance()->setSuperUserAccess(true);
 
+        // assertBase() returns void and throws on failure; reaching the end without
+        // an exception is the success condition.
         $this->gate()->assertBase();
-
-        $this->addToAssertionCount(1);
     }
 
     public function testAssertBaseRejectsAnonymousUser(): void
@@ -90,9 +90,9 @@ class McpAccessGateTest extends IntegrationTestCase
     {
         Access::getInstance()->setSuperUserAccess(true);
 
+        // assertHttp() returns void and throws on failure; reaching the end without
+        // an exception is the success condition.
         $this->gate()->assertHttp();
-
-        $this->addToAssertionCount(1);
     }
 
     public function testAssertHttpRejectsSuperUserWhenCeilingIsBelowSuperuser(): void

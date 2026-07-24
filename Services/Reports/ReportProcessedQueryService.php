@@ -872,7 +872,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         $current = $e;
 
         do {
-            $message = strtolower(trim((string) $current->getMessage()));
+            $message = strtolower(trim($current->getMessage()));
             if ($message !== '') {
                 foreach ($fragments as $fragment) {
                     if (str_contains($message, $fragment)) {

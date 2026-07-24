@@ -119,6 +119,7 @@ final class McpAuthTestHelper
         $unique = $suffix ?? substr(hash('sha256', uniqid('', true)), 0, 12);
         $login = 'mcp_no_access_user_' . $unique;
         $tokenAuth = (new UsersManagerModel())->generateRandomTokenAuth();
+        \assert(\is_string($tokenAuth));
 
         UsersManagerApi::getInstance()->addUser($login, 'mcp-no-access-password', $login . '@example.test');
         (new UsersManagerModel())->addTokenAuth(
@@ -248,6 +249,7 @@ final class McpAuthTestHelper
         $unique = $suffix ?? substr(hash('sha256', uniqid('', true)), 0, 12);
         $login = $loginPrefix . '_' . $unique;
         $tokenAuth = (new UsersManagerModel())->generateRandomTokenAuth();
+        \assert(\is_string($tokenAuth));
 
         UsersManagerApi::getInstance()->addUser($login, 'mcp-access-password', $login . '@example.test');
         (new UsersManagerModel())->addTokenAuth(

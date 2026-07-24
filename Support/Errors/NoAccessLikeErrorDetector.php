@@ -19,7 +19,7 @@ final class NoAccessLikeErrorDetector
             return true;
         }
 
-        $message = strtolower(trim((string) $e->getMessage()));
+        $message = strtolower(trim($e->getMessage()));
         if ($message === '') {
             return false;
         }

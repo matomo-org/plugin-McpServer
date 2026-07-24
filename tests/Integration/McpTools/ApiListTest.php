@@ -181,8 +181,9 @@ class ApiListTest extends IntegrationTestCase
         $methodsData = $content['methods'] ?? null;
         self::assertIsArray($methodsData);
 
+        /** @var list<array{method: string}> $methodsData */
         $methods = array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            static fn(array $row): string => $row['method'],
             $methodsData,
         );
 
@@ -207,10 +208,11 @@ class ApiListTest extends IntegrationTestCase
         $methods = $content['methods'] ?? null;
         self::assertIsArray($methods);
         self::assertNotEmpty($methods);
-        self::assertContains('UsersManager.addUser', array_values(array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+        /** @var list<array{method: string}> $methods */
+        self::assertContains('UsersManager.addUser', array_map(
+            static fn(array $row): string => $row['method'],
             $methods,
-        )));
+        ));
     }
 
     public function testDeleteModeCanReturnDeleteActions(): void
@@ -231,10 +233,11 @@ class ApiListTest extends IntegrationTestCase
         $methods = $content['methods'] ?? null;
         self::assertIsArray($methods);
         self::assertNotEmpty($methods);
-        self::assertContains('SitesManager.deleteSite', array_values(array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+        /** @var list<array{method: string}> $methods */
+        self::assertContains('SitesManager.deleteSite', array_map(
+            static fn(array $row): string => $row['method'],
             $methods,
-        )));
+        ));
     }
 
     public function testFullModeHidesBlockedProxyLikeMethods(): void
@@ -293,12 +296,14 @@ class ApiListTest extends IntegrationTestCase
         self::assertNotEmpty($secondPage['methods']);
         self::assertSame($firstPage['total_rows'] ?? null, $secondPage['total_rows'] ?? null);
 
+        /** @var array{methods: list<array{method: string}>} $firstPage */
+        /** @var array{methods: list<array{method: string}>} $secondPage */
         $firstPageMethods = array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            static fn(array $row): string => $row['method'],
             $firstPage['methods'],
         );
         $secondPageMethods = array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+            static fn(array $row): string => $row['method'],
             $secondPage['methods'],
         );
         self::assertSame([], array_values(array_intersect($firstPageMethods, $secondPageMethods)));
@@ -322,6 +327,7 @@ class ApiListTest extends IntegrationTestCase
         self::assertIsArray($methods);
         self::assertNotEmpty($methods);
 
+        /** @var list<array<string, mixed>> $methods */
         foreach ($methods as $method) {
             self::assertSame('create', $method['operationCategory'] ?? null);
             self::assertArrayNotHasKey('classificationConfidence', $method);
@@ -364,6 +370,7 @@ class ApiListTest extends IntegrationTestCase
         self::assertIsArray($methods);
         self::assertNotEmpty($methods);
 
+        /** @var list<array<string, mixed>> $methods */
         foreach ($methods as $method) {
             self::assertNull($method['operationCategory'] ?? null);
             self::assertArrayNotHasKey('classificationConfidence', $method);
@@ -385,8 +392,8 @@ class ApiListTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message);
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -403,8 +410,8 @@ class ApiListTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message);
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCategory(): void
@@ -421,8 +428,8 @@ class ApiListTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
-        self::assertStringContainsString('category', $message->message ?? '');
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message);
+        self::assertStringContainsString('category', $message->message);
     }
 
     public function testRejectsReportsCategory(): void
@@ -439,8 +446,8 @@ class ApiListTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message ?? '');
-        self::assertStringContainsString('category', $message->message ?? '');
+        self::assertStringContainsString("Invalid parameters for tool 'matomo_api_list':", $message->message);
+        self::assertStringContainsString('category', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void
@@ -588,9 +595,10 @@ class ApiListTest extends IntegrationTestCase
         $methods = $content['methods'] ?? null;
         self::assertIsArray($methods);
 
-        return array_values(array_map(
-            static fn(array $row): string => (string) ($row['method'] ?? ''),
+        /** @var list<array{method: string}> $methods */
+        return array_map(
+            static fn(array $row): string => $row['method'],
             $methods,
-        ));
+        );
     }
 }

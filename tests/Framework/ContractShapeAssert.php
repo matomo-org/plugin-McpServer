@@ -36,7 +36,10 @@ final class ContractShapeAssert
         $selectedType = self::selectMatchingType($types, $data);
         Assert::assertNotNull(
             $selectedType,
-            'Type mismatch at ' . $path . '. Allowed: ' . implode(', ', $types),
+            'Type mismatch at ' . $path . '. Allowed: ' . implode(
+                ', ',
+                array_map(static fn(mixed $type): string => is_scalar($type) ? (string) $type : gettype($type), $types),
+            ),
         );
 
         if ($selectedType === 'object') {

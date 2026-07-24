@@ -69,6 +69,7 @@ class ReportListTest extends IntegrationTestCase
         self::assertGreaterThan(0, $totalRows);
 
         $first = $firstPage['reports'][0];
+        /** @var array<string, mixed> $first */
         self::assertArrayHasKey('uniqueId', $first);
         self::assertArrayHasKey('module', $first);
         self::assertArrayHasKey('action', $first);
@@ -125,6 +126,7 @@ class ReportListTest extends IntegrationTestCase
         self::assertIsArray($reports);
         self::assertNotEmpty($reports);
 
+        /** @var list<array{name: string}> $reports */
         for ($i = 1, $count = count($reports); $i < $count; $i++) {
             self::assertGreaterThanOrEqual(strcmp($reports[$i]['name'], $reports[$i - 1]['name']), 0);
         }
@@ -143,9 +145,9 @@ class ReportListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -161,9 +163,9 @@ class ReportListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void
@@ -443,6 +445,7 @@ class ReportListTest extends IntegrationTestCase
         $sampleReports = $sample['reports'] ?? null;
         self::assertIsArray($sampleReports);
         self::assertNotEmpty($sampleReports);
+        /** @var list<array<string, mixed>> $sampleReports */
         $sampleName = $sampleReports[0]['name'] ?? null;
         self::assertIsString($sampleName);
         self::assertNotSame('', $sampleName);
@@ -463,10 +466,11 @@ class ReportListTest extends IntegrationTestCase
         $needle = strtolower($term);
         foreach ($reports as $report) {
             self::assertIsArray($report);
+            /** @var array{name?: string, category?: string, uniqueId?: string} $report */
             $haystack = strtolower(
-                (string) ($report['name'] ?? '')
-                . ' ' . (string) ($report['category'] ?? '')
-                . ' ' . (string) ($report['uniqueId'] ?? ''),
+                ($report['name'] ?? '')
+                . ' ' . ($report['category'] ?? '')
+                . ' ' . ($report['uniqueId'] ?? ''),
             );
             self::assertStringContainsString($needle, $haystack);
         }
@@ -503,9 +507,9 @@ class ReportListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('search', $message->message ?? '');
+        self::assertStringContainsString('search', $message->message);
     }
 
     /**
@@ -537,6 +541,7 @@ class ReportListTest extends IntegrationTestCase
             self::assertGreaterThanOrEqual($totalRows, count($pageReports));
             foreach ($pageReports as $pageReport) {
                 self::assertIsArray($pageReport);
+                /** @var array<string, mixed> $pageReport */
                 $allReports[] = $pageReport;
             }
 
