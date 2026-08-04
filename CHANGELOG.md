@@ -1,6 +1,6 @@
 ## Changelog
 
-### Unreleased
+### 5.1.0
 
 - Added a search filter to `matomo_report_list` for finding reports by name.
 - Added `McpServer.addTools` and `McpServer.filterTools` events so other plugins can contribute or restrict MCP tool registrations.
