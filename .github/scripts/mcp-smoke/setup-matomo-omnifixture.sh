@@ -23,7 +23,20 @@ wait_for_mysql() {
   return 1
 }
 
+# The authority of BASE_URL (host plus any non-default port), i.e. the Host
+# header every client sends: strip the scheme, then any path.
+base_url_authority() {
+  local authority="${BASE_URL#*://}"
+  printf '%s' "${authority%%/*}"
+}
+
 write_config() {
+  # trusted_hosts must carry the port, exactly like the Host header does:
+  # Piwik\Url::isValidHost() matches the full Host value (port included) against
+  # these entries, and the MCP endpoint answers 403 for an untrusted host.
+  local trusted_host
+  trusted_host="$(base_url_authority)"
+
   cat > "$MATOMO_DIR/config/config.ini.php" <<EOF
 ; <?php exit; ?> DO NOT REMOVE THIS LINE
 [database]
@@ -36,7 +49,7 @@ charset = "utf8mb4"
 collation = "utf8mb4_general_ci"
 
 [General]
-trusted_hosts[] = "127.0.0.1"
+trusted_hosts[] = "$trusted_host"
 enable_logging = 1
 
 [log]
@@ -56,9 +69,9 @@ EOF
 
 start_php_server() {
   # Bind php -S to the authority of BASE_URL so the server address stays in sync
-  # with the URL every other step probes (strip the scheme, then any path).
-  local bind_addr="${BASE_URL#*://}"
-  bind_addr="${bind_addr%%/*}"
+  # with the URL every other step probes.
+  local bind_addr
+  bind_addr="$(base_url_authority)"
 
   mkdir -p "$MATOMO_DIR/tmp/logs"
   : > "$MATOMO_DIR/tmp/logs/matomo.log"

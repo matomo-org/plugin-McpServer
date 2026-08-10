@@ -1,11 +1,13 @@
 ## Changelog
 
-### Unreleased
+### 5.1.0
 
-- Added a search filter to `matomo_report_list` for finding reports by name.
+- Updated `mcp/sdk` to 0.7.
+- Added a search filter to `matomo_report_list` for finding reports by name, category, or uniqueId.
 - Added `McpServer.addTools` and `McpServer.filterTools` events so other plugins can contribute or restrict MCP tool registrations.
 - Added the `McpServer.serverEvent` event so other plugins can observe completed MCP requests, received notifications, and explicit session termination through SDK-agnostic events, with richer payloads for initialization and tool activity.
 - Clarified the date/period semantics in the `matomo_report_processed` tool description.
+- Made the report and API discovery tools tolerant of the input shapes real MCP clients commonly send, so a plausible-but-imprecise argument is accepted instead of failing or resolving to something unintended: report selectors work in the API-method form (`VisitsSummary.get`) as well as the report uniqueId form (`VisitsSummary_get`), whole-bucket shorthand dates are expanded to a full date (`period=year` with `2026`, `period=month` with `2026-01`), stringified numbers are accepted for integer arguments, and `search` filters ignore spaces, underscores, hyphens, and dots.
 - Hardened MCP endpoint `Origin` handling for DNS-rebinding protection: a supplied `Origin` is validated against Matomo's trusted deployment hostnames (`[General] trusted_hosts`) and rejected with `403` when it falls outside them, even when `[General] enable_trusted_host_check` is disabled. This is request validation, not CORS support — direct cross-origin browser MCP remains unsupported. Requests without an `Origin` (native MCP clients) are unaffected by this validation.
 
 ### 5.0.4
