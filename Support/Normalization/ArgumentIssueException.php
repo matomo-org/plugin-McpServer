@@ -27,6 +27,7 @@ final class ArgumentIssueException extends \RuntimeException
     public const REASON_CONFLICTING_PARAMETER_LOCATIONS = 'conflicting_parameter_locations';
     public const REASON_INVALID_SELECTOR_SYNTAX = 'invalid_selector_syntax';
     public const REASON_INVALID_JSON_OBJECT = 'invalid_json_object';
+    public const REASON_SELECTOR_TOO_LONG = 'selector_too_long';
 
     /**
      * @param list<string> $paths

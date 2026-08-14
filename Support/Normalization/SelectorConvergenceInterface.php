@@ -26,6 +26,20 @@ namespace Piwik\Plugins\McpServer\Support\Normalization;
 interface SelectorConvergenceInterface
 {
     /**
+     * Upper bound in bytes on a supplied selector value, enforced before any comparison work.
+     *
+     * Convergence runs ahead of schema validation, so nothing else bounds a selector's length
+     * here. The agreement tests compare two caller-supplied operands against each other - an
+     * action searched inside a unique ID - which costs O(n*m) unless both are bounded.
+     *
+     * Bytes rather than characters, measured with `strlen()`, because the work being capped is
+     * over bytes; the rejection message names bytes so it stays true of a multi-byte value.
+     * Selectors Matomo produces are ASCII and stay well under the bound, the longest forms being
+     * parameterized report IDs such as `Goals_getVisitsUntilConversion_idGoal--1234`.
+     */
+    public const MAX_SELECTOR_LENGTH = 256;
+
+    /**
      * Silent on success: the arguments are rewritten and nothing is reported. A contradiction
      * between two supplied representations raises an {@see ArgumentIssueException}.
      *
