@@ -140,17 +140,23 @@ final class McpServerFactory
                 completions: false,
             ));
 
+        // Intake normalization keys on the tool class, which is only known here. A listener
+        // displacing a built-in name through McpServer.addTools registers its own class and so
+        // carries no profile.
+        $toolClasses = [];
         foreach ($tools as $tool) {
             if (!$tool->shouldRegister()) {
                 continue;
             }
 
             $this->registerTool($builder, $tool);
+            $toolClasses[$tool->getName()] = $tool::class;
         }
 
         $callToolHandler = new CompatibleCallToolHandler(
             $registry,
             new ReferenceHandler($this->container),
+            toolClasses: $toolClasses,
         );
 
         $activeCallToolHandler = $callToolHandler;

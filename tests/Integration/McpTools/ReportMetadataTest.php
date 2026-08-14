@@ -245,26 +245,68 @@ class ReportMetadataTest extends IntegrationTestCase
 
     public function testRejectsCombinedUniqueIdAndApiModuleAtSchemaLevel(): void
     {
-        $report = $this->findAnyReportMetadata($this->idSite);
-        self::assertNotNull($report);
-        $uniqueId = $report['uniqueId'] ?? null;
-        self::assertIsString($uniqueId);
+        $uniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertSame('Actions_getPageUrls', $uniqueId);
+
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'reportUniqueId' => $uniqueId,
+            'apiModule' => 'Actions',
+        ]);
+    }
+
+    public function testAcceptsDotFormReportUniqueId(): void
+    {
+        $uniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertSame('Actions_getPageUrls', $uniqueId);
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             ReportMetadata::TOOL_NAME,
-            ['idSite' => $this->idSite, 'reportUniqueId' => $uniqueId, 'apiModule' => 'Actions'],
+            ['idSite' => $this->idSite, 'reportUniqueId' => 'Actions.getPageUrls'],
             __METHOD__,
         );
 
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeError($response);
-        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
-        self::assertStringContainsString(
-            "Invalid parameters for tool '" . ReportMetadata::TOOL_NAME . "':",
-            $message->message ?? '',
+        self::assertSame('Actions_getPageUrls', $content['uniqueId'] ?? null);
+    }
+
+    /**
+     * The metadata lookup compares module and action exactly, so a padded pair resolves only
+     * because convergence trims it.
+     */
+    public function testResolvesPaddedApiModuleAndApiActionPair(): void
+    {
+        $uniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertSame('Actions_getPageUrls', $uniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportMetadata::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'apiModule' => ' Actions ',
+                'apiAction' => "getPageUrls\n",
+            ],
+            __METHOD__,
         );
+
+        self::assertSame($uniqueId, $content['uniqueId'] ?? null);
+    }
+
+    public function testRejectsCombinedUniqueIdAndModuleActionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSchemaArguments([
+            'idSite' => $this->idSite,
+            'reportUniqueId' => 'VisitsSummary_get',
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+        ]);
     }
 
     public function testRejectsMissingSelectorAtSchemaLevel(): void

@@ -57,7 +57,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             ];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $handler = $this->createHandler($registry);
         $response = $handler->handle($request, $this->createSession('87f14d0f-7d95-4a76-b2db-bf0f1ca6f3a1'));
 
         self::assertInstanceOf(Response::class, $response);
@@ -80,7 +80,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             return [];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $handler = $this->createHandler($registry);
         $error = $handler->handle($request, $this->createSession('e6b0fd2f-24a8-4a74-bf74-ec56d99963dd'));
 
         self::assertInstanceOf(Error::class, $error);
@@ -88,7 +88,14 @@ class CompatibleCallToolHandlerTest extends TestCase
         self::assertStringContainsString('Invalid parameters for tool', $error->message);
     }
 
-    public function testCoercesPureIntegerStringToIntegerForIntegerProperty(): void
+    /**
+     * A stringified integer on a tool that has an intake profile. The profile does not retype:
+     * `coerceIntegerStringsForValidation()` gets `'1'` past the `integer` property and the SDK's
+     * reference handler casts it against the reflected `int $idSite` on dispatch.
+     * {@see testCoercesPureIntegerStringForToolWithoutIntakeProfile} is the same assertion with no
+     * profile in play.
+     */
+    public function testAcceptsPureIntegerStringForIntegerPropertyOnAProfiledTool(): void
     {
         $registry = new Registry();
         $capturedIdSite = null;
@@ -110,8 +117,45 @@ class CompatibleCallToolHandlerTest extends TestCase
             return ['idSite' => $idSite];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $handler = $this->createHandler($registry);
         $response = $handler->handle($request, $this->createSession('c0e7a2b1-2f3d-4a5b-8c9d-0e1f2a3b4c5d'));
+
+        self::assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(CallToolResult::class, $response->result);
+        self::assertFalse($response->result->isError);
+        self::assertSame(1, $capturedIdSite);
+    }
+
+    /**
+     * The same stringified integer with no intake profile in play: `toolClasses` is left empty, so
+     * `IntakeNormalizer` never runs and only `coerceIntegerStringsForValidation()` can get `'1'`
+     * past the `integer` property, and only the SDK's reference handler can turn it into the
+     * `int $idSite` the captured argument asserts.
+     *
+     * `apiParameters` is omitted because the empty-list substitution is profile-driven.
+     */
+    public function testCoercesPureIntegerStringForToolWithoutIntakeProfile(): void
+    {
+        $registry = new Registry();
+        $capturedIdSite = null;
+        $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
+            'idSite' => '1',
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+        ]))->withId('coerce-int-string-unprofiled');
+
+        $registry->registerTool($this->createTool(ReportMetadata::TOOL_NAME), static function (
+            int $idSite,
+            string $apiModule,
+            string $apiAction,
+        ) use (&$capturedIdSite): array {
+            $capturedIdSite = $idSite;
+
+            return [];
+        });
+
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $response = $handler->handle($request, $this->createSession('a4c1e6f5-6d7b-8e9f-2a3b-4c5d6e7f8091'));
 
         self::assertInstanceOf(Response::class, $response);
         self::assertInstanceOf(CallToolResult::class, $response->result);
@@ -133,7 +177,7 @@ class CompatibleCallToolHandlerTest extends TestCase
             return [];
         });
 
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $handler = $this->createHandler($registry);
         $error = $handler->handle($request, $this->createSession('d1f8b3c2-3a4e-5b6c-9d0e-1f2a3b4c5d6e'));
 
         self::assertInstanceOf(Error::class, $error);
@@ -159,7 +203,7 @@ class CompatibleCallToolHandlerTest extends TestCase
 
             return [];
         });
-        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $handler = $this->createHandler($registry);
 
         $request = (new CallToolRequest(ReportMetadata::TOOL_NAME, [
             'idSite' => 1,
@@ -188,6 +232,20 @@ class CompatibleCallToolHandlerTest extends TestCase
         self::assertInstanceOf(Response::class, $response);
         self::assertFalse($response->result->isError);
         self::assertSame('ecommerceOrder', $capturedIdGoal);
+    }
+
+    /**
+     * The class map stands in for what McpServerFactory collects while registering the real tool
+     * objects. These cases register a reduced schema under the metadata tool's name, so the map
+     * has to name its class for the tool's intake profile to apply.
+     */
+    private function createHandler(Registry $registry): CompatibleCallToolHandler
+    {
+        return new CompatibleCallToolHandler(
+            $registry,
+            new ReferenceHandler(),
+            toolClasses: [ReportMetadata::TOOL_NAME => ReportMetadata::class],
+        );
     }
 
     private function createTool(string $name): \Matomo\Dependencies\McpServer\Mcp\Schema\Tool
