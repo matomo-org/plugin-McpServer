@@ -4,6 +4,11 @@
 
 - Updated `mcp/sdk` to 0.7.1.
 - Made `matomo_report_processed` always advertise itself as read-only and idempotent to MCP clients, even when browser-triggered archiving or browser-based segment archiving is enabled, because archive materialization while serving a report is no longer treated as a change to Matomo's state.
+- Made the report and raw API tools tolerant of further input shapes MCP clients send, so these requests run instead of failing: a redundant `module`/`action` beside `method`, report selectors with surrounding whitespace, `filterLimit`/`filterOffset` for `filter_limit`/`filter_offset`, a parameter object sent as a JSON object string, and `expanded`, `flat` or `segment` sent at the wrong nesting level. See "Argument Handling" in the FAQ for what each tool accepts.
+- Fixed `parameters: {}` and `parameters: []` failing with the invalid-parameters protocol error on the `matomo_api_call_*` tools. Omitting `parameters` entirely was unaffected.
+- Changed a request that supplies one value in two places and disagrees with itself to be rejected, instead of one location silently winning. This affects `matomo_report_processed` calls that sent `segment` both at the top level and inside `apiParameters`.
+- Surfaced argument problems found before schema validation as a tool result error naming the arguments involved. Failures against a tool's published input schema keep the invalid-parameters protocol error, so clients branching on `-32602` are unaffected.
+- Improved the errors for a `method` outside the `Module.action` form, and for a `segment` Matomo cannot parse or one naming a field this Matomo does not provide. Neither message repeats the supplied value back, since it may contain personal data.
 
 ### 5.1.0
 

@@ -76,7 +76,7 @@ For the recommended end-user setup flow, use the in-product connect guide at **A
 
 ### Additional Documentation
 
-The FAQ includes additional technical documentation for endpoint details, configuration, MCP enablement behavior, raw API access guidance, supported capabilities, and troubleshooting.
+The FAQ includes additional technical documentation for endpoint details, configuration, MCP enablement behavior, raw API access guidance, supported capabilities, argument handling, and troubleshooting.
 
 ## Support
 
