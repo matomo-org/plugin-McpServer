@@ -1,5 +1,9 @@
 ## Changelog
 
+### Unreleased
+
+- Updated `mcp/sdk` to 0.7.1.
+
 ### 5.1.0
 
 - Updated `mcp/sdk` to 0.7.
