@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitb4d8ad501180ef161e8393c0b1727f87
+class ComposerStaticInit5db7c14c10fa413adc0a69f563aaa02a
 {
     public static $files = array (
         'c855ed707b6003bfa8b26e0244490be1' => __DIR__ . '/../..' . '/symfony/polyfill-uuid/bootstrap.php',
@@ -815,7 +815,7 @@ class ComposerStaticInitb4d8ad501180ef161e8393c0b1727f87
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInitb4d8ad501180ef161e8393c0b1727f87::$classMap;
+            $loader->classMap = ComposerStaticInit5db7c14c10fa413adc0a69f563aaa02a::$classMap;
 
         }, null, ClassLoader::class);
     }

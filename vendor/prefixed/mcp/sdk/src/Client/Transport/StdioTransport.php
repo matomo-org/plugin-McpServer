@@ -11,6 +11,7 @@
 namespace Matomo\Dependencies\McpServer\Mcp\Client\Transport;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ConnectionException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Psr\Log\LoggerInterface;
@@ -38,19 +39,32 @@ class StdioTransport extends BaseTransport
     /** @var resource|null */
     private $stderr;
     private string $inputBuffer = '';
+    /**
+     * Default cap on the bytes buffered while waiting for a complete line.
+     */
+    public const DEFAULT_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
     /** @var McpFiber|null */
     private ?\Fiber $activeFiber = null;
     /** @var (callable(float, ?float, ?string): void)|null */
     private $activeProgressCallback;
     /**
-     * @param string                     $command The command to run
-     * @param array<int, string>         $args    Command arguments
-     * @param string|null                $cwd     Working directory
-     * @param array<string, string>|null $env     Environment variables
+     * @param string                     $command       The command to run
+     * @param array<int, string>         $args          Command arguments
+     * @param string|null                $cwd           Working directory
+     * @param array<string, string>|null $env           Environment variables
+     * @param int                        $maxBufferSize Maximum bytes buffered while waiting for a complete line. The
+     *                                                  buffer is only drained on a "\n"; a spawned server that streams
+     *                                                  stdout without ever emitting a newline would otherwise grow it
+     *                                                  without bound and exhaust client memory. Reaching the cap aborts
+     *                                                  the read instead. Raise it for servers that emit single frames
+     *                                                  larger than the default.
      */
-    public function __construct(private readonly string $command, private readonly array $args = [], private readonly ?string $cwd = null, private readonly ?array $env = null, ?LoggerInterface $logger = null)
+    public function __construct(private readonly string $command, private readonly array $args = [], private readonly ?string $cwd = null, private readonly ?array $env = null, ?LoggerInterface $logger = null, private readonly int $maxBufferSize = self::DEFAULT_MAX_BUFFER_SIZE)
     {
         parent::__construct($logger);
+        if ($maxBufferSize < 1) {
+            throw new InvalidArgumentException(\sprintf('The maximum buffer size must be a positive number of bytes, got %d.', $maxBufferSize));
+        }
     }
     public function connect() : void
     {
@@ -173,6 +187,10 @@ class StdioTransport extends BaseTransport
         }
         $data = fread($this->stdout, 8192);
         if (\false !== $data && '' !== $data) {
+            if (\strlen($this->inputBuffer) + \strlen($data) > $this->maxBufferSize) {
+                $this->abortInput(\sprintf('buffered %d bytes without a newline, exceeding the %d byte limit', \strlen($this->inputBuffer) + \strlen($data), $this->maxBufferSize));
+                return;
+            }
             $this->inputBuffer .= $data;
         }
         while (\false !== ($pos = strpos($this->inputBuffer, "\n"))) {
@@ -182,6 +200,26 @@ class StdioTransport extends BaseTransport
             if (!empty($trimmed)) {
                 $this->handleMessage($trimmed);
             }
+        }
+    }
+    /**
+     * Discard the input buffer and fail any in-flight request.
+     *
+     * The waiting fiber is resolved with an error immediately so the caller
+     * fails fast, rather than spinning until the request timeout elapses.
+     */
+    private function abortInput(string $reason) : void
+    {
+        $bufferedBytes = \strlen($this->inputBuffer);
+        $this->inputBuffer = '';
+        $this->logger->warning('Aborting stdio input: ' . $reason, ['buffered_bytes' => $bufferedBytes, 'max_buffer_size' => $this->maxBufferSize]);
+        if (null === $this->state) {
+            return;
+        }
+        foreach ($this->state->getPendingRequests() as $pending) {
+            $requestId = $pending['request_id'];
+            $error = Error::forInternalError('stdio input aborted: ' . $reason, $requestId);
+            $this->state->storeResponse($requestId, $error->jsonSerialize());
         }
     }
     private function processFiber() : void
