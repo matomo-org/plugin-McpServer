@@ -1,89 +1,103 @@
 # Matomo MCP Server Plugin
 
-
 ## Description
 
-The MCP Server for Matomo lets you connect your Matomo analytics data to AI tools and large language models (LLMs) like ChatGPT, Claude, or custom AI assistants.
+The MCP Server for Matomo connects your Matomo analytics data to AI tools and large language models (LLMs), including ChatGPT, Claude, and custom AI assistants.
 
-Instead of digging through reports, you can simply ask questions in plain English and get answers based on your real analytics data.
+Instead of navigating through reports, you can ask questions in plain English and receive answers based on your analytics data.
 
 ### What does it do?
 
-This plugin acts as a bridge between Matomo and AI tools. Once installed, it allows AI assistants to:
+The plugin acts as a bridge between Matomo and AI tools. Once installed, it allows AI assistants to:
 
 * Access your Matomo data
-* Answer questions about your website performance
+* Answer questions about your website's performance
 * Generate insights, summaries, and reports automatically
 
-Think of it as giving your analytics a natural language interface.
+Think of it as giving your analytics a natural-language interface.
 
 ### What can you use it for?
 
-Here are a few examples of what you can do:
+Here are a few examples of what you can do.
 
-#### Ask questions, get instant answers
-* “What were my top traffic sources last week?”
-* “Which campaigns drove the most conversions?”
-* “How is mobile traffic trending this month?”
+#### Ask questions and get instant answers
+
+* "What were my top traffic sources last week?"
+* "Which campaigns drove the most conversions?"
+* "How is mobile traffic trending this month?"
 
 #### Generate reports in seconds
-* Weekly or monthly summaries
-* Marketing performance overviews
-* Executive-ready insights without manual work
+
+* Create weekly or monthly summaries
+* Produce marketing performance overviews
+* Generate executive-ready insights without manual reporting
 
 #### Build smarter workflows
+
 * Connect Matomo to internal AI tools
 * Power dashboards with AI-generated insights
-* Enable teams to explore data without needing analytics expertise
+* Allow teams to explore data without analytics expertise
 
-### Go beyond insights: take action with AI (optional)
+### Go beyond insights and take action with AI
 
-If you choose to enable it, the MCP Server can also perform actions in Matomo. This means your AI tools can for example:
+When enabled, the MCP Server can also perform actions in Matomo. For example, your AI tools can:
 
 * Create and update segments
 * Automate repetitive analytics tasks
 * Integrate Matomo into internal workflows
 
-All actions are controlled by your permissions and configuration.
+All actions are controlled by your Matomo permissions and MCP configuration.
 
 ### Why install this plugin?
-* Save time – no more manual report building
-* Make data accessible – anyone can ask questions, no training needed
-* Unlock AI use cases – bring your analytics into modern AI workflows
 
-### How do I set this plugin up?
+* Save time by reducing manual report building
+* Make analytics data accessible to people without specialist training
+* Bring your analytics into modern AI workflows
+* Generate useful insights through natural-language questions
 
-* Install the plugin in Matomo.
-* Activate **McpServer** in **Administration -> Plugins**.
-* Enable MCP in **Administration -> System -> General Settings -> McpServer**.
-* Configure your MCP client with the endpoint and one of these authentication methods:
-  * OAuth2, if your MCP client supports it and the Matomo `OAuth2` plugin is installed and enabled, with an OAuth2 client configured there.
-  * A Matomo `token_auth` used as a Bearer token otherwise.
+### How do I set up the plugin?
 
-For the recommended end-user setup flow, use the in-product connect guide at **Administration -> Platform -> MCP Server**.
+1. Install the plugin in Matomo.
+2. Activate **McpServer** under **Administration → Plugins**.
+3. Enable MCP under **Administration → System → General Settings → McpServer**.
+4. Configure your MCP client with the endpoint and one of the following authentication methods:
 
-### Security And Access Model
+   * **OAuth 2.0:** Recommended when your MCP client supports it and the Matomo OAuth2 plugin is installed, enabled, and configured with an OAuth client.
+   * **Bearer token:** Use a Matomo `token_auth` value as a Bearer token when OAuth 2.0 is unavailable.
 
-- MCP access is disabled by default.
-- Raw Matomo API discovery and execution tools are separately disabled by default and must be enabled by an administrator.
-- The plugin uses Matomo authentication, including OAuth2 when the Matomo `OAuth2` plugin is installed and enabled and an OAuth2 client is configured for the MCP client, or `token_auth` Bearer tokens otherwise.
-- Data access is limited to the same sites and reports the Matomo user can already access.
-- Data access can be limited to specific permissions/roles and what type of methods can be accessed.
-- Administrators can optionally restrict MCP usage to users or tokens at or below a configured privilege level.
-- When raw API access is enabled, MCP clients can access the same Matomo API surface available to the authenticated user, including state-changing methods if an administrator has allowed them.
-- If features such as the Visitor Log are available to that user, MCP clients may access the same underlying data scope.
-- Review privacy, security, and compliance requirements before enabling raw API access.
+For the recommended end-user setup process, use the connection guide under **Administration → Platform → MCP Server**.
 
-### Additional Documentation
+### Security and access model
 
-The FAQ includes additional technical documentation for endpoint details, configuration, MCP enablement behavior, raw API access guidance, supported capabilities, and troubleshooting.
+* MCP access is disabled by default.
+* Raw Matomo API discovery and execution tools are disabled separately by default and must be enabled by an administrator.
+* The plugin uses Matomo authentication. OAuth 2.0 is available when the OAuth2 plugin is installed, enabled, and configured for the MCP client. Otherwise, a Matomo `token_auth` value can be used as a Bearer token.
+* Data access is limited to the sites and reports that the authenticated Matomo user can already access.
+* Access can be restricted by permission, role, and API method type.
+* Administrators can restrict MCP usage according to the user's or token's privilege level.
+* When raw API access is enabled, MCP clients can access the same Matomo API methods available to the authenticated user. This may include methods that change data when an administrator has permitted them.
+* When features such as the Visitor Log are available to the authenticated user, MCP clients may be able to access the same underlying data.
+* Review your privacy, security, and compliance requirements before enabling raw API access.
+
+### Additional documentation
+
+See the FAQ for technical documentation covering:
+
+* Endpoint details
+* Configuration
+* Authentication
+* MCP enablement
+* Raw API access
+* Supported capabilities
+* Troubleshooting
 
 ## Support
 
-- Issues: <https://github.com/matomo-org/plugin-McpServer/issues>
-- Forum: <https://forum.matomo.org>
-- Source: <https://github.com/matomo-org/plugin-McpServer>
+* [Report an issue](https://github.com/matomo-org/plugin-McpServer/issues)
+* [Visit the Matomo forum](https://forum.matomo.org)
+* [View the source code](https://github.com/matomo-org/plugin-McpServer)
 
 ## License
 
 GPL v3 or later
+
