@@ -70,9 +70,7 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 - dimensions
 - raw Matomo API discovery and execution, when enabled by an administrator
 
-`matomo_report_processed` is advertised to MCP clients as read-only only when Matomo is configured so report requests do not trigger browser-based archiving work. In practice, if browser-triggered archiving is enabled or browser-based segment archiving is available, MCP clients will see this tool as not read-only.
-
-To change how AI clients see this tool, adjust the Matomo archiving settings that control browser-triggered archiving and browser-based segment archiving. Even when the tool is advertised as read-only, Matomo may still materialize a cached range aggregate while serving the report, and this plugin treats that derived cache work as non-mutational for MCP classification. The tool is still not advertised as idempotent, because repeated calls can differ in internal processing effects and archive reuse.
+`matomo_report_processed` is always advertised to MCP clients as read-only and idempotent, regardless of the Matomo archiving settings. Matomo may materialize a cached archive while serving the report — including through browser-triggered archiving or browser-based segment archiving — and this plugin does not treat that derived cache work as a change to Matomo's state, because it never changes the reported data and repeating the call adds no further effect beyond the same cache work. Read-only does not mean cheap: a call covering dates or segments that have not been archived yet can still trigger substantial archiving work on the server.
 
 ## Troubleshooting
 

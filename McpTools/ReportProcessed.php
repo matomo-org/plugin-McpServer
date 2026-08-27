@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\McpTools;
 
-use Piwik\ArchiveProcessor\Rules;
 use Piwik\Plugins\McpServer\Contracts\McpTool;
 use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\Ports\Reports\ReportProcessedQueryServiceInterface;
@@ -44,13 +43,12 @@ class ReportProcessed extends McpTool
             . "Purpose: resolve report selector, fetch processed report payload, "
             . "and return stable pagination metadata.\n"
             . "Next: inspect reportData/columns/reportMetadata, then refine filters or query another report.";
-        // Classify range aggregate materialization as non-mutational for MCP when
-        // browser archiving is fully disabled.
+        // Classify archive materialization triggered while serving a report as
+        // non-mutational for MCP, independent of the archiving configuration.
         $this->annotations = new McpToolAnnotations(
-            readOnlyHint: !Rules::isBrowserArchivingAvailableForSegments()
-                && !Rules::isBrowserTriggerEnabled(),
+            readOnlyHint: true,
             destructiveHint: false,
-            idempotentHint: false,
+            idempotentHint: true,
             openWorldHint: false,
         );
         $this->inputSchema = [
