@@ -56,6 +56,35 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         'not currently configured to process segmented reports in api requests',
     ];
 
+    private const INVALID_SEGMENT_SYNTAX_MESSAGE =
+        'Segment expression could not be parsed. Write each condition as field then operator then '
+        . 'value (e.g. countryCode==de), combine them with ; for AND or , for OR, and use one of the '
+        . 'operators ==, !=, <=, >=, <, >, =@ (contains), !@ (does not contain), =^ (starts with), '
+        . '=$ (ends with). Use matomo_segment_list to see the available segment fields.';
+
+    private const UNKNOWN_SEGMENT_FIELD_MESSAGE =
+        'Segment expression names a field this Matomo does not provide. '
+        . 'Use matomo_segment_list to see the available segment fields.';
+
+    /**
+     * Core reports both of these as a plain exception, so they are recognised by message fragment,
+     * the same way {@see STRICT_SEGMENT_RESTRICTION_MESSAGE_FRAGMENTS} is. Both are only consulted
+     * when the request actually carried a segment, so an unrelated failure cannot be relabelled.
+     *
+     * @var list<string>
+     */
+    private const INVALID_SEGMENT_SYNTAX_MESSAGE_FRAGMENTS = [
+        'segment condition',
+        'please specify a valid segment',
+        'has no value specified',
+        'for your segment',
+    ];
+
+    /** @var list<string> */
+    private const UNKNOWN_SEGMENT_FIELD_MESSAGE_FRAGMENTS = [
+        'is not a supported segment',
+    ];
+
     /** @var array<string, true> */
     private const DANGEROUS_API_PARAMETER_KEYS = [
         'method' => true,
@@ -558,6 +587,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             throw new McpToolCallException('Report data is invalid.');
         } catch (CoreApiRequestException $e) {
             $rootCause = $e->getPrevious() ?? $e;
+            $this->throwSegmentExpressionGuidanceIfNeeded($segment, $rootCause);
             $shouldMapToStrictSegmentGuidance = false;
             if (
                 $segment !== null
@@ -590,6 +620,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         } catch (McpToolCallException $e) {
             throw $e;
         } catch (\Throwable $e) {
+            $this->throwSegmentExpressionGuidanceIfNeeded($segment, $e);
             ToolErrorMapper::throwDetailFailure(
                 $e,
                 'Report not found.',
@@ -806,18 +837,44 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
             $idSubtable,
         );
     }
-    private function isStrictSegmentRestrictionLikeFailure(\Throwable $e): bool
+
+    /**
+     * Turns a Core segment-parsing failure into guidance the caller can act on.
+     *
+     * A malformed segment otherwise reaches the generic mapper and comes back as
+     * `Report retrieval failed.`, which says nothing about the one argument at fault. That matters
+     * more since a `segment` nested in `apiParameters` is lifted to this argument at intake, so
+     * expressions that never used to reach Core now do.
+     *
+     * The message states the expected form and never repeats the supplied expression, which may
+     * carry personal data - the same rule intake argument issues follow.
+     */
+    private function throwSegmentExpressionGuidanceIfNeeded(?string $segment, \Throwable $rootCause): void
+    {
+        if ($segment === null || trim($segment) === '') {
+            return;
+        }
+
+        if ($this->matchesAnyMessageFragment($rootCause, self::UNKNOWN_SEGMENT_FIELD_MESSAGE_FRAGMENTS)) {
+            throw new McpToolCallException(self::UNKNOWN_SEGMENT_FIELD_MESSAGE);
+        }
+
+        if ($this->matchesAnyMessageFragment($rootCause, self::INVALID_SEGMENT_SYNTAX_MESSAGE_FRAGMENTS)) {
+            throw new McpToolCallException(self::INVALID_SEGMENT_SYNTAX_MESSAGE);
+        }
+    }
+
+    /**
+     * @param list<string> $fragments
+     */
+    private function matchesAnyMessageFragment(\Throwable $e, array $fragments): bool
     {
         $current = $e;
 
         do {
-            if ($current instanceof UnprocessedSegmentException) {
-                return true;
-            }
-
             $message = strtolower(trim((string) $current->getMessage()));
             if ($message !== '') {
-                foreach (self::STRICT_SEGMENT_RESTRICTION_MESSAGE_FRAGMENTS as $fragment) {
+                foreach ($fragments as $fragment) {
                     if (str_contains($message, $fragment)) {
                         return true;
                     }
@@ -828,5 +885,20 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
         } while ($current !== null);
 
         return false;
+    }
+
+    private function isStrictSegmentRestrictionLikeFailure(\Throwable $e): bool
+    {
+        $current = $e;
+
+        do {
+            if ($current instanceof UnprocessedSegmentException) {
+                return true;
+            }
+
+            $current = $current->getPrevious();
+        } while ($current !== null);
+
+        return $this->matchesAnyMessageFragment($e, self::STRICT_SEGMENT_RESTRICTION_MESSAGE_FRAGMENTS);
     }
 }

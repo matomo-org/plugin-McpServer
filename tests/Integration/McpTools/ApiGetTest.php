@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\Plugins\McpServer\McpTools\ApiGet;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
@@ -293,26 +294,74 @@ class ApiGetTest extends IntegrationTestCase
         self::assertStringContainsString("Invalid parameters for tool '" . ApiGet::TOOL_NAME . "':", $message->message);
     }
 
-    public function testRejectsMixedSelectorStyleAtSchemaLevel(): void
+    /**
+     * The selector spellings this tool recovers are the ones the matomo_api_call_* tools
+     * recover: a model reads a method here and executes it there, so a form only one of them
+     * accepts makes discovery reject input execution would have run.
+     */
+    public function testAcceptsRedundantEquivalentSelectorStyle(): void
     {
         McpTestHelper::setRawApiAccessMode('full');
 
         $server = McpTestHelper::buildServer();
         $sessionId = McpTestHelper::initializeSession($server);
-        $payload = McpTestHelper::makeCallToolRequest(
+
+        // method plus a module naming the same thing is redundant, not contradictory:
+        // the two representations converge on one method and the lookup proceeds.
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
             ApiGet::TOOL_NAME,
             ['method' => 'API.getMatomoVersion', 'module' => 'API'],
             __METHOD__,
         );
 
-        $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
-        $message = McpTestHelper::decodeError($response);
+        self::assertSame('API.getMatomoVersion', $content['method'] ?? null);
+    }
 
-        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
-        self::assertStringContainsString(
-            "Invalid parameters for tool '" . ApiGet::TOOL_NAME . "':",
-            $message->message ?? '',
+    public function testRejectsContradictorySelectorStyle(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $result = McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion', 'module' => 'UsersManager'],
+            null,
+            __METHOD__,
         );
+
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        self::assertIsString($content->text);
+        self::assertStringContainsString("'/method'", $content->text);
+        self::assertStringContainsString("'/module'", $content->text);
+    }
+
+    public function testRejectsMalformedMethodSelectorBeforeValidation(): void
+    {
+        McpTestHelper::setRawApiAccessMode('full');
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $result = McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ApiGet::TOOL_NAME,
+            ['method' => 'API.getMatomoVersion.extra'],
+            null,
+            __METHOD__,
+        );
+
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        self::assertIsString($content->text);
+        self::assertStringContainsString('Module.action', $content->text);
     }
 
     public function testSchemaDeclaresFlatSelectorsWithoutTopLevelCombinators(): void

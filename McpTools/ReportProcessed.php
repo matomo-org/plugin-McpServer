@@ -100,8 +100,7 @@ class ReportProcessed extends McpTool
                     'type' => 'object',
                     'additionalProperties' => true,
                     'description' => 'Optional report parameters '
-                        . '(safe generic params and report-specific selector params). '
-                        . 'An empty array is treated equivalently to an empty object.',
+                        . '(safe generic params and report-specific selector params).',
                 ],
                 'goalMetricsMode' => [
                     'type' => 'string',

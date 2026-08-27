@@ -72,6 +72,14 @@ The plugin is focused on read-oriented analytics workflows. The exact tool surfa
 
 `matomo_report_processed` is always advertised to MCP clients as read-only and idempotent, regardless of the Matomo archiving settings. Matomo may materialize a cached archive while serving the report — including through browser-triggered archiving or browser-based segment archiving — and this plugin does not treat that derived cache work as a change to Matomo's state, because it never changes the reported data and repeating the call adds no further effect beyond the same cache work. Read-only does not mean cheap: a call covering dates or segments that have not been archived yet can still trigger substantial archiving work on the server.
 
+## Argument Handling
+
+Some tools accept equivalent ways of writing the same argument and rewrite them to the canonical form silently. A rewritten request is still validated against the tool's published input schema, and access checks and domain validation run afterwards, so this cannot widen what a caller may read or change.
+
+Argument problems are reported on two channels. Failures against the tool's published input schema keep the JSON-RPC `-32602` (invalid params) error; this includes combining `reportUniqueId` with `apiModule` or `apiAction`, and a parameter object supplied as a string that is not visibly an object (a bare word or a quoted scalar keeps its schema type error). Problems found while normalizing arguments return a normal tool result with `isError: true`: contradictory raw-API selectors, conflicting aliases or parameter locations, a method name outside the `Module.action` form, a selector value longer than 256 bytes, and a parameter object string that opens as an object but does not decode as a bounded JSON object. These name the JSON pointers involved without repeating the values at them, so a segment expression or a token pasted into a parameter object is not echoed back.
+
+A `segment` Matomo cannot parse, or one naming a field this Matomo does not provide, is not an argument problem in the sense above — it is reported as a tool result error naming the segment as the problem, without repeating the expression.
+
 ## Troubleshooting
 
 - `401 Unauthorized`: verify the Bearer token is present and active. If you use OAuth2, verify the client completed authorization successfully and is sending a valid access token. If you use `token_auth`, verify you are sending `Authorization: Bearer <token_auth>` and that the token belongs to a user with access to the requested site data.

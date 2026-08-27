@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Piwik\ArchiveProcessor\Rules;
 use Piwik\Cache;
@@ -153,6 +154,190 @@ class ReportProcessedTest extends IntegrationTestCase
         if (isset($report['reportMetadata']) && is_array($report['reportMetadata'])) {
             self::assertCount(1, $report['reportMetadata']);
         }
+    }
+
+    /**
+     * The metadata lookup compares module and action exactly, so a padded pair resolves only
+     * because convergence trims it.
+     */
+    public function testResolvesPaddedApiModuleAndApiActionPair(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'apiModule' => ' Actions ',
+                'apiAction' => "getPageUrls\n",
+            ],
+            __METHOD__,
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame($reportUniqueId, $resolvedReport['uniqueId'] ?? null);
+    }
+
+    /**
+     * The camelCase paging aliases reach Core as the paging the caller asked for, even when the
+     * values arrive as strings: intake rewrites the key only, and the retyping is done by
+     * `CompatibleCallToolHandler::coerceIntegerStringsForValidation()` and the SDK's
+     * `ReferenceHandler` on dispatch.
+     */
+    public function testAppliesCamelCasePagingAliasesSuppliedAsStrings(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'filterLimit' => '1',
+                'filterOffset' => '1',
+            ],
+            __METHOD__,
+        );
+
+        $pagination = $content['pagination'] ?? null;
+        self::assertIsArray($pagination);
+        self::assertSame(1, $pagination['filter_limit'] ?? null);
+        self::assertSame(1, $pagination['filter_offset'] ?? null);
+        self::assertSame(1, $pagination['returned_rows'] ?? null);
+        self::assertGreaterThanOrEqual(2, $pagination['total_rows'] ?? 0);
+    }
+
+    /**
+     * A segment supplied inside apiParameters is lifted to the canonical top-level argument and
+     * reaches Core, shown here by it filtering the report away.
+     */
+    public function testAppliesSegmentSuppliedInsideApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $unsegmented = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+            ],
+            __METHOD__,
+        );
+        self::assertIsArray($unsegmented['pagination'] ?? null);
+        self::assertGreaterThanOrEqual(2, $unsegmented['pagination']['total_rows'] ?? 0);
+
+        $segmented = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'apiParameters' => ['segment' => 'countryCode==de'],
+            ],
+            __METHOD__,
+        );
+
+        $pagination = $segmented['pagination'] ?? null;
+        self::assertIsArray($pagination);
+        self::assertSame(0, $pagination['total_rows'] ?? null);
+
+        $report = $segmented['report'] ?? null;
+        self::assertIsArray($report);
+        self::assertSame([], $report['reportData'] ?? null);
+    }
+
+    /**
+     * The four report controls the processed-report profile relocates are schema-invalid at the
+     * top level, so they arrive in apiParameters only because intake moved them there. Surviving
+     * the reportUniqueId path additionally requires ReportProcessedQueryService to still classify
+     * all four as generic-safe: a report-specific leftover fails that lookup outright, and a key
+     * dropped from the generic-safe set would never reach resolvedApiParameters. This pins the
+     * profile's registration to that classification, which lives in another layer.
+     */
+    public function testRelocatedReportControlsStayGenericSafeApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+        $content = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'expanded' => true,
+                'flat' => true,
+                'filter_sort_column' => 'label',
+                'filter_sort_order' => 'asc',
+            ],
+            __METHOD__,
+        );
+
+        $resolvedReport = $content['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        $resolvedApiParameters = $resolvedReport['apiParameters'] ?? null;
+        self::assertIsArray($resolvedApiParameters);
+        self::assertTrue($resolvedApiParameters['expanded'] ?? null);
+        self::assertTrue($resolvedApiParameters['flat'] ?? null);
+        self::assertSame('label', $resolvedApiParameters['filter_sort_column'] ?? null);
+        self::assertSame('asc', $resolvedApiParameters['filter_sort_order'] ?? null);
+
+        // The relocated sort reached Core rather than only being echoed back: every tracked page
+        // here has the same visit count, so the default ordering carries no label order to
+        // mistake for this one. Comparing against the descending call keeps the assertion
+        // independent of Matomo's string collation.
+        $ascendingLabels = $this->readReportLabels($content);
+        self::assertGreaterThanOrEqual(2, count($ascendingLabels));
+
+        $descending = McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'expanded' => true,
+                'flat' => true,
+                'filter_sort_column' => 'label',
+                'filter_sort_order' => 'desc',
+            ],
+            __METHOD__,
+        );
+
+        self::assertSame(array_reverse($ascendingLabels), $this->readReportLabels($descending));
     }
 
     public function testCoercesIntegerStringArgumentsThroughRealToolStack(): void
@@ -343,6 +528,73 @@ class ReportProcessedTest extends IntegrationTestCase
             'reportUniqueId' => $reportUniqueId,
             'apiAction' => 'getPageUrls',
         ]);
+    }
+
+    public function testAcceptsDotFormReportUniqueId(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertSame('Actions_getPageUrls', $reportUniqueId);
+
+        $result = $this->callReportProcessed(['reportUniqueId' => 'Actions.getPageUrls']);
+
+        $resolvedReport = $result['resolvedReport'] ?? null;
+        self::assertIsArray($resolvedReport);
+        self::assertSame('Actions_getPageUrls', $resolvedReport['uniqueId'] ?? null);
+    }
+
+    public function testRejectsCombinedUniqueIdAndModuleActionAtSchemaLevel(): void
+    {
+        $this->assertInvalidSelectorArgumentsAtSchemaLevel([
+            'reportUniqueId' => 'VisitsSummary_get',
+            'apiModule' => 'Actions',
+            'apiAction' => 'getPageUrls',
+        ]);
+    }
+
+    public function testDoesNotFuzzyMatchAnUnknownDotFormReport(): void
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => 'Pages.getPageTitles',
+            ],
+            'Report not found.',
+            __METHOD__,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $selectorArguments
+     *
+     * @return array<string, mixed>
+     */
+    private function callReportProcessed(array $selectorArguments): array
+    {
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        return McpTestHelper::callToolAndAssertSuccess(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            array_merge(
+                [
+                    'idSite' => $this->idSite,
+                    'period' => 'day',
+                    'date' => '2015-01-03',
+                ],
+                $selectorArguments,
+            ),
+            __METHOD__,
+        );
     }
 
     public function testRejectsApiModuleWithoutApiActionAtSchemaLevel(): void
@@ -972,7 +1224,11 @@ class ReportProcessedTest extends IntegrationTestCase
         });
     }
 
-    public function testReturnsGenericFailureForInvalidSegmentInStrictArchivingMode(): void
+    /**
+     * An unknown segment field names the problem, rather than reporting the whole retrieval as
+     * failed. The archiving mode does not change that: the field is unavailable either way.
+     */
+    public function testNamesTheProblemForUnknownSegmentFieldInStrictArchivingMode(): void
     {
         $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
         self::assertNotNull($reportUniqueId);
@@ -981,7 +1237,7 @@ class ReportProcessedTest extends IntegrationTestCase
             $server = McpTestHelper::buildServer();
             $sessionId = McpTestHelper::initializeSession($server);
 
-            McpTestHelper::callToolAndAssertError(
+            $result = McpTestHelper::callToolAndAssertError(
                 $server,
                 $sessionId,
                 ReportProcessed::TOOL_NAME,
@@ -992,10 +1248,89 @@ class ReportProcessedTest extends IntegrationTestCase
                     'reportUniqueId' => $reportUniqueId,
                     'segment' => 'notASupportedSegment==de',
                 ],
-                'Report retrieval failed.',
+                null,
                 __METHOD__,
             );
+
+            $content = $result->content[0] ?? null;
+            self::assertInstanceOf(TextContent::class, $content);
+            $text = $content->text;
+            self::assertIsString($text);
+            self::assertStringContainsString('names a field this Matomo does not provide', $text);
         });
+    }
+
+    /**
+     * A segment whose operator does not exist is reported as an expression the caller can fix,
+     * naming the accepted operators. This is the shape a lifted `apiParameters.segment` reaches
+     * Core as, so the lift must not be the only thing standing between a typo and an opaque
+     * `Report retrieval failed.`
+     */
+    public function testNamesTheProblemForMalformedSegmentOperator(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $result = McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'segment' => 'pageUrl=~pricing',
+            ],
+            null,
+            __METHOD__,
+        );
+
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        $text = $content->text;
+        self::assertIsString($text);
+        self::assertStringContainsString('Segment expression could not be parsed.', $text);
+        // Naming the accepted operators is what makes the message actionable.
+        self::assertStringContainsString('=@', $text);
+        // The expression may carry personal data, so guidance states the form without repeating it.
+        self::assertStringNotContainsString('pageUrl=~pricing', $text);
+    }
+
+    /**
+     * The same guidance is reached when the segment arrives nested and is lifted at intake.
+     */
+    public function testNamesTheProblemForMalformedSegmentLiftedFromApiParameters(): void
+    {
+        $reportUniqueId = $this->findReportUniqueId($this->idSite, 'Actions', 'getPageUrls');
+        self::assertNotNull($reportUniqueId);
+
+        $server = McpTestHelper::buildServer();
+        $sessionId = McpTestHelper::initializeSession($server);
+
+        $result = McpTestHelper::callToolAndAssertError(
+            $server,
+            $sessionId,
+            ReportProcessed::TOOL_NAME,
+            [
+                'idSite' => $this->idSite,
+                'period' => 'day',
+                'date' => '2015-01-03',
+                'reportUniqueId' => $reportUniqueId,
+                'apiParameters' => ['segment' => 'pageUrl=~pricing'],
+            ],
+            null,
+            __METHOD__,
+        );
+
+        $content = $result->content[0] ?? null;
+        self::assertInstanceOf(TextContent::class, $content);
+        $text = $content->text;
+        self::assertIsString($text);
+        self::assertStringContainsString('Segment expression could not be parsed.', $text);
     }
 
     public function testReturnsStrictGuidanceWhenGatewayFailsWithStrictSegmentRestriction(): void
@@ -1470,6 +1805,30 @@ class ReportProcessedTest extends IntegrationTestCase
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     *
+     * @return list<string>
+     */
+    private function readReportLabels(array $content): array
+    {
+        $report = $content['report'] ?? null;
+        self::assertIsArray($report);
+        $reportData = $report['reportData'] ?? null;
+        self::assertIsArray($reportData);
+
+        $labels = [];
+        foreach ($reportData as $row) {
+            self::assertIsArray($row);
+            $label = $row['label'] ?? null;
+            self::assertIsString($label);
+
+            $labels[] = $label;
+        }
+
+        return $labels;
     }
 
     /**

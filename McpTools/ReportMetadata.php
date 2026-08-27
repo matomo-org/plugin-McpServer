@@ -80,8 +80,7 @@ class ReportMetadata extends McpTool
                 ],
                 'apiParameters' => [
                     'type' => 'object',
-                    'description' => 'Optional report parameter object used with module/action lookup. '
-                        . 'An empty array is treated equivalently to an empty object.',
+                    'description' => 'Optional report parameter object used with module/action lookup.',
                     'additionalProperties' => true,
                 ],
             ],

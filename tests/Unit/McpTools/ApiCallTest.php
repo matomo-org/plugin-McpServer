@@ -182,6 +182,77 @@ class ApiCallTest extends TestCase
         $tool->execute(method: 'UsersManager.addUser');
     }
 
+    /**
+     * @dataProvider provideRawApiParameterValues
+     */
+    public function testForwardsRawApiParametersWithoutRetyping(mixed $supplied): void
+    {
+        $captured = new stdClass();
+        $captured->values = [];
+        $record = new ApiMethodSummaryRecord(
+            'Actions',
+            'getPageUrls',
+            'Actions.getPageUrls',
+            [[
+                'name' => 'idSite',
+                'type' => 'int',
+                'required' => true,
+                'allowsNull' => false,
+                'hasDefault' => false,
+                'defaultValue' => null,
+            ]],
+            ApiMethodOperationClassifier::CATEGORY_READ,
+        );
+
+        $tool = new ApiCallRead(
+            $this->createCapturingQueryService($captured, $record),
+            $this->createMethodSummaryQueryServiceStub($record),
+            $this->createSystemSettingsStub('read'),
+        );
+        $tool->execute(method: $record->method, parameters: ['idSite' => $supplied]);
+
+        self::assertSame([
+            'resolvedMethod' => $record,
+            'parameters' => ['idSite' => $supplied],
+        ], $captured->values);
+    }
+
+    /**
+     * @return iterable<string, array{0: mixed}>
+     */
+    public static function provideRawApiParameterValues(): iterable
+    {
+        yield 'decimal integer string' => ['42'];
+        yield 'negative string' => ['-1'];
+        yield 'float string' => ['1.5'];
+        yield 'whitespace-padded string' => [' 42 '];
+    }
+
+    private function createCapturingQueryService(
+        stdClass $captured,
+        ApiMethodSummaryRecord $record,
+    ): ApiCallQueryServiceInterface {
+        return new class ($captured, $record) implements ApiCallQueryServiceInterface {
+            public function __construct(
+                private stdClass $captured,
+                private ApiMethodSummaryRecord $record,
+            ) {
+            }
+
+            public function callApi(
+                ApiMethodSummaryRecord $resolvedMethod,
+                ?array $parameters = null,
+            ): ApiCallRecord {
+                $this->captured->values = [
+                    'resolvedMethod' => $resolvedMethod,
+                    'parameters' => $parameters,
+                ];
+
+                return new ApiCallRecord([], $this->record);
+            }
+        };
+    }
+
     private function createMethodSummaryQueryServiceStub(
         ApiMethodSummaryRecord $record,
     ): ApiMethodSummaryQueryServiceInterface {

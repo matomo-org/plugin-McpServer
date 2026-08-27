@@ -24,8 +24,10 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
-use Piwik\Plugins\McpServer\McpTools\ReportMetadata;
-use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
+use Piwik\Plugins\McpServer\Support\Normalization\ArgumentIssueException;
+use Piwik\Plugins\McpServer\Support\Normalization\IntakeNormalizer;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolIntakeProfile;
+use Piwik\Plugins\McpServer\Support\Normalization\ToolIntakeProfiles;
 
 /**
  * Adaptation of the SDK's {@see \Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\CallToolHandler}.
@@ -35,14 +37,29 @@ use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
  * the SDK's strict validation rejects input that our tools can handle, plus one exception
  * type swap:
  *
- * - normalizeArgumentsForValidation(): LLM clients routinely emit an empty JSON array
- *   (`[]`) where an object (`{}`) is expected. The report tools declare `apiParameters`
- *   as an object, so an empty list would fail validation; we rewrite `[]` to an empty
- *   object for those tools before validating.
+ * - intake normalization: arguments of tools registered in {@see ToolIntakeProfiles} are reduced
+ *   to one canonical form, so equivalent selectors and known key aliases converge. It runs ahead
+ *   of validation and the canonical result is what gets validated and dispatched, so a recovery
+ *   cannot skip a schema constraint. A recovery is silent; only a contradiction is reported.
+ * - normalizeArgumentsForValidation(): an empty parameter object cannot arrive here as one. The
+ *   SDK decodes the request body with `json_decode(assoc: true)`, which maps both `{}` and `[]`
+ *   to PHP `[]`, and its `SchemaValidator` promotes only non-empty associative arrays back to
+ *   `stdClass`, so either spelling reaches an `object`-typed field as an array and fails. The
+ *   substitution is therefore what lets a spec-correct client send `{}`, not only a tolerance for
+ *   the LLM clients that emit `[]`. The fields that accept it come from the tool's intake profile,
+ *   so {@see ToolIntakeProfiles} stays the one place declaring what a tool recovers. A tool with
+ *   no profile gets no substitution.
  * - coerceIntegerStringsForValidation(): promotes pure integer strings (e.g. "1") to
- *   integers for `integer`-typed arguments, which smaller LLMs frequently stringify.
+ *   integers for `integer`-typed arguments, which smaller LLMs frequently stringify. This covers
+ *   every tool, profiled or not, and is the only place the promotion happens; intake profiles
+ *   register no retyping of their own.
  * - It catches this plugin's {@see McpToolCallException} rather than the SDK's
  *   ToolCallException.
+ *
+ * Argument problems leave through two channels: schema validation keeps the SDK handler's JSON-RPC
+ * `Error`, so a client relying on `-32602` for invalid params keeps seeing it, while an
+ * {@see ArgumentIssueException} from normalization returns an `isError` result, which clients
+ * surface to the model that can act on it.
  *
  * Logging is intentionally omitted here: the SDK handler's logger plumbing is dropped and
  * tool-call logging lives in the {@see ObservedCallToolHandler} decorator instead.
@@ -51,18 +68,18 @@ use Piwik\Plugins\McpServer\McpTools\ReportProcessed;
  */
 final class CompatibleCallToolHandler implements RequestHandlerInterface
 {
-    /** @var array<string, true> */
-    private const EMPTY_LIST_COMPATIBILITY_TOOLS = [
-        ReportMetadata::TOOL_NAME => true,
-        ReportProcessed::TOOL_NAME => true,
-    ];
-
     private SchemaValidator $schemaValidator;
 
+    /**
+     * @param array<string, class-string> $toolClasses the class registered under each tool name,
+     *                                                 so {@see ToolIntakeProfiles} can key on the
+     *                                                 class rather than the name
+     */
     public function __construct(
         private readonly RegistryInterface $registry,
         private readonly ReferenceHandlerInterface $referenceHandler,
         ?SchemaValidator $schemaValidator = null,
+        private readonly array $toolClasses = [],
     ) {
         $this->schemaValidator = $schemaValidator ?? new SchemaValidator();
     }
@@ -88,7 +105,19 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
             return new Error($request->getId(), Error::METHOD_NOT_FOUND, $e->getMessage());
         }
 
-        $validationArguments = $this->normalizeArgumentsForValidation($toolName, $rawArguments);
+        $profile = ToolIntakeProfiles::forToolClass($this->toolClasses[$toolName] ?? null);
+        if ($profile !== null) {
+            try {
+                $rawArguments = (new IntakeNormalizer($profile))->normalize($rawArguments);
+            } catch (ArgumentIssueException $e) {
+                return new Response(
+                    $request->getId(),
+                    CallToolResult::error([new TextContent($e->getMessage())]),
+                );
+            }
+        }
+
+        $validationArguments = $this->normalizeArgumentsForValidation($profile, $rawArguments);
         $validationArguments = $this->coerceIntegerStringsForValidation(
             $validationArguments,
             $reference->tool->inputSchema,
@@ -143,17 +172,19 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
      *
      * @return array<string, mixed>
      */
-    private function normalizeArgumentsForValidation(string $toolName, array $arguments): array
+    private function normalizeArgumentsForValidation(?ToolIntakeProfile $profile, array $arguments): array
     {
-        if (
-            !isset(self::EMPTY_LIST_COMPATIBILITY_TOOLS[$toolName])
-            || !array_key_exists('apiParameters', $arguments)
-            || $arguments['apiParameters'] !== []
-        ) {
+        if ($profile === null) {
             return $arguments;
         }
 
-        $arguments['apiParameters'] = new \stdClass();
+        foreach ($profile->objectFields as $field) {
+            if (($arguments[$field] ?? null) !== []) {
+                continue;
+            }
+
+            $arguments[$field] = new \stdClass();
+        }
 
         return $arguments;
     }
