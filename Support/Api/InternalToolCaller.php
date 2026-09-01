@@ -41,10 +41,16 @@ final class InternalToolCaller
     }
 
     /**
+     * `structuredContent` is passed through as the SDK produced it: since MCP
+     * revision 2026-07-28 any JSON value conforming to the tool's outputSchema
+     * is allowed there, so a tool contributed by another plugin may hand back
+     * something other than an object. Narrowing it here would silently drop
+     * that value rather than let the caller decide what to do with it.
+     *
      * @param array<string, mixed> $arguments
      * @return array{
      *     content: list<array<string, mixed>>,
-     *     structuredContent: array<string, mixed>|null,
+     *     structuredContent: mixed,
      *     isError: bool
      * }
      */
@@ -148,7 +154,7 @@ final class InternalToolCaller
     /**
      * @return array{
      *     content: list<array<string, mixed>>,
-     *     structuredContent: array<string, mixed>|null,
+     *     structuredContent: mixed,
      *     isError: bool
      * }
      */
