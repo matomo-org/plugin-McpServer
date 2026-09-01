@@ -216,6 +216,7 @@ class CompatibleCallToolHandlerTest extends TestCase
         $response = $handler->handle($request, $this->createSession('e2a9c4d3-4b5f-6c7d-0e1f-2a3b4c5d6e7f'));
 
         self::assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(CallToolResult::class, $response->result);
         self::assertFalse($response->result->isError);
         self::assertSame('1', $capturedIdGoal);
 
@@ -230,6 +231,7 @@ class CompatibleCallToolHandlerTest extends TestCase
         $response = $handler->handle($nonNumericRequest, $this->createSession('f3b0d5e4-5c6a-7d8e-1f2a-3b4c5d6e7f80'));
 
         self::assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(CallToolResult::class, $response->result);
         self::assertFalse($response->result->isError);
         self::assertSame('ecommerceOrder', $capturedIdGoal);
     }

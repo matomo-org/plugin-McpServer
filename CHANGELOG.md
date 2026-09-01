@@ -2,7 +2,9 @@
 
 ### Unreleased
 
-- Updated `mcp/sdk` to 0.7.1.
+- Updated `mcp/sdk` to 0.8.
+- Changed the protocol error for a `tools/call` naming a tool this server does not expose from `-32601` (method not found) to `-32602` (invalid params), following the SDK: `tools/call` itself exists, it is the tool name in its parameters that does not. This covers a misspelled tool name as well as the raw API tools while the configured access mode hides them.
+- Changed the response to an unsupported `MCP-Protocol-Version` header from `-32602` to `-32022` (unsupported protocol version), which carries the versions this server accepts in the error's `data` so a client can pick one and retry. The HTTP status stays `400`.
 - Made `matomo_report_processed` always advertise itself as read-only and idempotent to MCP clients, even when browser-triggered archiving or browser-based segment archiving is enabled, because archive materialization while serving a report is no longer treated as a change to Matomo's state.
 - Made the report and raw API tools tolerant of further input shapes MCP clients send, so these requests run instead of failing: a redundant `module`/`action` beside `method`, report selectors with surrounding whitespace, `filterLimit`/`filterOffset` for `filter_limit`/`filter_offset`, a parameter object sent as a JSON object string, and `expanded`, `flat` or `segment` sent at the wrong nesting level. See "Argument Handling" in the FAQ for what each tool accepts.
 - Fixed `parameters: {}` and `parameters: []` failing with the invalid-parameters protocol error on the `matomo_api_call_*` tools. Omitting `parameters` entirely was unaffected.

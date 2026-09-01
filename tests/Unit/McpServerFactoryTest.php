@@ -131,7 +131,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testStringOneConfigEnablesFullParameterLogging(): void
@@ -168,7 +168,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testBooleanTrueConfigEnablesToolCallLogging(): void
@@ -193,7 +193,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testToolCallLoggingDisabledSkipsObservedHandlerInjection(): void
@@ -218,7 +218,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testStringZeroConfigDisablesToolCallLogging(): void
@@ -243,7 +243,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testStringTrueConfigDoesNotEnableToolCallLogging(): void
@@ -268,7 +268,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testToolCallLoggingMissingConfigSkipsObservedHandlerInjection(): void
@@ -293,7 +293,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testConfiguredWarnLevelUsesWarning(): void
@@ -321,7 +321,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testConfiguredErrorLevelUsesError(): void
@@ -349,7 +349,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testConfiguredInfoLevelUsesInfo(): void
@@ -377,7 +377,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testConfiguredVerboseLevelUsesDebug(): void
@@ -404,7 +404,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testInvalidToolCallLogLevelFallsBackToDebug(): void
@@ -434,7 +434,7 @@ class McpServerFactoryTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testTransportRejectsUntrustedHostWhenTrustedHostsConfigured(): void
@@ -476,7 +476,10 @@ class McpServerFactoryTest extends TestCase
         $response = $this->runInitialize(protocolVersion: '2099-01-01');
 
         self::assertSame(400, $response->getStatusCode());
-        self::assertSame(JsonRpcError::INVALID_PARAMS, McpTestHelper::decodeError($response)->code);
+        self::assertSame(
+            JsonRpcError::UNSUPPORTED_PROTOCOL_VERSION,
+            McpTestHelper::decodeError($response)->code,
+        );
     }
 
     public function testTransportAllowsAnyHostWhenTrustedHostsNotConfigured(): void

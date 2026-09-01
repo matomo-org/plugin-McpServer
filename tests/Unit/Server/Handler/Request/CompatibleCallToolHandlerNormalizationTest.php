@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\InputRequiredResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\InMemorySessionStore;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\Session;
@@ -470,7 +471,7 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
     /**
      * @param array<string, mixed> $arguments
      *
-     * @return Response<CallToolResult>|Error
+     * @return Response<CallToolResult|InputRequiredResult>|Error
      */
     private function callReportTool(array $arguments): Response|Error
     {
@@ -519,7 +520,7 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
     /**
      * @param array<string, mixed> $arguments
      *
-     * @return Response<CallToolResult>|Error
+     * @return Response<CallToolResult|InputRequiredResult>|Error
      */
     private function callApiReadTool(array $arguments): Response|Error
     {
@@ -554,7 +555,7 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
      * @param array<string, mixed> $inputSchema
      * @param array<string, mixed> $arguments
      *
-     * @return Response<CallToolResult>|Error
+     * @return Response<CallToolResult|InputRequiredResult>|Error
      */
     private function call(
         string $toolName,
@@ -576,7 +577,7 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
      * @param array<string, mixed> $arguments
      * @param class-string $toolClass
      *
-     * @return Response<CallToolResult>|Error
+     * @return Response<CallToolResult|InputRequiredResult>|Error
      */
     private function handleWith(
         Registry $registry,
@@ -634,7 +635,7 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
     }
 
     /**
-     * @param Response<CallToolResult>|Error $response
+     * @param Response<CallToolResult|InputRequiredResult>|Error $response
      */
     private static function assertSuccessful(Response|Error $response): void
     {
