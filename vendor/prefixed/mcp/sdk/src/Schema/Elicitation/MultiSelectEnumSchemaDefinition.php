@@ -21,14 +21,14 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class MultiSelectEnumSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string        $title       Human-readable title for the field
+     * @param ?string       $title       Optional human-readable title for the field
      * @param string[]      $enum        Array of allowed string values
      * @param string|null   $description Optional description/help text
      * @param string[]|null $default     Optional default selected values (must be subset of enum)
      * @param int|null      $minItems    Optional minimum number of selections
      * @param int|null      $maxItems    Optional maximum number of selections
      */
-    public function __construct(string $title, public readonly array $enum, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
+    public function __construct(?string $title, public readonly array $enum, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
     {
         parent::__construct($title, $description);
         if ([] === $enum) {
@@ -58,7 +58,7 @@ final class MultiSelectEnumSchemaDefinition extends AbstractSchemaDefinition
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     items: array{type: string, enum: string[]},
      *     description?: string,
      *     default?: string[],
@@ -72,7 +72,7 @@ final class MultiSelectEnumSchemaDefinition extends AbstractSchemaDefinition
         if (!isset($data['items']['enum']) || !\is_array($data['items']['enum'])) {
             throw new InvalidArgumentException('Missing or invalid "items.enum" for multi-select enum schema definition.');
         }
-        return new self(title: $data['title'], enum: $data['items']['enum'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
+        return new self(title: $data['title'] ?? null, enum: $data['items']['enum'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
     }
     /**
      * @return array<string, mixed>

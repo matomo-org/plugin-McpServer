@@ -22,14 +22,14 @@ final class StringSchemaDefinition extends AbstractSchemaDefinition
 {
     private const VALID_FORMATS = ['date', 'date-time', 'email', 'uri'];
     /**
-     * @param string      $title       Human-readable title for the field
+     * @param ?string     $title       Optional human-readable title for the field
      * @param string|null $description Optional description/help text
      * @param string|null $default     Optional default value
      * @param string|null $format      Optional format constraint (date, date-time, email, uri)
      * @param int|null    $minLength   Optional minimum string length
      * @param int|null    $maxLength   Optional maximum string length
      */
-    public function __construct(string $title, ?string $description = null, public readonly ?string $default = null, public readonly ?string $format = null, public readonly ?int $minLength = null, public readonly ?int $maxLength = null)
+    public function __construct(?string $title = null, ?string $description = null, public readonly ?string $default = null, public readonly ?string $format = null, public readonly ?int $minLength = null, public readonly ?int $maxLength = null)
     {
         parent::__construct($title, $description);
         if (null !== $format && !\in_array($format, self::VALID_FORMATS, \true)) {
@@ -47,7 +47,7 @@ final class StringSchemaDefinition extends AbstractSchemaDefinition
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: string,
      *     format?: string,
@@ -58,12 +58,12 @@ final class StringSchemaDefinition extends AbstractSchemaDefinition
     public static function fromArray(array $data) : self
     {
         self::validateTitle($data, 'string');
-        return new self(title: $data['title'], description: $data['description'] ?? null, default: $data['default'] ?? null, format: $data['format'] ?? null, minLength: isset($data['minLength']) ? (int) $data['minLength'] : null, maxLength: isset($data['maxLength']) ? (int) $data['maxLength'] : null);
+        return new self(title: $data['title'] ?? null, description: $data['description'] ?? null, default: $data['default'] ?? null, format: $data['format'] ?? null, minLength: isset($data['minLength']) ? (int) $data['minLength'] : null, maxLength: isset($data['maxLength']) ? (int) $data['maxLength'] : null);
     }
     /**
      * @return array{
      *     type: string,
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: string,
      *     format?: string,

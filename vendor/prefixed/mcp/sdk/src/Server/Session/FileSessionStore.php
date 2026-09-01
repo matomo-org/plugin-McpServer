@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Session;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\RuntimeException;
 use Matomo\Dependencies\McpServer\Mcp\Server\NativeClock;
 use Matomo\Dependencies\McpServer\Psr\Clock\ClockInterface;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
@@ -25,7 +26,7 @@ class FileSessionStore implements SessionStoreInterface
             @mkdir($this->directory, 0775, \true);
         }
         if (!is_dir($this->directory) || !is_writable($this->directory)) {
-            throw new \RuntimeException(\sprintf('Session directory "%s" is not writable.', $this->directory));
+            throw new RuntimeException(\sprintf('Session directory "%s" is not writable.', $this->directory));
         }
     }
     public function exists(Uuid $id) : bool
@@ -98,6 +99,10 @@ class FileSessionStore implements SessionStoreInterface
             if ('.' === $entry || '..' === $entry) {
                 continue;
             }
+            // Only delete files this store owns: sessions are named by their RFC 4122 UUID
+            if (!Uuid::isValid($entry)) {
+                continue;
+            }
             $path = $this->directory . \DIRECTORY_SEPARATOR . $entry;
             if (!is_file($path)) {
                 continue;
@@ -105,11 +110,7 @@ class FileSessionStore implements SessionStoreInterface
             $mtime = @filemtime($path) ?: 0;
             if ($now - $mtime > $this->ttl) {
                 @unlink($path);
-                try {
-                    $deleted[] = Uuid::fromString($entry);
-                } catch (\Throwable) {
-                    // ignore non-UUID file names
-                }
+                $deleted[] = Uuid::fromString($entry);
             }
         }
         closedir($dir);

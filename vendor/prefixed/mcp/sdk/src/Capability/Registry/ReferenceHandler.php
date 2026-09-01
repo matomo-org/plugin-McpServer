@@ -12,8 +12,6 @@ namespace Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\RegistryException;
-use Matomo\Dependencies\McpServer\Mcp\Server\ClientGateway;
-use Matomo\Dependencies\McpServer\Mcp\Server\RequestContext;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Psr\Container\ContainerInterface;
 /**
@@ -85,13 +83,9 @@ final class ReferenceHandler implements ReferenceHandlerInterface
             // Check if parameter is a special injectable type
             $type = $parameter->getType();
             if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
-                $typeName = $type->getName();
-                if (RequestContext::class === $typeName && isset($arguments['_session'], $arguments['_request'])) {
-                    $finalArgs[$paramPosition] = new RequestContext($arguments['_session'], $arguments['_request']);
-                    continue;
-                }
-                if (ClientGateway::class === $typeName && isset($arguments['_session'])) {
-                    $finalArgs[$paramPosition] = new ClientGateway($arguments['_session']);
+                $injected = InjectableParameters::resolve($type->getName(), $arguments);
+                if (null !== $injected) {
+                    $finalArgs[$paramPosition] = $injected;
                     continue;
                 }
             }
