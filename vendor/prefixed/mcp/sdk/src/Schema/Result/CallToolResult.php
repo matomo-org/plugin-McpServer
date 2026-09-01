@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Content\AudioContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\Content;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\EmbeddedResource;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\ImageContent;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\ResourceLink;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\ResultInterface;
 /**
@@ -38,10 +39,12 @@ class CallToolResult implements ResultInterface
      *
      * @param Content[]                 $content           The content of the tool result
      * @param bool                      $isError           Whether the tool execution resulted in an error.  If not set, this is assumed to be false (the call was successful).
-     * @param mixed[]                   $structuredContent JSON content for `structuredContent`
+     * @param mixed                     $structuredContent Structured result of the call. Any JSON value — object, array,
+     *                                                     string, number, boolean or null — conforming to the tool's
+     *                                                     outputSchema when one is declared.
      * @param array<string, mixed>|null $meta              Optional metadata
      */
-    public function __construct(public readonly array $content, public readonly bool $isError = \false, public readonly ?array $structuredContent = null, public readonly ?array $meta = null)
+    public function __construct(public readonly array $content, public readonly bool $isError = \false, public readonly mixed $structuredContent = null, public readonly ?array $meta = null)
     {
         foreach ($this->content as $item) {
             if (!$item instanceof Content) {
@@ -74,7 +77,7 @@ class CallToolResult implements ResultInterface
      *     content: array<mixed>,
      *     isError?: bool,
      *     _meta?: array<string, mixed>,
-     *     structuredContent?: array<string, mixed>
+     *     structuredContent?: mixed
      * } $data
      */
     public static function fromArray(array $data) : self
@@ -84,13 +87,24 @@ class CallToolResult implements ResultInterface
         }
         $contents = [];
         foreach ($data['content'] as $item) {
-            $contents[] = match ($item['type'] ?? null) {
+            $type = \is_array($item) ? $item['type'] ?? null : null;
+            if (!\is_string($type)) {
+                throw new InvalidArgumentException('Missing or invalid content "type" in CallToolResult data.');
+            }
+            $contents[] = match ($type) {
                 'text' => TextContent::fromArray($item),
                 'image' => ImageContent::fromArray($item),
                 'audio' => AudioContent::fromArray($item),
                 'resource' => EmbeddedResource::fromArray($item),
-                default => throw new InvalidArgumentException(\sprintf('Invalid content type in CallToolResult data: "%s".', $item['type'] ?? null)),
+                'resource_link' => ResourceLink::fromArray($item),
+                default => throw new InvalidArgumentException(\sprintf('Invalid content type in CallToolResult data: "%s".', $type)),
             };
+        }
+        if (isset($data['isError']) && !\is_bool($data['isError'])) {
+            throw new InvalidArgumentException('Invalid "isError" in CallToolResult data.');
+        }
+        if (isset($data['_meta']) && !\is_array($data['_meta'])) {
+            throw new InvalidArgumentException('Invalid "_meta" in CallToolResult data.');
         }
         return new self($contents, $data['isError'] ?? \false, $data['structuredContent'] ?? null, $data['_meta'] ?? null);
     }
@@ -98,14 +112,14 @@ class CallToolResult implements ResultInterface
      * @return array{
      *     content: array<mixed>,
      *     isError: bool,
-     *     structuredContent?: array<mixed>,
+     *     structuredContent?: mixed,
      *     _meta?: array<string, mixed>,
      * }
      */
     public function jsonSerialize() : array
     {
         $result = ['content' => $this->content, 'isError' => $this->isError];
-        if ($this->structuredContent) {
+        if (null !== $this->structuredContent) {
             $result['structuredContent'] = $this->structuredContent;
         }
         if ($this->meta) {

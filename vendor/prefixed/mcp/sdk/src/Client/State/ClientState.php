@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\State;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
@@ -26,6 +27,7 @@ class ClientState implements ClientStateInterface
 {
     private int $requestIdCounter = 1;
     private bool $initialized = \false;
+    private ?ProtocolVersion $protocolVersion = null;
     private ?Implementation $serverInfo = null;
     private ?string $instructions = null;
     /** @var array<int|string, array{request_id: int|string, timestamp: int, timeout: int}> */
@@ -74,6 +76,14 @@ class ClientState implements ClientStateInterface
     public function isInitialized() : bool
     {
         return $this->initialized;
+    }
+    public function setProtocolVersion(ProtocolVersion $protocolVersion) : void
+    {
+        $this->protocolVersion = $protocolVersion;
+    }
+    public function getProtocolVersion() : ?ProtocolVersion
+    {
+        return $this->protocolVersion;
     }
     public function setServerInfo(Implementation $serverInfo) : void
     {

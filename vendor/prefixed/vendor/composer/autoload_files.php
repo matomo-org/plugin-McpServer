@@ -6,5 +6,6 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    '66cfd3a7190309803b5cc0fea03a4cdc' => $baseDir . '/symfony/deprecation-contracts/function.php',
     'c855ed707b6003bfa8b26e0244490be1' => $baseDir . '/symfony/polyfill-uuid/bootstrap.php',
 );

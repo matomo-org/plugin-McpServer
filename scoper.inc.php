@@ -59,5 +59,11 @@ return [
         'PIWIK_TEST_MODE',
         '/^self::/', // work around php-scoper bug
     ],
-    'exclude-functions' => ['Piwik_ShouldPrintBackTraceWithMessage'],
+    'exclude-functions' => [
+        'Piwik_ShouldPrintBackTraceWithMessage',
+        // global polyfill-style function shipped by symfony/deprecation-contracts. Excluding it keeps the
+        // function_exists() guard unprefixed and makes php-scoper emit a global alias in scoper-autoload.php,
+        // so unqualified trigger_deprecation() calls in scoped dependencies still resolve (same as symfony/polyfill-*).
+        'trigger_deprecation',
+    ],
 ];
