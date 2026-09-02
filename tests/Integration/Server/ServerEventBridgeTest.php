@@ -39,8 +39,6 @@ use Piwik\Piwik;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializedEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializeEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpServerEvent;
-use Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent;
-use Piwik\Plugins\McpServer\Contracts\Events\McpToolsListEvent;
 use Piwik\Plugins\McpServer\Server\ServerEventBridge;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 
@@ -101,32 +99,48 @@ class ServerEventBridgeTest extends IntegrationTestCase
         self::assertSame('http', $event->transport);
     }
 
-    public function testListToolsResponsePublishesToolNames(): void
+    /**
+     * Tool activity is published from the handler chain instead, so that a
+     * modern-era client — which crosses no SDK event at all — is observed too.
+     * Publishing here as well would report every handshake-era tool call twice.
+     */
+    public function testCallToolResponseIsLeftToTheHandlerChain(): void
     {
-        $result = new ListToolsResult([
-            $this->tool('alpha'),
-            $this->tool('beta'),
-        ]);
+        $request = $this->request(new CallToolRequest('report_get', ['id' => 1]), 'call-1');
+
+        $this->bridge()->dispatch($this->responseEvent($request, $this->callToolResult(false), $this->session()));
+
+        self::assertSame([], $this->captured);
+    }
+
+    public function testCallToolErrorIsLeftToTheHandlerChain(): void
+    {
+        $request = $this->request(new CallToolRequest('report_get', []), 'err-1');
+        $error = new JsonRpcError('err-1', JsonRpcError::INTERNAL_ERROR, 'boom');
+
+        $this->bridge()->dispatch(new ErrorEvent($error, $request, $this->session(), null));
+
+        self::assertSame([], $this->captured);
+    }
+
+    public function testListToolsResponseIsLeftToTheHandlerChain(): void
+    {
         $request = $this->request(new ListToolsRequest(), 'list-1');
+
+        $result = new ListToolsResult([$this->tool('alpha')]);
 
         $this->bridge()->dispatch($this->responseEvent($request, $result, $this->session()));
 
-        $event = $this->singleCaptured(McpToolsListEvent::class);
-        self::assertSame(McpServerEvent::METHOD_TOOLS_LIST, $event->method);
-        self::assertSame(self::SESSION_UUID, $event->sessionId);
-        self::assertSame(['alpha', 'beta'], $event->toolNames);
+        self::assertSame([], $this->captured);
     }
 
-    public function testListToolsResponseWithUnexpectedResultPublishesGenericEvent(): void
+    public function testRequestEventPublishesNothing(): void
     {
-        $request = $this->request(new ListToolsRequest(), 'list-2');
+        $request = $this->request(new PingRequest(), 'req-only');
 
-        $this->bridge()->dispatch($this->responseEvent($request, null, $this->session()));
+        $this->bridge()->dispatch(new RequestEvent($request, $this->session()));
 
-        $event = $this->singleCaptured(McpServerEvent::class);
-        self::assertSame(McpServerEvent::class, $event::class);
-        self::assertSame(McpServerEvent::METHOD_TOOLS_LIST, $event->method);
-        self::assertSame(self::SESSION_UUID, $event->sessionId);
+        self::assertSame([], $this->captured);
     }
 
     public function testOtherSuccessfulRequestPublishesGenericEvent(): void
@@ -139,84 +153,6 @@ class ServerEventBridgeTest extends IntegrationTestCase
         self::assertSame(McpServerEvent::class, $event::class);
         self::assertSame(PingRequest::getMethod(), $event->method);
         self::assertSame(self::SESSION_UUID, $event->sessionId);
-    }
-
-    public function testCallToolResponsePublishesToolCallEventWithMeasuredDuration(): void
-    {
-        $bridge = $this->bridge();
-        $session = $this->session();
-        $request = $this->request(new CallToolRequest('report_get', ['id' => 1]), 'call-1');
-
-        // The RequestEvent records the start time; the ResponseEvent derives the duration from it.
-        $bridge->dispatch(new RequestEvent($request, $session));
-        $bridge->dispatch($this->responseEvent($request, $this->callToolResult(false), $session));
-
-        $event = $this->singleCaptured(McpToolCallEvent::class);
-        self::assertSame(McpServerEvent::METHOD_TOOLS_CALL, $event->method);
-        self::assertSame(self::SESSION_UUID, $event->sessionId);
-        self::assertSame('report_get', $event->toolName);
-        self::assertFalse($event->isError);
-        self::assertGreaterThanOrEqual(0, $event->durationMs);
-        self::assertNull($event->errorCode);
-    }
-
-    public function testCallToolResponseReflectsErrorResult(): void
-    {
-        $request = $this->request(new CallToolRequest('report_get', []), 'call-err');
-
-        $this->bridge()->dispatch($this->responseEvent($request, $this->callToolResult(true), $this->session()));
-
-        $event = $this->singleCaptured(McpToolCallEvent::class);
-        self::assertTrue($event->isError);
-        self::assertNull($event->errorCode);
-    }
-
-    public function testCallToolResponseWithoutPriorRequestReportsZeroDuration(): void
-    {
-        // No preceding RequestEvent means no recorded start time, so duration falls back to 0.
-        $request = $this->request(new CallToolRequest('report_get', []), 'orphan-1');
-
-        $this->bridge()->dispatch($this->responseEvent($request, $this->callToolResult(false), $this->session()));
-
-        $event = $this->singleCaptured(McpToolCallEvent::class);
-        self::assertSame(0, $event->durationMs);
-    }
-
-    public function testRequestEventPublishesNothing(): void
-    {
-        // A RequestEvent only records timing; nothing is published until the response arrives.
-        $request = $this->request(new CallToolRequest('report_get', []), 'req-only');
-
-        $this->bridge()->dispatch(new RequestEvent($request, $this->session()));
-
-        self::assertSame([], $this->captured);
-    }
-
-    public function testToolErrorEventPublishesToolCallErrorAndDropsPendingTiming(): void
-    {
-        $bridge = $this->bridge();
-        $session = $this->session();
-        $request = $this->request(new CallToolRequest('report_get', []), 'err-1');
-        $error = new JsonRpcError('err-1', JsonRpcError::INTERNAL_ERROR, 'boom');
-
-        $bridge->dispatch(new RequestEvent($request, $session));
-        $bridge->dispatch(new ErrorEvent($error, $request, $session, null));
-
-        $event = $this->singleCaptured(McpToolCallEvent::class);
-        self::assertSame(McpServerEvent::METHOD_TOOLS_CALL, $event->method);
-        self::assertSame(self::SESSION_UUID, $event->sessionId);
-        self::assertSame('report_get', $event->toolName);
-        self::assertTrue($event->isError);
-        self::assertGreaterThanOrEqual(0, $event->durationMs);
-        self::assertSame(JsonRpcError::INTERNAL_ERROR, $event->errorCode);
-
-        // The pending start time was dropped, so a late response for the same id reports 0ms.
-        $bridge->dispatch($this->responseEvent($request, $this->callToolResult(true), $session));
-
-        self::assertCount(2, $this->captured);
-        self::assertInstanceOf(McpToolCallEvent::class, $this->captured[1]);
-        self::assertSame(0, $this->captured[1]->durationMs);
-        self::assertNull($this->captured[1]->errorCode);
     }
 
     public function testNonToolErrorEventPublishesGenericEvent(): void
