@@ -82,3 +82,27 @@ jobs:
           node-version: '16'
           artifacts-pass: ${{ secrets.ARTIFACTS_PASS }}
           upload-artifacts: true
+
+  ci-required:
+    name: All required tests passed
+    if: ${{ always() }}
+    needs: [ plugin_tests, ui ]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Verify required jobs succeeded
+        uses: actions/github-script@v9
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        with:
+          script: |
+            const needs = JSON.parse(process.env.NEEDS_JSON);
+
+            for (const [jobName, jobData] of Object.entries(needs)) {
+              if (jobData.result !== 'success') {
+                core.setFailed(`${jobName} did not succeed: ${jobData.result}`);
+                return;
+              }
+            }
+
+            core.info('All required jobs passed.');
