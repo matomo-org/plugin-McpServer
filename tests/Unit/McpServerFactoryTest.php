@@ -468,6 +468,23 @@ class McpServerFactoryTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
     }
 
+    /**
+     * A modern-era (`2026-07-28`) request declares its revision per request and
+     * has no handshake to negotiate one. It must reach the server's modern leg
+     * rather than being turned away at the edge by a rule that only knows the
+     * handshake revisions.
+     */
+    public function testTransportServesModernEraRequest(): void
+    {
+        $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
+        $this->setRequestHost('analytics.example.com');
+
+        $response = $this->runModernListTools();
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringNotContainsString('"error"', $this->body($response));
+    }
+
     public function testTransportRejectsUnsupportedProtocolVersion(): void
     {
         $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
@@ -765,6 +782,29 @@ class McpServerFactoryTest extends TestCase
         } else {
             $_SERVER['HTTP_X_FORWARDED_HOST'] = $forwardedHost;
         }
+    }
+
+    private function runModernListTools(): ResponseInterface
+    {
+        $factory = new McpServerFactory(
+            $this->createMock(LoggerInterface::class),
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
+        );
+        $server = $factory->createServer();
+
+        $psr = new Psr17Factory();
+        $request = $psr->createServerRequest('POST', 'https://mcp.test/mcp')
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody($psr->createStream(McpTestHelper::makeModernRequest('tools/list', [], 'modern-1')));
+
+        foreach (McpTestHelper::modernHeaders('tools/list') as $name => $value) {
+            $request = $request->withHeader($name, $value);
+        }
+
+        return $server->run(McpServerFactory::createTransport($request));
     }
 
     private function runInitialize(?string $origin = null, ?string $protocolVersion = null): ResponseInterface

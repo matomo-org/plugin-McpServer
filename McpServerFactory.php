@@ -20,7 +20,6 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
-use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Config;
@@ -305,9 +304,20 @@ final class McpServerFactory
      * 403s every real deployment. We replace its raw-`Host` DNS-rebinding check
      * with {@see MatomoHostValidationMiddleware} — which validates the
      * proxy-aware host, and a supplied `Origin`, against the deployment's own
-     * trusted hostnames — and keep the protocol-version middleware. Passing an
-     * explicit list is what disables the SDK defaults; see
-     * {@see StreamableHttpTransport::defaultMiddleware()}.
+     * trusted hostnames. Passing an explicit list is what disables the SDK
+     * defaults; see {@see StreamableHttpTransport::defaultMiddleware()}.
+     *
+     * The list carries host validation alone. Anything pinned here runs at the
+     * edge, before the transport classifies which protocol era a request
+     * belongs to, so it must be a rule that holds for both eras — host and
+     * origin policy is, the `MCP-Protocol-Version` header rule is not. That one
+     * belongs to the handshake era, and the transport applies it to handshake
+     * traffic itself ({@see StreamableHttpTransport::handshakeMiddleware()});
+     * pinning a `ProtocolVersionMiddleware` here instead would reject every
+     * modern-era (`2026-07-28`) request at the edge, because that middleware
+     * validates against
+     * {@see \Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion::handshakeVersions()}
+     * alone.
      *
      * We deliberately drop the SDK's `CorsMiddleware`: browser/CORS access to
      * MCP is unsupported (see {@see MatomoHostValidationMiddleware}), and Matomo
@@ -337,7 +347,6 @@ final class McpServerFactory
     {
         $middleware = [
             new MatomoHostValidationMiddleware(self::resolveAllowedOriginHosts()),
-            new ProtocolVersionMiddleware(),
         ];
 
         return new StreamableHttpTransport($request, middleware: $middleware);
