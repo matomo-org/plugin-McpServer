@@ -485,6 +485,29 @@ class McpServerFactoryTest extends TestCase
         self::assertStringNotContainsString('"error"', $this->body($response));
     }
 
+    /**
+     * `subscriptions/listen` is answered inside the SDK, ahead of any handler,
+     * so the server cannot decline it. With nothing subscribable to deliver, it
+     * must not hold the worker open for the SDK's default lifetime.
+     */
+    public function testSubscriptionsListenClosesImmediately(): void
+    {
+        $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
+        $this->setRequestHost('analytics.example.com');
+
+        $startedAt = microtime(true);
+        $response = $this->runModern('subscriptions/listen', ['Accept' => 'text/event-stream']);
+        $body = $this->drainStream($response);
+        $elapsed = microtime(true) - $startedAt;
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
+        // Well under the SDK's 30s default, with room to spare on a slow machine.
+        self::assertLessThan(5.0, $elapsed);
+        self::assertStringContainsString('notifications/subscriptions/acknowledged', $body);
+        self::assertStringContainsString('"resultType":"complete"', $body);
+    }
+
     public function testTransportRejectsUnsupportedProtocolVersion(): void
     {
         $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
@@ -786,6 +809,14 @@ class McpServerFactoryTest extends TestCase
 
     private function runModernListTools(): ResponseInterface
     {
+        return $this->runModern('tools/list');
+    }
+
+    /**
+     * @param array<string, string> $extraHeaders
+     */
+    private function runModern(string $method, array $extraHeaders = []): ResponseInterface
+    {
         $factory = new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
@@ -798,13 +829,30 @@ class McpServerFactoryTest extends TestCase
         $psr = new Psr17Factory();
         $request = $psr->createServerRequest('POST', 'https://mcp.test/mcp')
             ->withHeader('Content-Type', 'application/json')
-            ->withBody($psr->createStream(McpTestHelper::makeModernRequest('tools/list', [], 'modern-1')));
+            ->withBody($psr->createStream(McpTestHelper::makeModernRequest($method, [], 'modern-1')));
 
-        foreach (McpTestHelper::modernHeaders('tools/list') as $name => $value) {
+        foreach (McpTestHelper::modernHeaders($method) + $extraHeaders as $name => $value) {
             $request = $request->withHeader($name, $value);
         }
 
         return $server->run(McpServerFactory::createTransport($request));
+    }
+
+    /**
+     * Read a streamed response body. The SSE stream writes its frames straight
+     * to the output buffer and returns an empty string, so capture that instead.
+     */
+    private function drainStream(ResponseInterface $response): string
+    {
+        ob_start();
+
+        try {
+            $response->getBody()->getContents();
+        } finally {
+            $streamed = (string) ob_get_clean();
+        }
+
+        return $streamed;
     }
 
     private function runInitialize(?string $origin = null, ?string $protocolVersion = null): ResponseInterface
