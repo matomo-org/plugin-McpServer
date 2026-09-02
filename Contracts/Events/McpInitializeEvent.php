@@ -13,6 +13,10 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
 
 /**
  * An MCP `initialize` request completed: a client established a session and announced itself.
+ *
+ * Handshake-era only. MCP revision `2026-07-28` removed `initialize`, so a client speaking it
+ * announces itself on every request instead and never publishes this event — see
+ * {@see McpServerEvent} for what stays observable there.
  */
 final class McpInitializeEvent extends McpServerEvent
 {
