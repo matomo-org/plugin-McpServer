@@ -3,6 +3,7 @@
 ### Unreleased
 
 - Updated `mcp/sdk` to 0.8.
+- Added support for MCP protocol revision `2026-07-28`, which carries each request's protocol declaration in the request itself instead of negotiating one through an `initialize` handshake. Clients speaking it were previously rejected with the unsupported-protocol-version error. Handshake-era clients are unaffected: one endpoint serves both, and which one answers is decided per request.
 - Changed the protocol error for a `tools/call` naming a tool this server does not expose from `-32601` (method not found) to `-32602` (invalid params), following the SDK: `tools/call` itself exists, it is the tool name in its parameters that does not. This covers a misspelled tool name as well as the raw API tools while the configured access mode hides them.
 - Changed the response to an unsupported `MCP-Protocol-Version` header from `-32602` to `-32022` (unsupported protocol version), which carries the versions this server accepts in the error's `data` so a client can pick one and retry. The HTTP status stays `400`.
 - Made `matomo_report_processed` always advertise itself as read-only and idempotent to MCP clients, even when browser-triggered archiving or browser-based segment archiving is enabled, because archive materialization while serving a report is no longer treated as a change to Matomo's state.

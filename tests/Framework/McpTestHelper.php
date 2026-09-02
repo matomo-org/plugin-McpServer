@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Http\Discovery\Psr17Factory;
 use Matomo\Dependencies\McpServer\Mcp\JsonRpc\MessageFactory;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ClientCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
@@ -28,6 +29,8 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\InitializeResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListToolsResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Wire\McpHeader;
+use Matomo\Dependencies\McpServer\Mcp\Server\Stateless\RequestMeta;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ResponseInterface;
 use PHPUnit\Framework\Assert;
@@ -353,6 +356,83 @@ final class McpTestHelper
         $request = new PingRequest();
 
         return self::encodeRequest($request, $id);
+    }
+
+    /**
+     * Send a modern-era (`2026-07-28`) request, which carries its protocol
+     * declaration per request in `params._meta` instead of negotiating one
+     * through an `initialize` handshake, and mirrors the body onto the standard
+     * request headers (SEP-2243) the server validates it against.
+     *
+     * @param array<string, mixed> $params
+     */
+    public static function postModern(
+        Server $server,
+        string $method,
+        array $params = [],
+        string|int $id = '1',
+    ): ResponseInterface {
+        return self::postJson(
+            $server,
+            self::makeModernRequest($method, $params, $id),
+            self::modernHeaders($method, $params),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    public static function makeModernRequest(string $method, array $params = [], string|int $id = '1'): string
+    {
+        $callerMeta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
+        // Caller-supplied members win, so a test can vary one declaration.
+        $params['_meta'] = $callerMeta + self::modernRequestMeta();
+
+        return (string) \json_encode([
+            'jsonrpc' => '2.0',
+            'id' => $id,
+            'method' => $method,
+            'params' => $params,
+        ], \JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * The request `_meta` members a modern-era request must declare: the
+     * revision it speaks, plus the client identity and capabilities the
+     * handshake era would have exchanged once at `initialize`.
+     *
+     * @return array<string, mixed>
+     */
+    public static function modernRequestMeta(): array
+    {
+        return [
+            RequestMeta::PROTOCOL_VERSION => ProtocolVersion::V2026_07_28->value,
+            RequestMeta::CLIENT_INFO => (new Implementation('test-client', '1.0.0'))->jsonSerialize(),
+            RequestMeta::CLIENT_CAPABILITIES => (new ClientCapabilities())->jsonSerialize(),
+        ];
+    }
+
+    /**
+     * The standard headers mirroring a modern-era request's body. Derived from
+     * the message itself, the way a conformant client derives them, so the two
+     * cannot disagree and trip the server's header validation.
+     *
+     * @param array<string, mixed> $params
+     * @return array<string, string>
+     */
+    public static function modernHeaders(string $method, array $params = []): array
+    {
+        $headers = [
+            McpHeader::PROTOCOL_VERSION => ProtocolVersion::V2026_07_28->value,
+            McpHeader::METHOD => $method,
+        ];
+
+        $name = McpHeader::nameFor($method, $params);
+        if ($name !== null) {
+            $headers[McpHeader::NAME] = McpHeader::encode($name) ?? $name;
+        }
+
+        return $headers;
     }
 
     /**
