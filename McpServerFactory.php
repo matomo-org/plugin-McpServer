@@ -18,6 +18,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\ListToolsHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
@@ -30,6 +31,8 @@ use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpToolIcon;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Server\Handler\Request\PublishedCallToolHandler;
+use Piwik\Plugins\McpServer\Server\Handler\Request\PublishedListToolsHandler;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Server\ServerEventBridge;
 use Piwik\Plugins\McpServer\Server\Transport\MatomoHostValidationMiddleware;
@@ -57,6 +60,16 @@ final class McpServerFactory
      * stream open forever.
      */
     private const SUBSCRIPTION_LIFETIME_SECONDS = 0.001;
+
+    /**
+     * Tools listed per `tools/list` page.
+     *
+     * Declared rather than left to the SDK's default because
+     * {@see PublishedListToolsHandler} has to construct the list handler it
+     * decorates, and a page size chosen in two places would drift. The value
+     * matches what the builder would otherwise have applied.
+     */
+    private const TOOL_LIST_PAGE_SIZE = 50;
 
     private const DEFAULT_TOOL_CALL_LOG_LEVEL = 'DEBUG';
     /** @var array<int, string> */
@@ -145,6 +158,7 @@ final class McpServerFactory
             ->setSession($this->sessionStore)
             ->setContainer($this->container)
             ->setSubscriptionLifetime(self::SUBSCRIPTION_LIFETIME_SECONDS)
+            ->setPaginationLimit(self::TOOL_LIST_PAGE_SIZE)
             ->setCapabilities(new ServerCapabilities(
                 tools: true,
                 // Use null to avoid advertising listChanged capabilities we don't implement.
@@ -187,7 +201,15 @@ final class McpServerFactory
                 $loggingConfig['logLevel'],
             );
         }
-        $builder->addRequestHandler($activeCallToolHandler);
+        // Tool activity is published from the handler chain, which both protocol eras share,
+        // rather than from the SDK event seam below, which only the handshake era has. The
+        // undecorated handler is what goes back to the caller: the internal bridge invokes it
+        // directly and publishes its own event, so wrapping it there would double-count.
+        $builder->addRequestHandler(new PublishedCallToolHandler($activeCallToolHandler, $this->logger));
+        $builder->addRequestHandler(new PublishedListToolsHandler(
+            new ListToolsHandler($registry, self::TOOL_LIST_PAGE_SIZE),
+            $this->logger,
+        ));
 
         // Observability seam: publish each completed request and received notification as a
         // neutral McpServerEvent so other plugins can observe MCP usage without depending on the SDK.
