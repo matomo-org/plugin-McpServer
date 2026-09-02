@@ -40,6 +40,24 @@ use Psr\Log\NullLogger;
 
 final class McpServerFactory
 {
+    /**
+     * How long a `subscriptions/listen` stream is held open, in seconds.
+     *
+     * The modern protocol era answers that method from inside the SDK, before
+     * any registered handler, so a server cannot decline to serve it. This one
+     * has nothing to deliver over it: no notification bus is configured, and
+     * the capabilities below advertise nothing subscribable, so the stream can
+     * only ever carry keep-alives. At the SDK's default of 30 seconds each one
+     * would hold a PHP-FPM worker for that long. Cut to effectively nothing,
+     * the client gets the acknowledgment and the graceful closure frame the
+     * spec asks for, and the worker is returned immediately.
+     *
+     * Must stay above zero: {@see Builder::setSubscriptionLifetime()} floors the
+     * value at 0.0, which the dispatcher reads as "no ceiling" and holds the
+     * stream open forever.
+     */
+    private const SUBSCRIPTION_LIFETIME_SECONDS = 0.001;
+
     private const DEFAULT_TOOL_CALL_LOG_LEVEL = 'DEBUG';
     /** @var array<int, string> */
     private const VALID_TOOL_CALL_LOG_LEVELS = ['ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE'];
@@ -126,6 +144,7 @@ final class McpServerFactory
             ->setRegistry($registry)
             ->setSession($this->sessionStore)
             ->setContainer($this->container)
+            ->setSubscriptionLifetime(self::SUBSCRIPTION_LIFETIME_SECONDS)
             ->setCapabilities(new ServerCapabilities(
                 tools: true,
                 // Use null to avoid advertising listChanged capabilities we don't implement.
