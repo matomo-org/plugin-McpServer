@@ -1,7 +1,7 @@
 {
     "name": "McpServer",
     "description": "Connect Matomo to ChatGPT, Claude & MCP clients securely. Ask questions and get insights from your analytics instantly.",
-    "version": "5.1.0",
+    "version": "5.1.1",
     "theme": false,
     "wordpress-compatible": false,
     "require": {
