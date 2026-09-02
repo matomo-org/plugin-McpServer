@@ -29,6 +29,30 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
  *
  * Subclasses only ever expose neutral scalars, so a subscriber can never reach (or mutate) the
  * live SDK request/response/session objects.
+ *
+ * ## What is observable per protocol revision
+ *
+ * The endpoint serves two MCP lifecycles, and they do not expose the same surface:
+ *
+ *  - Through revision `2025-11-25`, a client opens a session with `initialize` and every request
+ *    on it is observable: the lifecycle events, tool activity, and the generic event for any other
+ *    method.
+ *  - From revision `2026-07-28` on, there is no handshake and no session. Tool activity
+ *    ({@see McpToolCallEvent}, {@see McpToolsListEvent}) is published as before; the session
+ *    lifecycle events are not, because the lifecycle they describe does not exist, and neither is
+ *    a generic event for that revision's other methods, which the MCP SDK answers before this
+ *    plugin sees them.
+ *
+ * So a subscriber must not require an {@see McpInitializeEvent} before it will count tool
+ * activity, and must not assume tool activity is eventually followed by an
+ * {@see McpSessionEndEvent}.
+ *
+ * ## Session id
+ *
+ * Null whenever the request had no session to report, which is every request on `2026-07-28`.
+ * Do not treat it as a client identity or a grouping key without checking for null first: on that
+ * revision the client identifies itself per request instead, and {@see McpToolCallEvent} carries
+ * that identity ({@see McpToolCallEvent::$clientName}) in the session id's place.
  */
 class McpServerEvent
 {
