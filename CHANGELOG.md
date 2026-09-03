@@ -1,6 +1,10 @@
 ## Changelog
 
-### Unreleased
+### 6.0.0
+
+- Compatibility with Matomo 6.
+
+### 5.1.1
 
 - Updated `mcp/sdk` to 0.7.1.
 - Made `matomo_report_processed` always advertise itself as read-only and idempotent to MCP clients, even when browser-triggered archiving or browser-based segment archiving is enabled, because archive materialization while serving a report is no longer treated as a change to Matomo's state.
