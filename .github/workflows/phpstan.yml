@@ -52,21 +52,6 @@ jobs:
         run: composer install --ignore-platform-reqs
         working-directory: matomo
 
-      - name: Restore result cache
-        uses: actions/cache/restore@v6
-        with:
-          path: /tmp/phpstan # same as in phpstan.neon
-          key: "phpstan-result-cache-${{ github.run_id }}"
-          restore-keys: |
-            phpstan-result-cache-
-
       - name: PHPStan whole repo
         run: composer run phpstan -- -vvv -c plugins/${{ env.PLUGIN_NAME }}/phpstan.neon
         working-directory: matomo
-
-      - name: Save result cache
-        uses: actions/cache/save@v6
-        if: ${{ !cancelled() }}
-        with:
-          path: /tmp/phpstan # same as in phpstan.neon
-          key: "phpstan-result-cache-${{ github.run_id }}"
