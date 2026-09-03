@@ -116,6 +116,7 @@ class StrictSegmentPolicyServiceTest extends IntegrationTestCase
             throw new \RuntimeException('Invalid Matomo general config state.');
         }
 
+        /** @var array<string, scalar|null> $general */
         $originalEnableBrowserArchivingTriggering = (int) ($general['enable_browser_archiving_triggering'] ?? 1);
         $originalBrowserArchivingDisabledEnforce = (int) ($general['browser_archiving_disabled_enforce'] ?? 0);
         $originalBrowserTriggerEnabled = Rules::isBrowserTriggerEnabled();

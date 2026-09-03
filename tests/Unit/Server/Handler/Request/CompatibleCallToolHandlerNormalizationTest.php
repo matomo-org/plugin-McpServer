@@ -184,11 +184,21 @@ class CompatibleCallToolHandlerNormalizationTest extends TestCase
         self::assertSame(0, $this->callCount);
 
         // Rejected by the schema for the field in question, not incidentally by something else.
-        self::assertIsArray($response->data);
-        self::assertStringContainsString(
-            'apiParameters',
-            (string) ($response->data['validation_errors'][0]['pointer'] ?? ''),
-        );
+        $data = $response->data;
+        self::assertIsArray($data);
+        self::assertArrayHasKey('validation_errors', $data);
+
+        $validationErrors = $data['validation_errors'];
+        self::assertIsArray($validationErrors);
+        self::assertArrayHasKey(0, $validationErrors);
+
+        $firstError = $validationErrors[0];
+        self::assertIsArray($firstError);
+        self::assertArrayHasKey('pointer', $firstError);
+
+        $pointer = $firstError['pointer'];
+        self::assertIsString($pointer);
+        self::assertStringContainsString('apiParameters', $pointer);
     }
 
     /**

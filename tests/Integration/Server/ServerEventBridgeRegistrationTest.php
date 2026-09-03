@@ -40,7 +40,7 @@ use Psr\Container\ContainerInterface;
  */
 class ServerEventBridgeRegistrationTest extends IntegrationTestCase
 {
-    /** @var array<string, mixed>|null */
+    /** @var array<mixed>|null */
     private ?array $originalMcpServerConfig = null;
 
     /** @var list<McpServerEvent> */

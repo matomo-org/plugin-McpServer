@@ -140,6 +140,7 @@ class McpToolSchemaConformanceTest extends IntegrationTestCase
      */
     private function collectLeafErrors(ValidationError $error, array &$collected): void
     {
+        /** @var list<ValidationError> $subErrors */
         $subErrors = $error->subErrors();
         if ($subErrors === []) {
             $collected[] = [
@@ -155,7 +156,7 @@ class McpToolSchemaConformanceTest extends IntegrationTestCase
     }
 
     /**
-     * @param array<int, int|string> $path
+     * @param array<int|string, int|string> $path
      */
     private function formatJsonPointer(array $path): string
     {
@@ -174,6 +175,7 @@ class McpToolSchemaConformanceTest extends IntegrationTestCase
     private function formatErrorMessage(ValidationError $error): string
     {
         $template = $error->message() ?: 'Constraint `' . $error->keyword() . '` failed.';
+        /** @var array<string, scalar|array<mixed>|null> $args */
         $args = $error->args();
 
         return preg_replace_callback(

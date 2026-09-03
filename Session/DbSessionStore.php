@@ -62,7 +62,7 @@ class DbSessionStore implements SessionStoreInterface
             return false;
         }
 
-        if (!array_key_exists('data', $row) || $row['data'] === null) {
+        if (!isset($row['data'])) {
             $this->destroy($id);
             return false;
         }

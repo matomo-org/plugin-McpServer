@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Api;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Content\Content;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error as JsonRpcError;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
@@ -80,15 +81,18 @@ final class InternalToolCaller
 
         $this->publishToolCallEvent($sessionId, $name, $result->isError, $startedAt);
 
+        /** @var array<string, mixed>|null $structuredContent */
+        $structuredContent = $result->structuredContent;
+
         return [
             'content' => $content,
-            'structuredContent' => $result->structuredContent,
+            'structuredContent' => $structuredContent,
             'isError' => $result->isError,
         ];
     }
 
     /**
-     * @param array<int, mixed> $blocks
+     * @param array<Content> $blocks
      * @return list<array<string, mixed>>|null null when an SDK content block flattens to a non-object value
      */
     private function serializeContent(array $blocks): ?array
@@ -108,6 +112,7 @@ final class InternalToolCaller
                 // isError payload instead of a truncated list.
                 return null;
             }
+            /** @var array<string, mixed> $flat */
             $normalized[] = $flat;
         }
 

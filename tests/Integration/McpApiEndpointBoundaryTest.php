@@ -50,7 +50,7 @@ use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
  */
 class McpApiEndpointBoundaryTest extends IntegrationTestCase
 {
-    /** @var array<string, mixed> */
+    /** @var array<mixed> */
     private array $originalGet = [];
 
     private int $originalNestedApiInvocationCount = 0;
@@ -198,7 +198,9 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertIsArray($decoded, 'Expected JSON-RPC response payload from API dispatch.');
         self::assertSame('2.0', $decoded['jsonrpc'] ?? null);
         self::assertTrue(isset($decoded['error']), 'Expected JSON-RPC error for empty request body.');
-        self::assertIsInt($decoded['error']['code'] ?? null);
+        $error = $decoded['error'];
+        self::assertIsArray($error);
+        self::assertIsInt($error['code'] ?? null);
     }
 
     public function testDisabledMcpReturnsForbiddenErrorWhenTopLevelIdExists(): void

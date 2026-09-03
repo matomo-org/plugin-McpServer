@@ -111,7 +111,7 @@ class ReportProcessedTest extends IntegrationTestCase
             null,
             false,
         );
-        $baselineReportData = $baseline['reportData'] ?? null;
+        $baselineReportData = $baseline['reportData'];
         self::assertInstanceOf(DataTable::class, $baselineReportData);
         self::assertGreaterThanOrEqual(2, $baselineReportData->getRowsCount());
 
@@ -919,7 +919,9 @@ class ReportProcessedTest extends IntegrationTestCase
         $resolvedApiParameters = $resolvedReport['apiParameters'] ?? null;
         self::assertIsArray($resolvedApiParameters);
         self::assertArrayHasKey('idGoal', $resolvedApiParameters);
-        self::assertSame((string) $idGoal, (string) $resolvedApiParameters['idGoal']);
+        /** @var int|string $resolvedIdGoal */
+        $resolvedIdGoal = $resolvedApiParameters['idGoal'];
+        self::assertSame((string) $idGoal, (string) $resolvedIdGoal);
         self::assertArrayNotHasKey('filter_update_columns_when_show_all_goals', $resolvedApiParameters);
         self::assertArrayNotHasKey('filter_show_goal_columns_process_goals', $resolvedApiParameters);
     }
@@ -962,7 +964,11 @@ class ReportProcessedTest extends IntegrationTestCase
         $apiParameters = $properties['apiParameters'] ?? null;
         self::assertIsArray($apiParameters);
         self::assertSame('object', $apiParameters['type'] ?? null);
-        $items = $properties['goalMetricsProcessGoals']['items']['oneOf'] ?? null;
+        $goalMetricsProcessGoals = $properties['goalMetricsProcessGoals'] ?? null;
+        self::assertIsArray($goalMetricsProcessGoals);
+        $goalMetricsItems = $goalMetricsProcessGoals['items'] ?? null;
+        self::assertIsArray($goalMetricsItems);
+        $items = $goalMetricsItems['oneOf'] ?? null;
         self::assertIsArray($items);
 
         $foundCoreEcommercePattern = false;
@@ -971,7 +977,7 @@ class ReportProcessedTest extends IntegrationTestCase
                 is_array($itemSchema)
                 && ($itemSchema['type'] ?? null) === 'string'
                 && is_string($itemSchema['pattern'] ?? null)
-                && str_contains((string) $itemSchema['pattern'], 'ecommerceOrder')
+                && str_contains($itemSchema['pattern'], 'ecommerceOrder')
             ) {
                 $foundCoreEcommercePattern = true;
                 break;
@@ -1002,7 +1008,7 @@ class ReportProcessedTest extends IntegrationTestCase
             __METHOD__,
         );
 
-        self::assertStringContainsString('goal_columns_mode', $error->message ?? '');
+        self::assertStringContainsString('goal_columns_mode', $error->message);
     }
 
     public function testAllowsUniqueIdCombinedWithEmptyListApiParameters(): void
@@ -1682,7 +1688,7 @@ class ReportProcessedTest extends IntegrationTestCase
 
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
-            $error->message ?? '',
+            $error->message,
         );
     }
 
@@ -1695,7 +1701,7 @@ class ReportProcessedTest extends IntegrationTestCase
         self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
         self::assertStringContainsString(
             "Invalid parameters for tool '" . ReportProcessed::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
     }
 
@@ -1885,6 +1891,7 @@ class ReportProcessedTest extends IntegrationTestCase
         if (!is_array($general)) {
             throw new \RuntimeException('Invalid Matomo general config state.');
         }
+        /** @var array<string, scalar|null> $general */
 
         $originalEnableBrowserArchivingTriggering = (int) ($general['enable_browser_archiving_triggering'] ?? 1);
         $originalBrowserArchivingDisabledEnforce = (int) ($general['browser_archiving_disabled_enforce'] ?? 0);

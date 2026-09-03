@@ -53,7 +53,8 @@ class McpToolRegistrationEventTest extends IntegrationTestCase
         Piwik::addAction('McpServer.filterTools', static function (array &$tools): void {
             $tools = array_values(array_filter(
                 $tools,
-                static fn(McpTool $tool): bool => $tool->getName() !== self::CONTRIBUTED_TOOL_NAME,
+                static fn(mixed $tool): bool => $tool instanceof McpTool
+                    && $tool->getName() !== self::CONTRIBUTED_TOOL_NAME,
             ));
         });
 

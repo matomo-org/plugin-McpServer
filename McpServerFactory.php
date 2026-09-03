@@ -294,8 +294,12 @@ final class McpServerFactory
     private function getMcpServerConfig(): array
     {
         $config = Config::getInstance()->McpServer ?? [];
+        if (!is_array($config)) {
+            return [];
+        }
 
-        return is_array($config) ? $config : [];
+        /** @var array<string, mixed> $config */
+        return $config;
     }
 
     /**

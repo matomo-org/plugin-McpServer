@@ -101,6 +101,7 @@ class SegmentListTest extends IntegrationTestCase
         );
         $segments = $content['segments'] ?? null;
         self::assertIsArray($segments);
+        /** @var list<array<string, mixed>> $segments */
         self::assertCount(3, $segments);
         self::assertGreaterThan($segments[1]['idsegment'] ?? 0, $segments[0]['idsegment'] ?? 0);
     }
@@ -196,9 +197,9 @@ class SegmentListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('limit', $message->message ?? '');
+        self::assertStringContainsString('limit', $message->message);
     }
 
     public function testRejectsInvalidSort(): void
@@ -214,9 +215,9 @@ class SegmentListTest extends IntegrationTestCase
         );
         self::assertStringContainsString(
             "Invalid parameters for tool '" . SegmentList::TOOL_NAME . "':",
-            $message->message ?? '',
+            $message->message,
         );
-        self::assertStringContainsString('sort', $message->message ?? '');
+        self::assertStringContainsString('sort', $message->message);
     }
 
     public function testRejectsInvalidCursor(): void

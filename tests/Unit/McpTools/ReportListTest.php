@@ -249,7 +249,7 @@ class ReportListTest extends TestCase
 
         $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_DESC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -286,7 +286,7 @@ class ReportListTest extends TestCase
 
         $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC);
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -331,7 +331,7 @@ class ReportListTest extends TestCase
 
         $tool = new ReportList($wrapper, new PaginatedCollectionResponder(new CursorPaginator()));
         $page = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC, search: 'visitors');
-        $cursor = $page['next_cursor'] ?? null;
+        $cursor = $page['next_cursor'];
         self::assertIsString($cursor);
 
         $this->expectException(McpToolCallException::class);
@@ -379,7 +379,7 @@ class ReportListTest extends TestCase
         // The cursor context persists the normalized search key, so a differently
         // spelled but equivalent term must keep the same paginated result set.
         $firstPage = $tool->execute(1, limit: 1, sort: ReportsPagination::SORT_NAME_ASC, search: ' Visits Summary ');
-        $cursor = $firstPage['next_cursor'] ?? null;
+        $cursor = $firstPage['next_cursor'];
         self::assertIsString($cursor);
 
         $secondPage = $tool->execute(

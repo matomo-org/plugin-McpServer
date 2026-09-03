@@ -351,10 +351,15 @@ class ObservedCallToolHandlerTest extends TestCase
             ->method('debug')
             ->with(
                 'MCP Tool Call failed: {error_message} [{formatted_arguments}] [session={session_id}]',
-                self::callback(static fn(array $context): bool => ($context['mcp_params_mode'] ?? null) === 'full'
-                    && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
-                    && str_contains((string) ($context['formatted_arguments'] ?? ''), '%253A')
-                    && ($context['session_id'] ?? null) === 'c7f81059-95ee-406e-89b9-a3f3d8f61373'),
+                self::callback(static function (array $context): bool {
+                    $formattedArguments = $context['formatted_arguments'] ?? '';
+
+                    return ($context['mcp_params_mode'] ?? null) === 'full'
+                        && ($context['error_message'] ?? null) === 'Tool not found: "missing_tool".'
+                        && is_string($formattedArguments)
+                        && str_contains($formattedArguments, '%253A')
+                        && ($context['session_id'] ?? null) === 'c7f81059-95ee-406e-89b9-a3f3d8f61373';
+                }),
             );
 
         $handler = $this->createObservedHandler($registry, $logger, true);
