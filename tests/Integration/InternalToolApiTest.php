@@ -119,7 +119,7 @@ class InternalToolApiTest extends IntegrationTestCase
         $event = $this->singleCapturedToolCallEvent();
         self::assertSame('matomo_nonexistent_tool', $event->toolName);
         self::assertTrue($event->isError);
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $event->errorCode);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $event->errorCode);
         self::assertSame('internal', $event->transport);
         self::assertSame('Matomo', $event->clientName);
         self::assertSame(Version::VERSION, $event->clientVersion);

@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\State;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
@@ -66,6 +67,16 @@ interface ClientStateInterface
      * Check if connection is initialized.
      */
     public function isInitialized() : bool;
+    /**
+     * Store the protocol version negotiated during initialization.
+     */
+    public function setProtocolVersion(ProtocolVersion $protocolVersion) : void;
+    /**
+     * Get the protocol version negotiated during initialization.
+     *
+     * Null until the handshake has completed.
+     */
+    public function getProtocolVersion() : ?ProtocolVersion;
     /**
      * Store the server info from initialization.
      */

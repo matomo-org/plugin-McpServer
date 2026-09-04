@@ -53,7 +53,7 @@ class EmbeddedResource extends Content
         } else {
             throw new InvalidArgumentException('EmbeddedResource "resource" field must contain "text" or "blob".');
         }
-        return new self($resourceInstance, isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null);
+        return new self($resourceInstance, Annotations::tryFromArray($data['annotations'] ?? null, 'EmbeddedResource'));
     }
     public static function fromText(string $uri, string $text, ?string $mimeType = 'text/plain', ?Annotations $annotations = null) : self
     {

@@ -21,14 +21,14 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class NumberSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string         $title       Human-readable title for the field
+     * @param ?string        $title       Optional human-readable title for the field
      * @param bool           $integerOnly Whether to restrict to integer values only
      * @param string|null    $description Optional description/help text
      * @param int|float|null $default     Optional default value
      * @param int|float|null $minimum     Optional minimum value (inclusive)
      * @param int|float|null $maximum     Optional maximum value (inclusive)
      */
-    public function __construct(string $title, public readonly bool $integerOnly = \false, ?string $description = null, public readonly int|float|null $default = null, public readonly int|float|null $minimum = null, public readonly int|float|null $maximum = null)
+    public function __construct(?string $title = null, public readonly bool $integerOnly = \false, ?string $description = null, public readonly int|float|null $default = null, public readonly int|float|null $minimum = null, public readonly int|float|null $maximum = null)
     {
         parent::__construct($title, $description);
         if (null !== $minimum && null !== $maximum && $minimum > $maximum) {
@@ -47,7 +47,7 @@ final class NumberSchemaDefinition extends AbstractSchemaDefinition
     /**
      * @param array{
      *     type: string,
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: int|float,
      *     minimum?: int|float,
@@ -59,12 +59,12 @@ final class NumberSchemaDefinition extends AbstractSchemaDefinition
         self::validateTitle($data, 'number');
         $type = $data['type'] ?? 'number';
         $integerOnly = 'integer' === $type;
-        return new self(title: $data['title'], integerOnly: $integerOnly, description: $data['description'] ?? null, default: $data['default'] ?? null, minimum: $data['minimum'] ?? null, maximum: $data['maximum'] ?? null);
+        return new self(title: $data['title'] ?? null, integerOnly: $integerOnly, description: $data['description'] ?? null, default: $data['default'] ?? null, minimum: $data['minimum'] ?? null, maximum: $data['maximum'] ?? null);
     }
     /**
      * @return array{
      *     type: string,
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: int|float,
      *     minimum?: int|float,

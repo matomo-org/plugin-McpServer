@@ -30,7 +30,7 @@ class McpProtocolErrorTest extends TestCase
         $response = McpTestHelper::postJson($server, $payload, ['Mcp-Session-Id' => $sessionId]);
         $message = McpTestHelper::decodeError($response);
 
-        self::assertSame(JsonRpcError::METHOD_NOT_FOUND, $message->code);
+        self::assertSame(JsonRpcError::INVALID_PARAMS, $message->code);
     }
 
     public function testInvalidJsonReturnsErrorResponse(): void

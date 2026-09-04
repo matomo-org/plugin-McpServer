@@ -168,16 +168,14 @@ final class Discoverer implements DiscovererInterface
     private function processMethod(\ReflectionMethod $method, array &$discoveredCount, \ReflectionAttribute $attribute, array &$tools, array &$resources, array &$prompts, array &$resourceTemplates) : void
     {
         $className = $method->getDeclaringClass()->getName();
-        $classShortName = $method->getDeclaringClass()->getShortName();
         $methodName = $method->getName();
         $attributeClassName = $attribute->getName();
         try {
             $instance = $attribute->newInstance();
             switch ($attributeClassName) {
                 case McpTool::class:
-                    $docBlock = $this->docBlockParser->parseDocBlock($method->getDocComment() ?? null);
-                    $name = $instance->name ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($method, $instance->name);
+                    $description = ElementMetadataResolver::resolveDescription($method, $instance->description, $this->docBlockParser);
                     $inputSchema = $this->schemaGenerator->generate($method);
                     $outputSchema = $this->schemaGenerator->generateOutputSchema($method);
                     $tool = new Tool(name: $name, title: $instance->title, inputSchema: $inputSchema, description: $description, annotations: $instance->annotations, icons: $instance->icons, meta: $instance->meta, outputSchema: $outputSchema);
@@ -185,17 +183,16 @@ final class Discoverer implements DiscovererInterface
                     ++$discoveredCount['tools'];
                     break;
                 case McpResource::class:
-                    $docBlock = $this->docBlockParser->parseDocBlock($method->getDocComment() ?? null);
-                    $name = $instance->name ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($method, $instance->name);
+                    $description = ElementMetadataResolver::resolveDescription($method, $instance->description, $this->docBlockParser);
                     $resource = new ResourceDefinition($instance->uri, $name, $instance->title, $description, $instance->mimeType, $instance->annotations, $instance->size, $instance->icons, $instance->meta);
                     $resources[$instance->uri] = new ResourceReference($resource, [$className, $methodName]);
                     ++$discoveredCount['resources'];
                     break;
                 case McpPrompt::class:
                     $docBlock = $this->docBlockParser->parseDocBlock($method->getDocComment() ?? null);
-                    $name = $instance->name ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($method, $instance->name);
+                    $description = ElementMetadataResolver::resolveDescription($method, $instance->description, $this->docBlockParser);
                     $arguments = [];
                     $paramTags = $this->docBlockParser->getParamTags($docBlock);
                     foreach ($method->getParameters() as $param) {
@@ -212,9 +209,8 @@ final class Discoverer implements DiscovererInterface
                     ++$discoveredCount['prompts'];
                     break;
                 case McpResourceTemplate::class:
-                    $docBlock = $this->docBlockParser->parseDocBlock($method->getDocComment() ?? null);
-                    $name = $instance->name ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $instance->description ?? $this->docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($method, $instance->name);
+                    $description = ElementMetadataResolver::resolveDescription($method, $instance->description, $this->docBlockParser);
                     $mimeType = $instance->mimeType;
                     $annotations = $instance->annotations;
                     $meta = $instance->meta ?? null;

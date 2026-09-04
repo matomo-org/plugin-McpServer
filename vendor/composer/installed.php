@@ -3,7 +3,7 @@
         'name' => '__root__',
         'pretty_version' => 'dev-5.x-dev',
         'version' => 'dev-5.x-dev',
-        'reference' => 'd598ae5dd0b8287020059babef855c427ccddd87',
+        'reference' => 'eb30b17eea1272aa326b852e87cb472f060f81e8',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         '__root__' => array(
             'pretty_version' => 'dev-5.x-dev',
             'version' => 'dev-5.x-dev',
-            'reference' => 'd598ae5dd0b8287020059babef855c427ccddd87',
+            'reference' => 'eb30b17eea1272aa326b852e87cb472f060f81e8',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -29,9 +29,9 @@
             'dev_requirement' => false,
         ),
         'mcp/sdk' => array(
-            'pretty_version' => 'v0.7.1',
-            'version' => '0.7.1.0',
-            'reference' => '785fc3b9b7006ecc8a73322c939d96a4a7154345',
+            'pretty_version' => 'v0.8.0',
+            'version' => '0.8.0.0',
+            'reference' => 'e173367c5f506af39345f7a18e88764786edbdfa',
             'type' => 'library',
             'install_path' => __DIR__ . '/../mcp/sdk',
             'aliases' => array(),
@@ -236,6 +236,15 @@
             'replaced' => array(
                 0 => '*',
             ),
+        ),
+        'symfony/deprecation-contracts' => array(
+            'pretty_version' => 'v3.7.1',
+            'version' => '3.7.1.0',
+            'reference' => 'f3202fa1b5097b0af062dc978b32ecf63404e31d',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../symfony/deprecation-contracts',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'symfony/polyfill-uuid' => array(
             'pretty_version' => 'v1.37.0',

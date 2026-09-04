@@ -20,6 +20,8 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
  * Unlike the other events this is not a JSON-RPC method observed on the SDK's PSR-14 seam — the
  * DELETE never reaches that seam — so it is published from the HTTP entry point instead (see
  * {@see \Piwik\Plugins\McpServer\API::mcp()}).
+ *
+ * Handshake-era only: MCP revision `2026-07-28` has no session to terminate.
  */
 final class McpSessionEndEvent extends McpServerEvent
 {

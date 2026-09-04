@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Schema\Request;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 /**
  * Sent from the client to request a list of resources the server has.
@@ -32,6 +33,9 @@ final class ListResourcesRequest extends Request
     }
     protected static function fromParams(?array $params) : static
     {
+        if (isset($params['cursor']) && !\is_string($params['cursor'])) {
+            throw new InvalidArgumentException('Invalid "cursor" parameter for resources/list.');
+        }
         return new self($params['cursor'] ?? null);
     }
     /**
