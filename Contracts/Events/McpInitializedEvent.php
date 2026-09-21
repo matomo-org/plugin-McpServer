@@ -14,6 +14,9 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
 /**
  * The client sent the `notifications/initialized` notification, confirming it finished the
  * handshake. Sessions that never send it can be told apart from compliant ones.
+ *
+ * Handshake-era only: MCP revision `2026-07-28` removed the notification along with the handshake
+ * it confirms.
  */
 final class McpInitializedEvent extends McpServerEvent
 {

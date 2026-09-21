@@ -91,10 +91,10 @@ class SegmentGetTest extends IntegrationTestCase
             'idSegment' => $this->idSegmentAlpha,
         ]);
 
-        self::assertFalse($result->isError);
-        self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
-        self::assertSame($this->segmentNameAlpha, $result->structuredContent['name'] ?? null);
-        self::assertSame('countryCode==de', $result->structuredContent['definition'] ?? null);
+        $structuredContent = McpTestHelper::assertToolSuccess($result);
+        self::assertSame($this->idSegmentAlpha, $structuredContent['idsegment'] ?? null);
+        self::assertSame($this->segmentNameAlpha, $structuredContent['name'] ?? null);
+        self::assertSame('countryCode==de', $structuredContent['definition'] ?? null);
     }
 
     public function testReturnsSegmentByName(): void
@@ -104,8 +104,8 @@ class SegmentGetTest extends IntegrationTestCase
             'name' => $this->segmentNameAlpha,
         ]);
 
-        self::assertFalse($result->isError);
-        self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
+        $structuredContent = McpTestHelper::assertToolSuccess($result);
+        self::assertSame($this->idSegmentAlpha, $structuredContent['idsegment'] ?? null);
     }
 
     public function testReturnsSegmentByDefinition(): void
@@ -115,8 +115,8 @@ class SegmentGetTest extends IntegrationTestCase
             'definition' => 'countryCode==de',
         ]);
 
-        self::assertFalse($result->isError);
-        self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
+        $structuredContent = McpTestHelper::assertToolSuccess($result);
+        self::assertSame($this->idSegmentAlpha, $structuredContent['idsegment'] ?? null);
     }
 
     public function testRejectsInvalidSelectorCombinationAtSchemaLevel(): void

@@ -32,7 +32,11 @@ class InternalToolCatalogTest extends TestCase
 {
     public function testBuildReturnsFlatEntriesForFullyAnnotatedTools(): void
     {
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = [
+            'type' => 'object',
+            'properties' => ['idSite' => ['type' => 'integer']],
+            'required' => ['idSite'],
+        ];
         $outputSchema = ['type' => 'object', 'properties' => ['ok' => ['type' => 'boolean']]];
         $tool = new Tool(
             name: 'matomo_demo_tool',
@@ -65,7 +69,11 @@ class InternalToolCatalogTest extends TestCase
 
     public function testBuildPassesThroughNullForMissingAnnotationsObject(): void
     {
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = [
+            'type' => 'object',
+            'properties' => ['idSite' => ['type' => 'integer']],
+            'required' => ['idSite'],
+        ];
         $tool = new Tool(
             name: 'matomo_unannotated_tool',
             title: null,
@@ -95,7 +103,11 @@ class InternalToolCatalogTest extends TestCase
         // two booleans verbatim and leave the other hints as null so consumers
         // can apply their own "unknown means …" policy instead of inheriting a
         // catalogue-imposed default.
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = [
+            'type' => 'object',
+            'properties' => ['idSite' => ['type' => 'integer']],
+            'required' => ['idSite'],
+        ];
         $tool = new Tool(
             name: 'matomo_partially_annotated_tool',
             title: null,
@@ -122,6 +134,30 @@ class InternalToolCatalogTest extends TestCase
             'idempotent' => null,
             'openWorld' => false,
         ]], $entries);
+    }
+
+    public function testBuildReportsArgumentLessToolsWithAnEmptySchemaObject(): void
+    {
+        // The SDK normalizes an empty `properties` map to a stdClass so it
+        // JSON-encodes as `{}`; the catalogue passes that through untouched,
+        // for the same reason it preserves an explicit placeholder: a consumer
+        // re-encoding the schema must not emit the spec-invalid `[]`.
+        $tool = new Tool(
+            name: 'matomo_argument_less_tool',
+            title: null,
+            inputSchema: ['type' => 'object', 'properties' => [], 'required' => null],
+            description: 'takes no arguments',
+            annotations: null,
+        );
+
+        $entries = (new InternalToolCatalog())->build($this->createAccess([$tool]));
+
+        self::assertCount(1, $entries);
+        self::assertInstanceOf(\stdClass::class, $entries[0]['inputSchema']['properties']);
+
+        $encoded = json_encode($entries[0]['inputSchema']);
+        self::assertIsString($encoded);
+        self::assertStringContainsString('"properties":{}', $encoded);
     }
 
     public function testBuildPreservesStdClassPlaceholdersInSchemas(): void

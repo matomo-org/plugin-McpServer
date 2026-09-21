@@ -15,6 +15,7 @@ use Matomo\Dependencies\McpServer\Mcp\Capability\Completion\EnumCompletionProvid
 use Matomo\Dependencies\McpServer\Mcp\Capability\Completion\ListCompletionProvider;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Completion\ProviderInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\DocBlockParser;
+use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\ElementMetadataResolver;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\HandlerResolver;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaGenerator;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaGeneratorInterface;
@@ -95,11 +96,8 @@ final class ReflectedElementLoader implements LoaderInterface
                     $name = $data['name'] ?? 'closure_tool_' . spl_object_id($data['handler']);
                     $description = $data['description'] ?? null;
                 } else {
-                    $classShortName = $reflection->getDeclaringClass()->getShortName();
-                    $methodName = $reflection->getName();
-                    $docBlock = $docBlockParser->parseDocBlock($reflection->getDocComment() ?? null);
-                    $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($reflection, $data['name'] ?? null);
+                    $description = ElementMetadataResolver::resolveDescription($reflection, $data['description'] ?? null, $docBlockParser);
                 }
                 $inputSchema = $data['inputSchema'] ?? $schemaGenerator->generate($reflection);
                 $tool = new Tool(name: $name, title: $data['title'] ?? null, inputSchema: $inputSchema, description: $description, annotations: $data['annotations'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null, outputSchema: $data['outputSchema'] ?? null);
@@ -119,11 +117,8 @@ final class ReflectedElementLoader implements LoaderInterface
                     $name = $data['name'] ?? 'closure_resource_' . spl_object_id($data['handler']);
                     $description = $data['description'] ?? null;
                 } else {
-                    $classShortName = $reflection->getDeclaringClass()->getShortName();
-                    $methodName = $reflection->getName();
-                    $docBlock = $docBlockParser->parseDocBlock($reflection->getDocComment() ?? null);
-                    $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($reflection, $data['name'] ?? null);
+                    $description = ElementMetadataResolver::resolveDescription($reflection, $data['description'] ?? null, $docBlockParser);
                 }
                 $resource = new ResourceDefinition(uri: $data['uri'], name: $name, title: $data['title'] ?? null, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, size: $data['size'] ?? null, icons: $data['icons'] ?? null, meta: $data['meta'] ?? null);
                 $registry->registerResource($resource, $data['handler']);
@@ -142,11 +137,8 @@ final class ReflectedElementLoader implements LoaderInterface
                     $name = $data['name'] ?? 'closure_template_' . spl_object_id($data['handler']);
                     $description = $data['description'] ?? null;
                 } else {
-                    $classShortName = $reflection->getDeclaringClass()->getShortName();
-                    $methodName = $reflection->getName();
-                    $docBlock = $docBlockParser->parseDocBlock($reflection->getDocComment() ?? null);
-                    $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($reflection, $data['name'] ?? null);
+                    $description = ElementMetadataResolver::resolveDescription($reflection, $data['description'] ?? null, $docBlockParser);
                 }
                 $template = new ResourceTemplate(uriTemplate: $data['uriTemplate'], name: $name, title: $data['title'] ?? null, description: $description, mimeType: $data['mimeType'] ?? null, annotations: $data['annotations'] ?? null, meta: $data['meta'] ?? null);
                 $completionProviders = $this->getCompletionProviders($reflection);
@@ -166,11 +158,8 @@ final class ReflectedElementLoader implements LoaderInterface
                     $name = $data['name'] ?? 'closure_prompt_' . spl_object_id($data['handler']);
                     $description = $data['description'] ?? null;
                 } else {
-                    $classShortName = $reflection->getDeclaringClass()->getShortName();
-                    $methodName = $reflection->getName();
-                    $docBlock = $docBlockParser->parseDocBlock($reflection->getDocComment() ?? null);
-                    $name = $data['name'] ?? ('__invoke' === $methodName ? $classShortName : $methodName);
-                    $description = $data['description'] ?? $docBlockParser->getDescription($docBlock) ?? null;
+                    $name = ElementMetadataResolver::resolveName($reflection, $data['name'] ?? null);
+                    $description = ElementMetadataResolver::resolveDescription($reflection, $data['description'] ?? null, $docBlockParser);
                 }
                 $arguments = [];
                 $paramTags = $reflection instanceof \ReflectionMethod ? $docBlockParser->getParamTags($docBlockParser->parseDocBlock($reflection->getDocComment() ?? null)) : [];

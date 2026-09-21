@@ -190,9 +190,12 @@ class API extends \Piwik\Plugin\API
      * @param string|null $sessionKey Optional logical session key for grouping related internal calls.
      * @return array{
      *     content: list<array<string, mixed>>,
-     *     structuredContent: array<string, mixed>|null,
+     *     structuredContent: mixed,
      *     isError: bool
-     * } Serialized MCP tool result payload.
+     * } Serialized MCP tool result payload. `structuredContent` is the tool's
+     *   structured result as the MCP SDK produced it: an object or `null` for
+     *   the tools this plugin ships, any JSON value for a tool another plugin
+     *   contributes under an MCP revision that allows one.
      */
     public function callInternalTool(string $name, array $arguments = [], ?string $sessionKey = null): array
     {

@@ -46,7 +46,7 @@ class TextContent extends Content
         if (!isset($data['text']) || !\is_string($data['text'])) {
             throw new InvalidArgumentException('Missing or invalid "text" in TextContent data.');
         }
-        return new self($data['text'], isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null);
+        return new self($data['text'], Annotations::tryFromArray($data['annotations'] ?? null, 'TextContent'));
     }
     /**
      * Create a new TextContent with markdown formatted code.
