@@ -188,16 +188,24 @@ class DbSessionStoreTest extends IntegrationTestCase
         $this->assertSame(7200, DbSessionStore::resolveConfiguredTtl());
     }
 
-    public function testResolveConfiguredTtlFallsBackToDefaultWhenInvalid(): void
+    /**
+     * @dataProvider provideInvalidConfiguredTtls
+     */
+    public function testResolveConfiguredTtlFallsBackToDefaultWhenInvalid(int|string $configuredTtl): void
     {
-        Config::getInstance()->McpServer = ['session_ttl' => 0];
-        $this->assertSame(3600, DbSessionStore::resolveConfiguredTtl());
+        Config::getInstance()->McpServer = ['session_ttl' => $configuredTtl];
 
-        Config::getInstance()->McpServer = ['session_ttl' => -5];
         $this->assertSame(3600, DbSessionStore::resolveConfiguredTtl());
+    }
 
-        Config::getInstance()->McpServer = ['session_ttl' => 'invalid'];
-        $this->assertSame(3600, DbSessionStore::resolveConfiguredTtl());
+    /**
+     * @return iterable<string, array{0: int|string}>
+     */
+    public static function provideInvalidConfiguredTtls(): iterable
+    {
+        yield 'zero' => [0];
+        yield 'negative' => [-5];
+        yield 'non-numeric string' => ['invalid'];
     }
 
     public function testConstructorUsesConfiguredTtlWhenNoExplicitValue(): void
