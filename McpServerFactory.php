@@ -18,9 +18,9 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ToolAnnotations;
 use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
+use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\ListToolsHandler;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
-use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Config;
@@ -31,6 +31,8 @@ use Piwik\Plugins\McpServer\Contracts\McpToolAnnotations;
 use Piwik\Plugins\McpServer\Contracts\McpToolIcon;
 use Piwik\Plugins\McpServer\Server\Handler\Request\CompatibleCallToolHandler;
 use Piwik\Plugins\McpServer\Server\Handler\Request\ObservedCallToolHandler;
+use Piwik\Plugins\McpServer\Server\Handler\Request\PublishedCallToolHandler;
+use Piwik\Plugins\McpServer\Server\Handler\Request\PublishedListToolsHandler;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
 use Piwik\Plugins\McpServer\Server\ServerEventBridge;
 use Piwik\Plugins\McpServer\Server\Transport\MatomoHostValidationMiddleware;
@@ -41,6 +43,34 @@ use Psr\Log\NullLogger;
 
 final class McpServerFactory
 {
+    /**
+     * How long a `subscriptions/listen` stream is held open, in seconds.
+     *
+     * The modern protocol era answers that method from inside the SDK, before
+     * any registered handler, so a server cannot decline to serve it. This one
+     * has nothing to deliver over it: no notification bus is configured, and
+     * the capabilities below advertise nothing subscribable, so the stream can
+     * only ever carry keep-alives. At the SDK's default of 30 seconds each one
+     * would hold a PHP-FPM worker for that long. Cut to effectively nothing,
+     * the client gets the acknowledgment and the graceful closure frame the
+     * spec asks for, and the worker is returned immediately.
+     *
+     * Must stay above zero: {@see Builder::setSubscriptionLifetime()} floors the
+     * value at 0.0, which the dispatcher reads as "no ceiling" and holds the
+     * stream open forever.
+     */
+    private const SUBSCRIPTION_LIFETIME_SECONDS = 0.001;
+
+    /**
+     * Tools listed per `tools/list` page.
+     *
+     * Declared rather than left to the SDK's default because
+     * {@see PublishedListToolsHandler} has to construct the list handler it
+     * decorates, and a page size chosen in two places would drift. The value
+     * matches what the builder would otherwise have applied.
+     */
+    private const TOOL_LIST_PAGE_SIZE = 50;
+
     private const DEFAULT_TOOL_CALL_LOG_LEVEL = 'DEBUG';
     /** @var array<int, string> */
     private const VALID_TOOL_CALL_LOG_LEVELS = ['ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG', 'VERBOSE'];
@@ -127,6 +157,8 @@ final class McpServerFactory
             ->setRegistry($registry)
             ->setSession($this->sessionStore)
             ->setContainer($this->container)
+            ->setSubscriptionLifetime(self::SUBSCRIPTION_LIFETIME_SECONDS)
+            ->setPaginationLimit(self::TOOL_LIST_PAGE_SIZE)
             ->setCapabilities(new ServerCapabilities(
                 tools: true,
                 // Use null to avoid advertising listChanged capabilities we don't implement.
@@ -169,7 +201,15 @@ final class McpServerFactory
                 $loggingConfig['logLevel'],
             );
         }
-        $builder->addRequestHandler($activeCallToolHandler);
+        // Tool activity is published from the handler chain, which both protocol eras share,
+        // rather than from the SDK event seam below, which only the handshake era has. The
+        // undecorated handler is what goes back to the caller: the internal bridge invokes it
+        // directly and publishes its own event, so wrapping it there would double-count.
+        $builder->addRequestHandler(new PublishedCallToolHandler($activeCallToolHandler, $this->logger));
+        $builder->addRequestHandler(new PublishedListToolsHandler(
+            new ListToolsHandler($registry, self::TOOL_LIST_PAGE_SIZE),
+            $this->logger,
+        ));
 
         // Observability seam: publish each completed request and received notification as a
         // neutral McpServerEvent so other plugins can observe MCP usage without depending on the SDK.
@@ -305,9 +345,20 @@ final class McpServerFactory
      * 403s every real deployment. We replace its raw-`Host` DNS-rebinding check
      * with {@see MatomoHostValidationMiddleware} — which validates the
      * proxy-aware host, and a supplied `Origin`, against the deployment's own
-     * trusted hostnames — and keep the protocol-version middleware. Passing an
-     * explicit list is what disables the SDK defaults; see
-     * {@see StreamableHttpTransport::defaultMiddleware()}.
+     * trusted hostnames. Passing an explicit list is what disables the SDK
+     * defaults; see {@see StreamableHttpTransport::defaultMiddleware()}.
+     *
+     * The list carries host validation alone. Anything pinned here runs at the
+     * edge, before the transport classifies which protocol era a request
+     * belongs to, so it must be a rule that holds for both eras — host and
+     * origin policy is, the `MCP-Protocol-Version` header rule is not. That one
+     * belongs to the handshake era, and the transport applies it to handshake
+     * traffic itself ({@see StreamableHttpTransport::handshakeMiddleware()});
+     * pinning a `ProtocolVersionMiddleware` here instead would reject every
+     * modern-era (`2026-07-28`) request at the edge, because that middleware
+     * validates against
+     * {@see \Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion::handshakeVersions()}
+     * alone.
      *
      * We deliberately drop the SDK's `CorsMiddleware`: browser/CORS access to
      * MCP is unsupported (see {@see MatomoHostValidationMiddleware}), and Matomo
@@ -337,7 +388,6 @@ final class McpServerFactory
     {
         $middleware = [
             new MatomoHostValidationMiddleware(self::resolveAllowedOriginHosts()),
-            new ProtocolVersionMiddleware(),
         ];
 
         return new StreamableHttpTransport($request, middleware: $middleware);

@@ -13,9 +13,13 @@ namespace Piwik\Plugins\McpServer\Contracts\Events;
 
 /**
  * An MCP `tools/call` request completed: a client or internal bridge invoked a tool and received
- * a result. Transport/client metadata is optional because public HTTP calls get that context from
- * initialize events, while internal calls have no protocol handshake and self-describe here
- * ({@see $transport}, {@see $clientName}, {@see $clientVersion}) instead.
+ * a result.
+ *
+ * Transport/client metadata is optional because a handshake-era HTTP call gets that context from
+ * the initialize event for its session. Calls with no handshake behind them self-describe here
+ * ({@see $transport}, {@see $clientName}, {@see $clientVersion}) instead: internal bridge calls,
+ * and every call on MCP revision `2026-07-28`, where the client re-declares itself per request and
+ * {@see $sessionId} is therefore null.
  */
 final class McpToolCallEvent extends McpServerEvent
 {

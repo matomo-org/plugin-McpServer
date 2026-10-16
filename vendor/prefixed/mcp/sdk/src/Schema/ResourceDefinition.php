@@ -34,10 +34,6 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 class ResourceDefinition implements \JsonSerializable
 {
     /**
-     * Resource name pattern regex - must contain only alphanumeric characters, underscores, and hyphens.
-     */
-    private const RESOURCE_NAME_PATTERN = '/^[a-zA-Z0-9_-]+$/';
-    /**
      * URI pattern regex - requires a valid scheme followed by colon and optional path (RFC 3986).
      * Example patterns: file://path, db://table, urn:isbn:123, config:key, etc.
      */
@@ -55,9 +51,6 @@ class ResourceDefinition implements \JsonSerializable
      */
     public function __construct(public readonly string $uri, public readonly string $name, public readonly ?string $title = null, public readonly ?string $description = null, public readonly ?string $mimeType = null, public readonly ?Annotations $annotations = null, public readonly ?int $size = null, public readonly ?array $icons = null, public readonly ?array $meta = null)
     {
-        if (!preg_match(self::RESOURCE_NAME_PATTERN, $name)) {
-            throw new InvalidArgumentException(\sprintf('Invalid resource name "%s": must contain only alphanumeric characters, underscores, and hyphens.', $name));
-        }
         if (!preg_match(self::URI_PATTERN, $uri)) {
             throw new InvalidArgumentException(\sprintf('Invalid resource URI: "%s" must be a valid URI with a scheme and optional path.', $uri));
         }
@@ -73,10 +66,19 @@ class ResourceDefinition implements \JsonSerializable
         if (empty($data['name']) || !\is_string($data['name'])) {
             throw new InvalidArgumentException('Invalid or missing "name" in ResourceDefinition data.');
         }
-        if (!empty($data['_meta']) && !\is_array($data['_meta'])) {
+        if (isset($data['_meta']) && !\is_array($data['_meta'])) {
             throw new InvalidArgumentException('Invalid "_meta" in ResourceDefinition data.');
         }
-        return new self(uri: $data['uri'], name: $data['name'], title: isset($data['title']) && \is_string($data['title']) ? $data['title'] : null, description: $data['description'] ?? null, mimeType: $data['mimeType'] ?? null, annotations: isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null, size: isset($data['size']) ? (int) $data['size'] : null, icons: isset($data['icons']) && \is_array($data['icons']) ? array_map(Icon::fromArray(...), $data['icons']) : null, meta: isset($data['_meta']) ? $data['_meta'] : null);
+        if (isset($data['description']) && !\is_string($data['description'])) {
+            throw new InvalidArgumentException('Invalid "description" in ResourceDefinition data.');
+        }
+        if (isset($data['mimeType']) && !\is_string($data['mimeType'])) {
+            throw new InvalidArgumentException('Invalid "mimeType" in ResourceDefinition data.');
+        }
+        if (isset($data['size']) && !\is_int($data['size'])) {
+            throw new InvalidArgumentException('Invalid "size" in ResourceDefinition data; expected an integer.');
+        }
+        return new self(uri: $data['uri'], name: $data['name'], title: isset($data['title']) && \is_string($data['title']) ? $data['title'] : null, description: $data['description'] ?? null, mimeType: $data['mimeType'] ?? null, annotations: Annotations::tryFromArray($data['annotations'] ?? null, 'ResourceDefinition'), size: $data['size'] ?? null, icons: isset($data['icons']) && \is_array($data['icons']) ? Icon::listFromArray($data['icons'], 'ResourceDefinition') : null, meta: isset($data['_meta']) ? $data['_meta'] : null);
     }
     /**
      * @return array{

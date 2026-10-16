@@ -14,6 +14,7 @@ namespace Piwik\Plugins\McpServer\Server\Handler\Request;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Discovery\SchemaValidator;
 use Matomo\Dependencies\McpServer\Mcp\Capability\Registry\ReferenceHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Capability\RegistryInterface;
+use Matomo\Dependencies\McpServer\Mcp\Exception\MissingRequiredClientCapabilityException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ToolNotFoundException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\TextContent;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
@@ -21,7 +22,9 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Result\InputRequiredResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\RequestContext;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Plugins\McpServer\Contracts\McpToolCallException;
 use Piwik\Plugins\McpServer\Support\Normalization\ArgumentIssueException;
@@ -90,7 +93,7 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
     }
 
     /**
-     * @return Response<CallToolResult>|Error
+     * @return Response<CallToolResult|InputRequiredResult>|Error
      */
     public function handle(Request $request, SessionInterface $session): Response|Error
     {
@@ -102,7 +105,9 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
         try {
             $reference = $this->registry->getTool($toolName);
         } catch (ToolNotFoundException $e) {
-            return new Error($request->getId(), Error::METHOD_NOT_FOUND, $e->getMessage());
+            // Mirrors the SDK handler: `-32601` answers an unknown *method*, and
+            // `tools/call` exists - it is the name in its params that does not.
+            return Error::forInvalidParams($e->getMessage(), $request->getId());
         }
 
         $profile = ToolIntakeProfiles::forToolClass($this->toolClasses[$toolName] ?? null);
@@ -153,15 +158,27 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
 
         try {
             $result = $this->referenceHandler->handle($reference, $rawArguments);
-            $structuredContent = null;
+            if ($result instanceof InputRequiredResult) {
+                // A tool asking for more input answers with that ask, not with output.
+                return new Response($request->getId(), $result);
+            }
+
             if (!$result instanceof CallToolResult) {
-                $structuredContent = $reference->extractStructuredContent($result);
+                $structuredContent = $reference->extractStructuredContent(
+                    $result,
+                    (new RequestContext($session, $request))->getProtocolVersion(),
+                );
                 $result = new CallToolResult($reference->formatResult($result), structuredContent: $structuredContent);
             }
 
             return new Response($request->getId(), $result);
         } catch (McpToolCallException $e) {
             return new Response($request->getId(), CallToolResult::error([new TextContent($e->getMessage())]));
+        } catch (MissingRequiredClientCapabilityException $e) {
+            // Not a tool failure: the request was unservable and the transport
+            // renders this as -32021 so the client can retry declaring the
+            // capability. Swallowing it here would report an internal error.
+            throw $e;
         } catch (\Throwable) {
             return Error::forInternalError('Error while executing tool', $request->getId());
         }

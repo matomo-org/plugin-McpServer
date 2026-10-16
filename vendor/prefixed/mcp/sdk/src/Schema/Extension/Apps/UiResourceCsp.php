@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Schema\Extension\Apps;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 /**
  * Content Security Policy configuration for MCP App resources.
  *
@@ -41,6 +42,11 @@ final class UiResourceCsp implements \JsonSerializable
      */
     public static function fromArray(array $data) : self
     {
+        foreach (['connectDomains', 'resourceDomains', 'frameDomains', 'baseUriDomains'] as $key) {
+            if (isset($data[$key]) && !\is_array($data[$key])) {
+                throw new InvalidArgumentException(\sprintf('Invalid "%s" in UiResourceCsp data; expected an array.', $key));
+            }
+        }
         return new self(connectDomains: $data['connectDomains'] ?? null, resourceDomains: $data['resourceDomains'] ?? null, frameDomains: $data['frameDomains'] ?? null, baseUriDomains: $data['baseUriDomains'] ?? null);
     }
     /**

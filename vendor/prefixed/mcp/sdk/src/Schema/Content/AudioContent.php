@@ -38,10 +38,13 @@ class AudioContent extends Content
      */
     public static function fromArray(array $data) : self
     {
-        if (!isset($data['data']) || !isset($data['mimeType'])) {
-            throw new InvalidArgumentException('Invalid or missing "data" or "mimeType" in AudioContent data.');
+        if (!isset($data['data']) || !\is_string($data['data'])) {
+            throw new InvalidArgumentException('Missing or invalid "data" in AudioContent data.');
         }
-        return new self($data['data'], $data['mimeType'], isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null);
+        if (!isset($data['mimeType']) || !\is_string($data['mimeType'])) {
+            throw new InvalidArgumentException('Missing or invalid "mimeType" in AudioContent data.');
+        }
+        return new self($data['data'], $data['mimeType'], Annotations::tryFromArray($data['annotations'] ?? null, 'AudioContent'));
     }
     /**
      * Create a new AudioContent from a file path.

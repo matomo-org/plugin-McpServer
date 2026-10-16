@@ -26,6 +26,8 @@ use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Notification\NotificationHa
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionManagerInterface;
+use Matomo\Dependencies\McpServer\Mcp\Server\Stateless\InputContext;
+use Matomo\Dependencies\McpServer\Mcp\Server\Stateless\RequestStateCodec;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\TransportInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
@@ -54,10 +56,15 @@ class Protocol
     public const SESSION_ACTIVE_REQUEST_META = '_mcp.active_request_meta';
     public const SESSION_LOGGING_LEVEL = '_mcp.logging_level';
     /**
+     * Deliberately generic: unexpected throwables carry internal details such as file paths, class
+     * names and argument types, which must not be handed to the peer. The full exception is logged.
+     */
+    private const INTERNAL_ERROR_MESSAGE = 'Internal server error.';
+    /**
      * @param array<int, RequestHandlerInterface<ResultInterface|array<string, mixed>>> $requestHandlers
      * @param array<int, NotificationHandlerInterface>                                  $notificationHandlers
      */
-    public function __construct(private readonly array $requestHandlers, private readonly array $notificationHandlers, private readonly MessageFactory $messageFactory, private readonly SessionManagerInterface $sessionManager, private readonly LoggerInterface $logger = new NullLogger(), private readonly ?EventDispatcherInterface $eventDispatcher = null)
+    public function __construct(private readonly array $requestHandlers, private readonly array $notificationHandlers, private readonly MessageFactory $messageFactory, private readonly SessionManagerInterface $sessionManager, private readonly LoggerInterface $logger = new NullLogger(), private readonly ?EventDispatcherInterface $eventDispatcher = null, private readonly ?InputRequiredShim $inputRequiredShim = null, private readonly ?RequestStateCodec $requestStateCodec = null)
     {
     }
     /**
@@ -86,6 +93,57 @@ class Protocol
      */
     public function processInput(TransportInterface $transport, string $input, ?Uuid $sessionId) : void
     {
+        // Last line of defense: a malformed message must never escape as a PHP error and take the
+        // server process down.
+        try {
+            $this->doProcessInput($transport, $input, $sessionId);
+        } catch (\Throwable $e) {
+            $this->logger->error(\sprintf('Uncaught exception while processing input: %s', $e->getMessage()), ['exception' => $e]);
+            // Only a request may be answered. Replying to a notification would violate JSON-RPC,
+            // and the failure has already been logged.
+            if (null === ($id = self::findResponseId($input))) {
+                return;
+            }
+            try {
+                $this->sendResponse($transport, Error::forInternalError(self::INTERNAL_ERROR_MESSAGE, $id), null);
+            } catch (\Throwable $e) {
+                $this->logger->error(\sprintf('Failed to send internal error response: %s', $e->getMessage()), ['exception' => $e]);
+            }
+        }
+    }
+    /**
+     * Determines the id an unprocessable input has to be answered under.
+     *
+     * Returns null when the input carries no request at all, in which case it consists of
+     * notifications only and JSON-RPC forbids answering it. A batch resolves to the empty id
+     * because its failure cannot be attributed to one of its requests.
+     */
+    private static function findResponseId(string $input) : string|int|null
+    {
+        try {
+            $data = json_decode($input, \true, flags: \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+        if (!\is_array($data)) {
+            return null;
+        }
+        if (!array_is_list($data)) {
+            $id = $data['id'] ?? null;
+            return \is_string($id) || \is_int($id) ? $id : null;
+        }
+        foreach ($data as $message) {
+            if (\is_array($message) && isset($message['id'])) {
+                return '';
+            }
+        }
+        return null;
+    }
+    /**
+     * @param TransportInterface<mixed> $transport
+     */
+    private function doProcessInput(TransportInterface $transport, string $input, ?Uuid $sessionId) : void
+    {
         $this->logger->info('Received message to process.', ['message' => $input]);
         $this->sessionManager->gc();
         try {
@@ -101,14 +159,24 @@ class Protocol
             return;
         }
         foreach ($messages as $message) {
-            if ($message instanceof InvalidInputMessageException) {
-                $this->handleInvalidMessage($transport, $message, $session);
-            } elseif ($message instanceof Request) {
-                $this->handleRequest($transport, $message, $session);
-            } elseif ($message instanceof Response || $message instanceof Error) {
-                $this->handleResponse($message, $session);
-            } elseif ($message instanceof Notification) {
-                $this->handleNotification($message, $session);
+            // Guarded per message so one faulty message cannot suppress the rest of a batch.
+            try {
+                if ($message instanceof InvalidInputMessageException) {
+                    $this->handleInvalidMessage($transport, $message, $session);
+                } elseif ($message instanceof Request) {
+                    $this->handleRequest($transport, $message, $session);
+                } elseif ($message instanceof Response || $message instanceof Error) {
+                    $this->handleResponse($message, $session);
+                } elseif ($message instanceof Notification) {
+                    $this->handleNotification($message, $session);
+                }
+            } catch (\Throwable $e) {
+                $this->logger->error(\sprintf('Uncaught exception while handling message: %s', $e->getMessage()), ['exception' => $e]);
+                // Only a request may be answered; a notification or a response must not produce one.
+                if ($message instanceof Request) {
+                    $error = Error::forInternalError(self::INTERNAL_ERROR_MESSAGE, $message->getId());
+                    $this->sendResponse($transport, $error, $session);
+                }
             }
         }
         $session->save();
@@ -121,7 +189,7 @@ class Protocol
     private function handleInvalidMessage(TransportInterface $transport, InvalidInputMessageException $exception, SessionInterface $session) : void
     {
         $this->logger->warning('Failed to create message.', ['exception' => $exception]);
-        $error = Error::forInvalidRequest($exception->getMessage());
+        $error = Error::forInvalidRequest($exception->getMessage(), $exception->getRequestId());
         $this->sendResponse($transport, $error, $session);
     }
     /**
@@ -146,6 +214,13 @@ class Protocol
     {
         $this->logger->info('Handling request.', ['request' => $request]);
         $session->set(self::SESSION_ACTIVE_REQUEST_META, $request->getMeta());
+        // A request starts with nothing behind it: the shim fills this in as it
+        // collects answers, and clearing it here is what keeps one request's
+        // round from being read as another's.
+        $session->set(InputContext::class, null);
+        if (null !== $this->requestStateCodec) {
+            $session->set(RequestStateCodec::class, $this->requestStateCodec);
+        }
         $event = $this->dispatchEvent(new RequestEvent($request, $session));
         $request = $event->getRequest();
         $handlerFound = \false;
@@ -155,8 +230,15 @@ class Protocol
             }
             $handlerFound = \true;
             try {
+                $shim = $this->inputRequiredShim;
+                $codec = $this->requestStateCodec;
+                // One fiber for the whole exchange: with the shim, the handler
+                // re-enters inside it each round rather than needing a new one.
                 /** @var McpFiber $fiber */
-                $fiber = new \Fiber(static fn() => $handler->handle($request, $session));
+                $fiber = new \Fiber(static function () use($handler, $request, $session, $shim, $codec) : Response|Error {
+                    $result = $handler->handle($request, $session);
+                    return $shim?->fulfill($result, $handler, $request, $session, $codec) ?? $result;
+                });
                 $result = $fiber->start();
                 if ($fiber->isSuspended()) {
                     if (\is_array($result) && isset($result['type'])) {
@@ -189,7 +271,7 @@ class Protocol
                 $this->sendResponse($transport, $error, $session);
             } catch (\Throwable $e) {
                 $this->logger->error(\sprintf('Uncaught exception: %s', $e->getMessage()), ['exception' => $e]);
-                $error = Error::forInternalError($e->getMessage(), $request->getId());
+                $error = Error::forInternalError(self::INTERNAL_ERROR_MESSAGE, $request->getId());
                 $errorEvent = $this->dispatchEvent(new ErrorEvent($error, $request, $session, $e));
                 $error = $errorEvent->getError();
                 $this->sendResponse($transport, $error, $session);
@@ -210,6 +292,10 @@ class Protocol
     {
         $this->logger->info('Handling response from client.', ['response' => $response]);
         $messageId = $response->getId();
+        if (null === $messageId) {
+            $this->logger->warning('Received an id-less error response from client; cannot correlate it to a pending request.', ['response' => $response->jsonSerialize()]);
+            return;
+        }
         $session->set(self::SESSION_RESPONSES . ".{$messageId}", $response->jsonSerialize());
         $session->forget(self::SESSION_ACTIVE_REQUEST_META);
         $this->logger->info('Client response stored in session', ['message_id' => $messageId]);

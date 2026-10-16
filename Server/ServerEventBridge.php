@@ -13,22 +13,18 @@ namespace Piwik\Plugins\McpServer\Server;
 
 use Matomo\Dependencies\McpServer\Mcp\Event\ErrorEvent;
 use Matomo\Dependencies\McpServer\Mcp\Event\NotificationEvent;
-use Matomo\Dependencies\McpServer\Mcp\Event\RequestEvent;
 use Matomo\Dependencies\McpServer\Mcp\Event\ResponseEvent;
+use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\InitializedNotification;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\InitializeRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListToolsRequest;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Result\CallToolResult;
-use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListToolsResult;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Piwik\Log\LoggerInterface;
 use Piwik\Piwik;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializedEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializeEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpServerEvent;
-use Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent;
-use Piwik\Plugins\McpServer\Contracts\Events\McpToolsListEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -37,26 +33,25 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * `McpServer.serverEvent` Matomo event. Internal MCP bridge calls publish through the same Matomo
  * event directly.
  *
- * This is the single place that knows the SDK's event/schema types: it translates them into the
- * plugin-owned, immutable {@see McpServerEvent} contract so subscribers depend only on that
- * stable type. Every path is guarded — a failing or missing subscriber must never disrupt the
- * MCP response.
+ * Tool activity is not published here. Only the handshake era has this seam — the modern era's
+ * dispatcher takes no event dispatcher at all — so the events worth having on both are published
+ * from the handler chain both eras share, by
+ * {@see \Piwik\Plugins\McpServer\Server\Handler\Request\PublishedCallToolHandler} and
+ * {@see \Piwik\Plugins\McpServer\Server\Handler\Request\PublishedListToolsHandler}. This class
+ * skips `tools/call` and `tools/list` so a handshake-era client does not see each of them twice.
+ *
+ * What is left is what only the handshake era has: the `initialize` lifecycle, and the generic
+ * event for every other method. A modern-era request outside `tools/call` and `tools/list` is
+ * therefore not observable — `server/discover` and `subscriptions/listen` are answered inside the
+ * SDK, with no handler to decorate.
+ *
+ * Like those decorators, this translates the SDK's event/schema types into the plugin-owned,
+ * immutable {@see McpServerEvent} contract, so subscribers depend only on that stable type and
+ * never on the bundled SDK. Every path is guarded — a failing or missing subscriber must never
+ * disrupt the MCP response.
  */
 final class ServerEventBridge implements EventDispatcherInterface
 {
-    /**
-     * Transport of the public endpoint these events originate from. The bundled server is only
-     * reachable over streamable HTTP, so this is constant for now.
-     */
-    private const TRANSPORT = 'http';
-
-    /**
-     * Request id => start microtime, used to derive the tool-call duration.
-     *
-     * @var array<string, float>
-     */
-    private array $startTimes = [];
-
     public function __construct(private readonly LoggerInterface $logger)
     {
     }
@@ -64,12 +59,7 @@ final class ServerEventBridge implements EventDispatcherInterface
     public function dispatch(object $event): object
     {
         try {
-            if ($event instanceof RequestEvent) {
-                $request = $event->getRequest();
-                if ($request instanceof CallToolRequest) {
-                    $this->startTimes[(string) $request->getId()] = microtime(true);
-                }
-            } elseif ($event instanceof ResponseEvent) {
+            if ($event instanceof ResponseEvent) {
                 $this->onResponse($event);
             } elseif ($event instanceof NotificationEvent) {
                 $this->onNotification($event);
@@ -86,8 +76,12 @@ final class ServerEventBridge implements EventDispatcherInterface
 
     private function onResponse(ResponseEvent $event): void
     {
-        $request   = $event->getRequest();
-        $result    = $event->getResponse()->result;
+        $request = $event->getRequest();
+
+        if (self::isPublishedByHandlerChain($request)) {
+            return;
+        }
+
         $sessionId = $this->sessionId($event->getSession());
 
         if ($request instanceof InitializeRequest) {
@@ -96,22 +90,20 @@ final class ServerEventBridge implements EventDispatcherInterface
                 $request->clientInfo->name,
                 $request->clientInfo->version,
                 $request->protocolVersion,
-                self::TRANSPORT,
-            ));
-        } elseif ($request instanceof ListToolsRequest && $result instanceof ListToolsResult) {
-            $toolNames = array_map(static fn ($tool): string => $tool->name, $result->tools);
-            self::publishEvent(new McpToolsListEvent($sessionId, array_values($toolNames)));
-        } elseif ($request instanceof CallToolRequest && $result instanceof CallToolResult) {
-            self::publishEvent(new McpToolCallEvent(
-                $sessionId,
-                $request->name,
-                $result->isError,
-                $this->takeDurationMs($request->getId()),
+                ObservedCaller::TRANSPORT_HTTP,
             ));
         } else {
-            unset($this->startTimes[(string) $request->getId()]);
             self::publishEvent(new McpServerEvent($event->getMethod(), $sessionId));
         }
+    }
+
+    /**
+     * Whether the handler chain publishes this request's event, so that this
+     * seam must not publish a second one for it.
+     */
+    private static function isPublishedByHandlerChain(Request $request): bool
+    {
+        return $request instanceof CallToolRequest || $request instanceof ListToolsRequest;
     }
 
     private function onNotification(NotificationEvent $event): void
@@ -129,19 +121,11 @@ final class ServerEventBridge implements EventDispatcherInterface
     private function onError(ErrorEvent $event): void
     {
         $request = $event->getRequest();
-        if ($request instanceof CallToolRequest) {
-            self::publishEvent(new McpToolCallEvent(
-                $this->sessionId($event->getSession()),
-                $request->name,
-                true,
-                $this->takeDurationMs($request->getId()),
-                $event->getError()->code,
-            ));
+
+        if (self::isPublishedByHandlerChain($request)) {
             return;
         }
 
-        // Drop any pending timing for this request so the map does not retain stale entries.
-        unset($this->startTimes[(string) $request->getId()]);
         self::publishEvent(new McpServerEvent($request::getMethod(), $this->sessionId($event->getSession())));
     }
 
@@ -169,7 +153,9 @@ final class ServerEventBridge implements EventDispatcherInterface
          * Usage example:
          *
          *     Piwik::addAction('McpServer.serverEvent', static function (McpServerEvent $event): void {
-         *         if ($event instanceof McpToolCallEvent && $event->isError) {
+         *         if ($event instanceof \Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent
+         *             && $event->isError
+         *         ) {
          *             // Record a failed tool call.
          *         }
          *     });
@@ -186,21 +172,5 @@ final class ServerEventBridge implements EventDispatcherInterface
         } catch (\Throwable) {
             return null;
         }
-    }
-
-    /**
-     * @param string|int $requestId
-     */
-    private function takeDurationMs($requestId): int
-    {
-        $key   = (string) $requestId;
-        $start = $this->startTimes[$key] ?? null;
-        unset($this->startTimes[$key]);
-
-        if ($start === null) {
-            return 0;
-        }
-
-        return (int) round((microtime(true) - $start) * 1000);
     }
 }

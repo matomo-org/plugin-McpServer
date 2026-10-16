@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Schema\Extension\Apps;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 /**
  * Metadata for the _meta.ui field on a Tool, linking it to a UI resource.
  *
@@ -35,7 +36,18 @@ final class UiToolMeta implements \JsonSerializable
      */
     public static function fromArray(array $data) : self
     {
-        return new self(resourceUri: $data['resourceUri'] ?? null, visibility: isset($data['visibility']) ? array_map(ToolVisibility::from(...), $data['visibility']) : null);
+        if (isset($data['resourceUri']) && !\is_string($data['resourceUri'])) {
+            throw new InvalidArgumentException('Invalid "resourceUri" in UiToolMeta data.');
+        }
+        if (isset($data['visibility']) && !\is_array($data['visibility'])) {
+            throw new InvalidArgumentException('Invalid "visibility" in UiToolMeta data; expected an array.');
+        }
+        return new self(resourceUri: $data['resourceUri'] ?? null, visibility: isset($data['visibility']) ? array_map(static function (mixed $entry) : ToolVisibility {
+            if (!\is_string($entry) || null === ($case = ToolVisibility::tryFrom($entry))) {
+                throw new InvalidArgumentException('Each entry in "visibility" of UiToolMeta data must be a valid tool visibility.');
+            }
+            return $case;
+        }, $data['visibility']) : null);
     }
     /**
      * @return UiToolMetaData

@@ -21,14 +21,14 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string                                    $title       Human-readable title for the field
+     * @param ?string                                   $title       Optional human-readable title for the field
      * @param list<array{const: string, title: string}> $anyOf       Array of const/title pairs
      * @param string|null                               $description Optional description/help text
      * @param string[]|null                             $default     Optional default selected values (must be subset of anyOf consts)
      * @param int|null                                  $minItems    Optional minimum number of selections
      * @param int|null                                  $maxItems    Optional maximum number of selections
      */
-    public function __construct(string $title, public readonly array $anyOf, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
+    public function __construct(?string $title, public readonly array $anyOf, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
     {
         parent::__construct($title, $description);
         if ([] === $anyOf) {
@@ -63,7 +63,7 @@ final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefiniti
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     items: array{anyOf: list<array{const: string, title: string}>},
      *     description?: string,
      *     default?: string[],
@@ -77,7 +77,7 @@ final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefiniti
         if (!isset($data['items']['anyOf']) || !\is_array($data['items']['anyOf'])) {
             throw new InvalidArgumentException('Missing or invalid "items.anyOf" for titled multi-select enum schema definition.');
         }
-        return new self(title: $data['title'], anyOf: $data['items']['anyOf'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
+        return new self(title: $data['title'] ?? null, anyOf: $data['items']['anyOf'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
     }
     /**
      * @return array<string, mixed>

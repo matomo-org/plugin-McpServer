@@ -30,12 +30,14 @@ use Psr\Log\LoggerInterface;
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
-class HttpTransport extends BaseTransport
+class HttpTransport extends BaseTransport implements HeaderAwareTransportInterface
 {
     private ClientInterface $httpClient;
     private RequestFactoryInterface $requestFactory;
     private StreamFactoryInterface $streamFactory;
     private ?string $sessionId = null;
+    /** @var (callable(string): array<string, string>)|null */
+    private $headerCallback;
     /** @var McpFiber|null */
     private ?\Fiber $activeFiber = null;
     /** @var (callable(float, ?float, ?string): void)|null */
@@ -87,11 +89,21 @@ class HttpTransport extends BaseTransport
         }
         $this->logger->info('HTTP client connected and initialized', ['endpoint' => $this->endpoint]);
     }
+    public function onHeaders(callable $callback) : void
+    {
+        $this->headerCallback = $callback;
+    }
     public function send(string $data) : void
     {
         $request = $this->requestFactory->createRequest('POST', $this->endpoint)->withHeader('Content-Type', 'application/json')->withHeader('Accept', 'application/json, text/event-stream')->withBody($this->streamFactory->createStream($data));
         if (null !== $this->sessionId) {
             $request = $request->withHeader('Mcp-Session-Id', $this->sessionId);
+        }
+        // Protocol-derived first, so an explicitly configured header still wins:
+        // the caller passing one is making a deliberate choice about this
+        // connection, and a proxy credential is the usual reason.
+        foreach ($this->protocolHeaders($data) as $name => $value) {
+            $request = $request->withHeader($name, $value);
         }
         foreach ($this->headers as $name => $value) {
             $request = $request->withHeader($name, $value);
@@ -153,6 +165,24 @@ class HttpTransport extends BaseTransport
         $this->activeStream = null;
         $this->handleClose('Transport closed');
     }
+    /**
+     * @return array<string, string>
+     */
+    private function protocolHeaders(string $payload) : array
+    {
+        if (!\is_callable($this->headerCallback)) {
+            return [];
+        }
+        try {
+            return ($this->headerCallback)($payload);
+        } catch (\Throwable $e) {
+            // Headers mirror the body; failing to derive them is a bug worth
+            // reporting, but dropping the request would be a worse outcome than
+            // sending it the way an earlier revision would have.
+            $this->logger->error('Could not derive protocol headers', ['exception' => $e]);
+            return [];
+        }
+    }
     private function tick() : void
     {
         $this->processSSEStream();
@@ -179,14 +209,17 @@ class HttpTransport extends BaseTransport
                 $this->sseBuffer .= $chunk;
             }
         }
-        while (\false !== ($pos = strpos($this->sseBuffer, "\n\n"))) {
-            $event = substr($this->sseBuffer, 0, $pos);
-            $this->sseBuffer = substr($this->sseBuffer, $pos + 2);
+        while (null !== ($event = $this->extractSSEEvent())) {
             if (!empty(trim($event))) {
                 $this->processSSEEvent($event);
             }
         }
-        if ($this->activeStream->eof() && empty($this->sseBuffer)) {
+        if ($this->activeStream->eof()) {
+            // The stream ended without a trailing blank line: dispatch what is left.
+            if (!empty(trim($this->sseBuffer))) {
+                $this->processSSEEvent($this->sseBuffer);
+            }
+            $this->sseBuffer = '';
             $this->activeStream = null;
         }
     }
@@ -212,12 +245,37 @@ class HttpTransport extends BaseTransport
         }
     }
     /**
+     * Take the next complete event off the buffer, or null if none is complete yet.
+     *
+     * Per the SSE specification, lines are terminated by CRLF, LF or CR, so an
+     * event is delimited by any pair of those. Servers built on sse-starlette
+     * (the MCP Python SDK) use CRLF.
+     */
+    private function extractSSEEvent() : ?string
+    {
+        $position = null;
+        $length = 0;
+        foreach (["\r\n\r\n", "\n\n", "\r\r"] as $delimiter) {
+            $found = strpos($this->sseBuffer, $delimiter);
+            if (\false !== $found && (null === $position || $found < $position)) {
+                $position = $found;
+                $length = \strlen($delimiter);
+            }
+        }
+        if (null === $position) {
+            return null;
+        }
+        $event = substr($this->sseBuffer, 0, $position);
+        $this->sseBuffer = substr($this->sseBuffer, $position + $length);
+        return $event;
+    }
+    /**
      * Parse a single SSE event and handle the message.
      */
     private function processSSEEvent(string $event) : void
     {
         $data = '';
-        foreach (explode("\n", $event) as $line) {
+        foreach (preg_split("/\r\n|\r|\n/", $event) ?: [] as $line) {
             if (str_starts_with($line, 'data:')) {
                 $data .= trim(substr($line, 5));
             }

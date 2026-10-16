@@ -115,11 +115,28 @@ Before editing:
 - Do not bypass existing support helpers if pagination, normalization, logging, or error mapping already has a home.
 - Prefer matching existing domain grouping and naming patterns over inventing a new layout for a small feature.
 
+### Serving both protocol eras
+
+The endpoint answers two MCP lifecycles from one URL, and the SDK's transport decides per request which one serves it:
+
+- The handshake era (`2024-11-05` through `2025-11-25`) negotiates a protocol version at `initialize` and carries a session, persisted through `Session/DbSessionStore.php`, across later requests.
+- The modern era (`2026-07-28`) has neither. Each request declares its own protocol version, client identity and client capabilities in `params._meta`, mirrors them onto the standard request headers the server validates against, and is served with no session at all.
+
+What this means when changing server behavior:
+
+- Assume neither an `initialize` handshake nor a session. Anything a request needs must be derivable from that request. The session object a modern-era handler receives is a throwaway the SDK creates per request; treat its id as an implementation detail, never as a client identity.
+- Request handlers are the only layer both eras traverse, so behavior that must hold for both belongs in a handler (or a decorator around one), not on the SDK event seam and not in transport middleware.
+- Transport middleware pinned in `McpServerFactory::createTransport()` runs before the era is known, so only rules true of both eras belong there. Anything era-specific is the transport's own business — see the method's docblock for what that means for the protocol-version header rule.
+- `server/discover` and `subscriptions/listen` are answered inside the SDK, ahead of any registered handler. They cannot be decorated, declined, or observed; the only lever is builder configuration.
+- Re-check the pinned middleware list, and this section, when bumping `mcp/sdk`. Both encode where the SDK draws the line between the eras, and 0.8 moved it once already.
+
 ### Extending MCP protocol handling
 
-- Keep `Server/ServerEventBridge.php` aligned with the server's protocol surface. Every completed MCP request and every received MCP notification handled through the SDK event seam must publish exactly one plugin-owned event through `McpServer.serverEvent`; explicit transport lifecycle signals such as session termination must be bridged at their nearest reliable boundary.
-- When adding support for a request, notification, or transport lifecycle signal, update the bridge and its integration tests in the same change. Preserve the generic `McpServerEvent` fallback for methods without a richer contract, and add a dedicated event subclass only when method-specific data is useful to subscribers.
-- Keep vendored SDK event and schema types inside the bridge or other infrastructure adapters. Public event payloads must use types under `Contracts/Events` so subscribers never depend on the bundled SDK.
+- Publish observability from whichever layer both eras reach. Tool activity is published by the decorators in `Server/Handler/Request/Published*Handler.php`; `Server/ServerEventBridge.php` covers what only the handshake era has (the `initialize` lifecycle and the generic fallback) and deliberately skips `tools/call` and `tools/list` so those are not published twice. A new event for a method both eras serve belongs in a handler decorator, not in the bridge.
+- Every completed MCP request and every received MCP notification the plugin can observe must publish exactly one plugin-owned event through `McpServer.serverEvent`; explicit transport lifecycle signals such as session termination must be bridged at their nearest reliable boundary.
+- When adding support for a request, notification, or transport lifecycle signal, update the publishing layer and its integration tests in the same change. Preserve the generic `McpServerEvent` fallback for methods without a richer contract, and add a dedicated event subclass only when method-specific data is useful to subscribers.
+- Publishing must never disrupt the MCP response: guard every publish and log the failure at debug level, the way the bridge and the decorators already do.
+- Keep vendored SDK event and schema types inside the bridge, the handler decorators, or other infrastructure adapters. Public event payloads must use types under `Contracts/Events` so subscribers never depend on the bundled SDK.
 
 ### Testing expectations for new behavior
 

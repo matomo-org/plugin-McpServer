@@ -22,18 +22,22 @@ use Piwik\Piwik;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializedEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpInitializeEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpServerEvent;
+use Piwik\Plugins\McpServer\Contracts\Events\McpToolCallEvent;
 use Piwik\Plugins\McpServer\Contracts\Events\McpToolsListEvent;
 use Piwik\Plugins\McpServer\McpServerFactory;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
 use Piwik\Plugins\McpServer\tests\Framework\FixedMcpToolsProvider;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
+use Piwik\Plugins\McpServer\tests\Framework\StubMcpTool;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 use Psr\Container\ContainerInterface;
 
 /**
- * Verifies that {@see McpServerFactory} registers the {@see ServerEventBridge} as the bundled
- * server's PSR-14 event dispatcher, so that driving real JSON-RPC requests through the server
- * re-publishes them on the `McpServer.serverEvent` Matomo event.
+ * Verifies that {@see McpServerFactory} wires up MCP observability end to end, so that driving
+ * real JSON-RPC requests through the server re-publishes them on the `McpServer.serverEvent`
+ * Matomo event: the {@see ServerEventBridge} as the bundled server's PSR-14 event dispatcher for
+ * the handshake lifecycle, and the publishing handler decorators for tool activity in either
+ * protocol era.
  *
  * @group McpServer
  * @group Plugins
@@ -137,17 +141,60 @@ class ServerEventBridgeRegistrationTest extends IntegrationTestCase
     }
 
     /**
+     * The modern era has no PSR-14 seam — its dispatcher takes no event
+     * dispatcher at all — so tool activity there is observable only because the
+     * publishing decorators sit in the handler chain both eras share.
+     */
+    public function testModernEraToolCallPublishesToolCallEvent(): void
+    {
+        $server = $this->buildServer([new StubMcpTool('demo_tool')]);
+
+        $response = McpTestHelper::postModern(
+            $server,
+            'tools/call',
+            ['name' => 'demo_tool', 'arguments' => ['value' => 'x']],
+            'modern-call-1',
+        );
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $event = $this->onlyCaptured(McpToolCallEvent::class);
+        self::assertSame('demo_tool', $event->toolName);
+        self::assertFalse($event->isError);
+        // No handshake means no session to report; the client re-declares itself per request.
+        self::assertNull($event->sessionId);
+        self::assertSame('http', $event->transport);
+        self::assertSame('test-client', $event->clientName);
+        self::assertSame('1.0.0', $event->clientVersion);
+    }
+
+    public function testModernEraListToolsPublishesToolNames(): void
+    {
+        $server = $this->buildServer([new StubMcpTool('demo_tool')]);
+
+        $response = McpTestHelper::postModern($server, 'tools/list', [], 'modern-list-1');
+
+        self::assertSame(200, $response->getStatusCode());
+
+        $event = $this->onlyCaptured(McpToolsListEvent::class);
+        self::assertSame(['demo_tool'], $event->toolNames);
+        self::assertNull($event->sessionId);
+    }
+
+    /**
      * Build a server with an empty tool set so the wiring is exercised without depending on the
      * shipped tools; the fixed tools provider bypasses container resolution.
+     *
+     * @param list<\Piwik\Plugins\McpServer\Contracts\McpTool> $tools
      */
-    private function buildServer(): Server
+    private function buildServer(array $tools = []): Server
     {
         $factory = new McpServerFactory(
             $this->createMock(LoggerInterface::class),
             new InMemorySessionStore(),
             $this->createMock(ContainerInterface::class),
             new ToolCallParameterFormatter(),
-            new FixedMcpToolsProvider([]),
+            new FixedMcpToolsProvider($tools),
         );
 
         return $factory->createServer();

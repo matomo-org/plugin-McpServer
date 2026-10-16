@@ -116,7 +116,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     public function testValidationFailureReturnsInvalidParamsAndKeepsRedactedLogging(): void
@@ -361,7 +361,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     public function testFailureLogsAtWarningLevelWhenConfigured(): void
@@ -383,7 +383,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     public function testFailureLogsAtInfoLevelWhenConfigured(): void
@@ -405,7 +405,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     public function testFailureLogsAtErrorLevelWhenConfigured(): void
@@ -427,7 +427,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     public function testHttpOriginIsRecordedWhenSessionHasNoMarker(): void
@@ -507,7 +507,7 @@ class ObservedCallToolHandlerTest extends TestCase
         $error = $handler->handle($request, $session);
 
         self::assertInstanceOf(Error::class, $error);
-        self::assertSame(Error::METHOD_NOT_FOUND, $error->code);
+        self::assertSame(Error::INVALID_PARAMS, $error->code);
     }
 
     /**

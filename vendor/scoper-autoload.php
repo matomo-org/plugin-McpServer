@@ -21,6 +21,7 @@ if (isset($existingComposerAutoloadFiles)) {
 
 // Function aliases. For more information see:
 // https://github.com/humbug/php-scoper/blob/master/docs/further-reading.md#function-aliases
+if (!function_exists('trigger_deprecation')) { function trigger_deprecation() { return \Matomo\Dependencies\McpServer\trigger_deprecation(...func_get_args()); } }
 if (!function_exists('uuid_compare')) { function uuid_compare() { return \Matomo\Dependencies\McpServer\uuid_compare(...func_get_args()); } }
 if (!function_exists('uuid_create')) { function uuid_create() { return \Matomo\Dependencies\McpServer\uuid_create(...func_get_args()); } }
 if (!function_exists('uuid_generate_md5')) { function uuid_generate_md5() { return \Matomo\Dependencies\McpServer\uuid_generate_md5(...func_get_args()); } }

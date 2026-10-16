@@ -22,12 +22,12 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class TitledEnumSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string                                    $title       Human-readable title for the field
+     * @param ?string                                   $title       Optional human-readable title for the field
      * @param list<array{const: string, title: string}> $oneOf       Array of const/title pairs
      * @param string|null                               $description Optional description/help text
      * @param string|null                               $default     Optional default value (must match a const)
      */
-    public function __construct(string $title, public readonly array $oneOf, ?string $description = null, public readonly ?string $default = null)
+    public function __construct(?string $title, public readonly array $oneOf, ?string $description = null, public readonly ?string $default = null)
     {
         parent::__construct($title, $description);
         if ([] === $oneOf) {
@@ -49,7 +49,7 @@ final class TitledEnumSchemaDefinition extends AbstractSchemaDefinition
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     oneOf: list<array{const: string, title: string}>,
      *     description?: string,
      *     default?: string,
@@ -61,7 +61,7 @@ final class TitledEnumSchemaDefinition extends AbstractSchemaDefinition
         if (!isset($data['oneOf']) || !\is_array($data['oneOf'])) {
             throw new InvalidArgumentException('Missing or invalid "oneOf" for titled enum schema definition.');
         }
-        return new self(title: $data['title'], oneOf: $data['oneOf'], description: $data['description'] ?? null, default: $data['default'] ?? null);
+        return new self(title: $data['title'] ?? null, oneOf: $data['oneOf'], description: $data['description'] ?? null, default: $data['default'] ?? null);
     }
     /**
      * @return array<string, mixed>
