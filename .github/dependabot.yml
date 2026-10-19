@@ -20,7 +20,10 @@ updates:
           - "*"
 
   - package-ecosystem: github-actions
-    directory: /
+    # "/" only covers .github/workflows; composite actions must be listed explicitly
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday
