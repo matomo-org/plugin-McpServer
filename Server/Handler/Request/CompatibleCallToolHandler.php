@@ -153,7 +153,6 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
 
         try {
             $result = $this->referenceHandler->handle($reference, $rawArguments);
-            $structuredContent = null;
             if (!$result instanceof CallToolResult) {
                 $structuredContent = $reference->extractStructuredContent($result);
                 $result = new CallToolResult($reference->formatResult($result), structuredContent: $structuredContent);

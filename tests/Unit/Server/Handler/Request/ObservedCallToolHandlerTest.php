@@ -316,8 +316,8 @@ class ObservedCallToolHandlerTest extends TestCase
             $registryForObserved = new Registry();
             $registryForSdk = new Registry();
 
-            $observedCallback = $case['observedCallback'] ?? $case['callback'] ?? null;
-            $sdkCallback = $case['sdkCallback'] ?? $case['callback'] ?? null;
+            $observedCallback = $case['observedCallback'] ?? $case['callback'];
+            $sdkCallback = $case['sdkCallback'] ?? $case['callback'];
 
             if (isset($case['tool']) && $observedCallback !== null) {
                 $registryForObserved->registerTool($case['tool'], $observedCallback);

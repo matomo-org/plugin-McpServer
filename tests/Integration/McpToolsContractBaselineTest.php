@@ -113,8 +113,8 @@ class McpToolsContractBaselineTest extends IntegrationTestCase
         $tracker = Fixture::getTracker(
             $this->idSite,
             '2015-01-03 12:00:00',
-            $defaultInit = true,
-            $useLocal = true,
+            defaultInit: true,
+            useLocal: true,
         );
         $tracker->setUrl('https://baseline-main.test/page-a');
         Fixture::checkResponse($tracker->doTrackPageView('page-a'));
