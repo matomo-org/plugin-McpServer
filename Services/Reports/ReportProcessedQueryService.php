@@ -602,7 +602,7 @@ final class ReportProcessedQueryService implements ReportProcessedQueryServiceIn
                         $segment,
                     );
                 } catch (\Throwable) {
-                    $shouldMapToStrictSegmentGuidance = false;
+                    // An undecidable policy falls through to the generic failure mapping below.
                 }
             }
 
