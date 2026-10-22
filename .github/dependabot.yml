@@ -2,7 +2,6 @@ version: 2
 updates:
   - package-ecosystem: composer
     directory: /
-    target-branch: 5.x-dev
     schedule:
       interval: weekly
       day: monday
@@ -21,8 +20,10 @@ updates:
           - "*"
 
   - package-ecosystem: github-actions
-    directory: /
-    target-branch: 5.x-dev
+    # "/" only covers .github/workflows; composite actions must be listed explicitly
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday
