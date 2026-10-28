@@ -28,6 +28,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\ProtectedResourceMetadata;
 use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Request;
 
@@ -44,6 +45,7 @@ class API extends \Piwik\Plugin\API
         private InternalToolCaller $internalToolCaller,
         private LoggerInterface $logger,
         private SessionEndEventPublisher $sessionEndEventPublisher,
+        private ProtectedResourceMetadata $protectedResourceMetadata,
     ) {
     }
 
@@ -219,7 +221,7 @@ class API extends \Piwik\Plugin\API
             JsonRpcError::INVALID_REQUEST,
             McpEndpointSpec::UNAUTHORIZED_ERROR,
             $requestId,
-            ['WWW-Authenticate' => 'Bearer realm="mcp"'],
+            ['WWW-Authenticate' => $this->protectedResourceMetadata->getWwwAuthenticateHeader()],
         );
     }
 

@@ -57,7 +57,7 @@ All actions are controlled by your permissions and configuration.
 * Activate **McpServer** in **Administration -> Plugins**.
 * Enable MCP in **Administration -> System -> General Settings -> McpServer**.
 * Configure your MCP client with the endpoint and one of these authentication methods:
-  * OAuth2, if your MCP client supports it and the Matomo `OAuth2` plugin is installed and enabled, with an OAuth2 client configured there.
+  * OAuth2, if your MCP client supports it and the Matomo `OAuth2` plugin is installed and enabled, with an OAuth2 client configured there. MCP clients that support MCP authorization discover Matomo's OAuth2 server automatically: the endpoint's `401` response advertises its protected resource metadata (`WWW-Authenticate: Bearer realm="mcp", resource_metadata="…/index.php?module=McpServer&action=protectedResourceMetadata"`), so no web server rewrite rules are needed for this step.
   * A Matomo `token_auth` used as a Bearer token otherwise.
 
 For the recommended end-user setup flow, use the in-product connect guide at **Administration -> Platform -> MCP Server**.
