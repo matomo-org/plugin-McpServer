@@ -36,6 +36,7 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\ProtectedResourceMetadata;
 use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
@@ -129,6 +130,31 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
         self::assertSame('Bearer realm="mcp"', $response->getHeaderLine('WWW-Authenticate'));
         self::assertSame(JsonRpcError::INVALID_REQUEST, $error->code);
         self::assertSame('auth-1', $error->id);
+    }
+
+    public function testDisabledMcpUnauthorizedChallengeAdvertisesResourceMetadataWhenOAuth2IsActivated(): void
+    {
+        $this->setMcpEnabled(false);
+        Access::getInstance()->setSuperUserAccess(false);
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $api = $this->createApiWithRequest(
+            $this->createRequest(McpTestHelper::makeInitializeRequest('auth-oauth2-1')),
+            isOAuth2Enabled: true,
+        );
+        $response = $api->mcp();
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertStringStartsWith(
+            'Bearer realm="mcp", resource_metadata="',
+            $response->getHeaderLine('WWW-Authenticate'),
+        );
+        self::assertStringEndsWith(
+            '/index.php?module=McpServer&action=protectedResourceMetadata"',
+            $response->getHeaderLine('WWW-Authenticate'),
+        );
     }
 
     public function testGuardErrorWithInvalidJsonFallsBackToEmptyId(): void
@@ -558,6 +584,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
     private function createApiWithRequest(
         ServerRequestInterface $request,
         ?SessionEndEventPublisher $sessionEndEventPublisher = null,
+        bool $isOAuth2Enabled = false,
     ): API {
         $factory = StaticContainer::get(McpServerFactory::class);
 
@@ -574,6 +601,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalToolCaller(StaticContainer::get(LoggerInterface::class)),
                 StaticContainer::get(LoggerInterface::class),
                 $sessionEndEventPublisher ?? StaticContainer::get(SessionEndEventPublisher::class),
+                $this->createProtectedResourceMetadata($isOAuth2Enabled),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -605,6 +633,7 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
                 new InternalToolCaller(StaticContainer::get(LoggerInterface::class)),
                 StaticContainer::get(LoggerInterface::class),
                 StaticContainer::get(SessionEndEventPublisher::class),
+                $this->createProtectedResourceMetadata(false),
             ])
             ->onlyMethods(['createRequestFromGlobals'])
             ->getMock();
@@ -613,6 +642,14 @@ class McpApiEndpointBoundaryTest extends IntegrationTestCase
             ->willReturn($request);
 
         return $api;
+    }
+
+    private function createProtectedResourceMetadata(bool $isOAuth2Enabled): ProtectedResourceMetadata
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('isOAuth2PluginEnabled')->willReturn($isOAuth2Enabled);
+
+        return new ProtectedResourceMetadata($settings);
     }
 
     private function getNestedApiInvocationCount(): int
