@@ -29,7 +29,7 @@ While the Matomo `OAuth2` plugin is activated, MCP clients that implement MCP au
 
 3. The client reads the authorization server metadata of the issuer listed in `authorization_servers` from the `OAuth2` plugin and starts the OAuth2 flow.
 
-The metadata document is public, cookie-free, and cacheable for an hour. It is served from a normal query-string URL, so it needs no web server rewrite rules; the `OAuth2` plugin's own discovery document may still need the rewrite rules described in that plugin's README. URLs are derived from the Matomo base URL of the current request. Only `GET` and `HEAD` are accepted (`405` otherwise). While the `OAuth2` plugin is not activated, the metadata URL answers `404` and the `401` challenge stays `WWW-Authenticate: Bearer realm="mcp"`; clients then connect with a Matomo `token_auth` as a Bearer token.
+The metadata document is public, cookie-free, and cacheable for an hour. It is served from a normal query-string URL, so it needs no web server rewrite rules; the `OAuth2` plugin serves its own discovery document without rewrite rules on root installs, and needs the rewrite rule described in that plugin's README for subdirectory installs. URLs are derived from the Matomo base URL of the current request. Only `GET` and `HEAD` are accepted (`405` otherwise). While the `OAuth2` plugin is not activated, the metadata URL answers `404` and the `401` challenge stays `WWW-Authenticate: Bearer realm="mcp"`; clients then connect with a Matomo `token_auth` as a Bearer token.
 
 ## Configuration
 
