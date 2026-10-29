@@ -1,6 +1,6 @@
 ## Changelog
 
-### Unreleased
+### 6.0.1
 
 - Added OAuth 2.0 Protected Resource Metadata (RFC 9728) for the MCP endpoint, served at `index.php?module=McpServer&action=protectedResourceMetadata`. While the Matomo `OAuth2` plugin is activated, the endpoint's `401` challenge now advertises it as `WWW-Authenticate: Bearer realm="mcp", resource_metadata="<metadata URL>"`, so MCP clients can discover Matomo's OAuth2 authorization server automatically without web server rewrite rules. Without the `OAuth2` plugin the challenge is unchanged and the metadata URL answers `404`.
 
