@@ -8,9 +8,28 @@ Use the API endpoint:
 
 - `format=mcp` is required.
 - The endpoint is root-request only and rejects nested/proxy access (including `API.getBulkRequest`) with `400`.
-- Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`.
+- Unauthenticated requests return `401` with `WWW-Authenticate: Bearer realm="mcp"`. While the Matomo `OAuth2` plugin is activated, the challenge also carries a `resource_metadata` parameter: `WWW-Authenticate: Bearer realm="mcp", resource_metadata="https://matomo.example/index.php?module=McpServer&action=protectedResourceMetadata"` (with your Matomo base URL). See [OAuth2 Discovery](#oauth2-discovery).
 - Authenticate with Matomo credentials by sending a Bearer token. If your MCP client supports OAuth2 and the Matomo `OAuth2` plugin is installed and enabled, OAuth2 is the recommended option; create an OAuth2 client there if needed. Otherwise use a Matomo `token_auth` as the Bearer token.
 - Direct cross-origin browser MCP is not supported. When a request supplies an `Origin` header, its host is validated (for DNS-rebinding protection) against Matomo's trusted deployment hostnames (`[General] trusted_hosts`): an `Origin` outside those hosts is rejected with `403`. This is request validation, not CORS support. Matomo may emit `Access-Control-Allow-Origin` according to `[General] cors_domains`, but the MCP endpoint does not provide the complete CORS flow required by browser clients: it does not handle preflight, and a CORS preflight (`OPTIONS`) cannot succeed because it arrives without the Bearer token. This `Origin` validation stays active even when `[General] enable_trusted_host_check` is disabled (that setting only affects requests without an `Origin`). Connect through an MCP client or a same-origin backend instead.
+
+## OAuth2 Discovery
+
+While the Matomo `OAuth2` plugin is activated, MCP clients that implement MCP authorization (spec 2025-06-18 and later) can find Matomo's OAuth2 authorization server automatically from the MCP endpoint URL alone:
+
+1. The client calls the MCP endpoint without a token and receives `401` with a `resource_metadata` URL in `WWW-Authenticate`.
+2. The client fetches that URL, `index.php?module=McpServer&action=protectedResourceMetadata`, which serves OAuth 2.0 Protected Resource Metadata (RFC 9728):
+
+   ```json
+   {
+       "resource": "https://matomo.example/index.php?module=API&method=McpServer.mcp&format=mcp",
+       "authorization_servers": ["https://matomo.example"],
+       "bearer_methods_supported": ["header"]
+   }
+   ```
+
+3. The client reads the authorization server metadata of the issuer listed in `authorization_servers` from the `OAuth2` plugin and starts the OAuth2 flow.
+
+The metadata document is public, cookie-free, and cacheable for an hour. It is served from a normal query-string URL, so it needs no web server rewrite rules; the `OAuth2` plugin serves its own discovery document without rewrite rules on root installs, and needs the rewrite rule described in that plugin's README for subdirectory installs. URLs are derived from the Matomo base URL of the current request. Only `GET` and `HEAD` are accepted (`405` otherwise). While the `OAuth2` plugin is not activated, the metadata URL answers `404` and the `401` challenge stays `WWW-Authenticate: Bearer realm="mcp"`; clients then connect with a Matomo `token_auth` as a Bearer token.
 
 ## Configuration
 
@@ -55,7 +74,7 @@ The Matomo `OAuth2` plugin is not required to use McpServer. If it is installed 
 
 When disabled, requests to `index.php?module=API&method=McpServer.mcp&format=mcp` behave as follows:
 
-- Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Bearer realm="mcp"`.
+- Unauthenticated requests receive `401 Unauthorized` with `WWW-Authenticate: Bearer realm="mcp"`, plus the `resource_metadata` parameter while the `OAuth2` plugin is activated, exactly as when MCP is enabled.
 - Authenticated requests with a top-level JSON-RPC `id` receive `403 Forbidden` with a JSON-RPC error response instructing the user to contact their Matomo administrator.
 - Authenticated requests without a top-level `id` (for example notifications, invalid JSON, or batch payloads) receive `403 Forbidden` with an empty body.
 

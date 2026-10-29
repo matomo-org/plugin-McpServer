@@ -16,6 +16,7 @@ use Piwik\Container\StaticContainer;
 use Piwik\Date;
 use Piwik\NoAccessException;
 use Piwik\Plugins\McpServer\Controller;
+use Piwik\Plugins\McpServer\Support\Api\ProtectedResourceMetadata;
 use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpAuthTestHelper;
 use Piwik\Plugins\UsersManager\Model as UsersManagerModel;
@@ -64,7 +65,10 @@ class ControllerTest extends IntegrationTestCase
 
             $this->expectException(NoAccessException::class);
 
-            (new Controller(StaticContainer::get(SystemSettings::class)))->connect();
+            (new Controller(
+                StaticContainer::get(SystemSettings::class),
+                StaticContainer::get(ProtectedResourceMetadata::class),
+            ))->connect();
         } finally {
             McpAuthTestHelper::restoreAuth($originalTokenAuth);
         }
