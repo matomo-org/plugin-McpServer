@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Piwik\Plugins\McpServer\tests\Integration\McpTools;
 
 use Matomo\Dependencies\McpServer\Mcp\Server;
+use Piwik\Cache;
 use Piwik\Plugins\API\API as ApiModuleApi;
 use Piwik\Plugins\Goals\API as GoalsApi;
 use Piwik\Plugins\McpServer\McpTools\ReportList;
@@ -309,6 +310,7 @@ class ReportListTest extends IntegrationTestCase
             'evt-delta',
             'exact',
         );
+        $this->startNextRequest();
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -375,6 +377,7 @@ class ReportListTest extends IntegrationTestCase
             'evt-high',
             'exact',
         );
+        $this->startNextRequest();
 
         $secondPage = McpTestHelper::callToolAndAssertSuccess(
             $server,
@@ -510,6 +513,16 @@ class ReportListTest extends IntegrationTestCase
             $message->message,
         );
         self::assertStringContainsString('search', $message->message);
+    }
+
+    /**
+     * Each MCP request runs in its own PHP process, so it never sees the request-scoped transient cache of an earlier
+     * one. API.getReportMetadata caches there and adding a goal does not invalidate it, so a second tool call in the
+     * same test process would page through the metadata built before the goals existed.
+     */
+    private function startNextRequest(): void
+    {
+        Cache::getTransientCache()->flushAll();
     }
 
     /**
