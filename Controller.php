@@ -58,9 +58,11 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
      */
     public function protectedResourceMetadata(): string
     {
-        // This is a public, cacheable document. Matomo's normal dispatch starts a session, which
-        // queues a session cookie and PHP's session cache-limiter headers. Strip those so the
-        // response is cookie-free; the Cache-Control header sent below replaces the session's one.
+        // This is a public document. Matomo's normal dispatch starts a session, which queues a
+        // session cookie and PHP's session cache-limiter headers. Strip those so the response is
+        // cookie-free; the Cache-Control header sent below replaces the session's one. Clients may
+        // cache it, shared caches may not: its URLs come from the request's host, which a shared
+        // cache may not key on, e.g. a forwarded host.
         Common::stripHeader('Set-Cookie');
         Common::stripHeader('Expires');
         Common::stripHeader('Pragma');
@@ -86,7 +88,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
             return (string) json_encode(['error' => 'Not found.']);
         }
 
-        Common::sendHeader('Cache-Control: public, max-age=3600');
+        Common::sendHeader('Cache-Control: private, max-age=3600');
 
         if ($method === 'HEAD') {
             return '';

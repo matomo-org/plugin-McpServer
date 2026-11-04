@@ -75,7 +75,7 @@ class ControllerTest extends TestCase
             $body,
         );
         self::assertSame('application/json; charset=utf-8', Common::getSentHeader('Content-Type'));
-        self::assertSame('public, max-age=3600', Common::getSentHeader('Cache-Control'));
+        self::assertSame('private, max-age=3600', Common::getSentHeader('Cache-Control'));
         self::assertSame('', Common::getSentHeader('Set-Cookie'));
     }
 
@@ -84,7 +84,7 @@ class ControllerTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'HEAD';
 
         self::assertSame('', $this->createController(true)->protectedResourceMetadata());
-        self::assertSame('public, max-age=3600', Common::getSentHeader('Cache-Control'));
+        self::assertSame('private, max-age=3600', Common::getSentHeader('Cache-Control'));
     }
 
     public function testProtectedResourceMetadataIsNotFoundWhenOAuth2IsNotActivated(): void
