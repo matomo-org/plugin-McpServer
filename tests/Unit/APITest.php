@@ -35,8 +35,10 @@ use Piwik\Plugins\McpServer\Support\Api\JsonRpcErrorResponseFactory;
 use Piwik\Plugins\McpServer\Support\Api\JsonRpcRequestIdExtractor;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointGuard;
 use Piwik\Plugins\McpServer\Support\Api\McpEndpointSpec;
+use Piwik\Plugins\McpServer\Support\Api\ProtectedResourceMetadata;
 use Piwik\Plugins\McpServer\Support\Api\SessionEndEventPublisher;
 use Piwik\Plugins\McpServer\Support\Logging\ToolCallParameterFormatter;
+use Piwik\Plugins\McpServer\SystemSettings;
 use Piwik\Plugins\McpServer\tests\Framework\McpTestHelper;
 
 /**
@@ -225,6 +227,26 @@ class APITest extends TestCase
         self::assertSame('init-1', $message->id);
     }
 
+    public function testMcpUnauthorizedChallengeAdvertisesResourceMetadataWhenOAuth2IsActivated(): void
+    {
+        $_GET['module'] = 'API';
+        $_GET['method'] = 'McpServer.mcp';
+        $_GET['format'] = 'mcp';
+
+        $gate = $this->createMock(McpAccessGate::class);
+        $gate->method('assertHttp')->willThrowException(new \Piwik\NoAccessException('You must be logged in.'));
+
+        $api = $this->createApiWithRequest($this->createRequest(), gate: $gate, isOAuth2Enabled: true);
+        $result = $api->mcp();
+
+        self::assertSame(401, $result->getStatusCode());
+        self::assertMatchesRegularExpression(
+            '/^Bearer realm="mcp", resource_metadata="[^"]+'
+                . '\/index\.php\?module=McpServer&action=protectedResourceMetadata"$/',
+            $result->getHeaderLine('WWW-Authenticate'),
+        );
+    }
+
     public function testMcpReturnsForbiddenErrorWhenMcpIsDisabledAndTopLevelIdExists(): void
     {
         $_GET['module'] = 'API';
@@ -366,6 +388,7 @@ class APITest extends TestCase
                     new InMemorySessionStore(),
                     $this->createMock(LoggerInterface::class),
                 ),
+                $this->createProtectedResourceMetadata(false),
             ])
             ->onlyMethods(['createRequestFromGlobals', 'isCurrentApiRequestRoot', 'getRootApiRequestMethod'])
             ->getMock();
@@ -437,6 +460,7 @@ class APITest extends TestCase
         bool $isRootApiRequest = true,
         ?string $rootApiMethod = 'McpServer.mcp',
         ?McpAccessGate $gate = null,
+        bool $isOAuth2Enabled = false,
     ): API {
         $factory = $this->createFactory();
 
@@ -456,6 +480,7 @@ class APITest extends TestCase
                     new InMemorySessionStore(),
                     $this->createMock(LoggerInterface::class),
                 ),
+                $this->createProtectedResourceMetadata($isOAuth2Enabled),
             ])
             ->onlyMethods([
                 'createRequestFromGlobals',
@@ -472,6 +497,14 @@ class APITest extends TestCase
             ->willReturn($rootApiMethod);
 
         return $api;
+    }
+
+    private function createProtectedResourceMetadata(bool $isOAuth2Enabled): ProtectedResourceMetadata
+    {
+        $settings = $this->createMock(SystemSettings::class);
+        $settings->method('isOAuth2PluginEnabled')->willReturn($isOAuth2Enabled);
+
+        return new ProtectedResourceMetadata($settings);
     }
 
     private function assertGuardErrorResponse(ResponseInterface $response): void
