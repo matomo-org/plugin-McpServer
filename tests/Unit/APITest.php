@@ -240,11 +240,12 @@ class APITest extends TestCase
         $result = $api->mcp();
 
         self::assertSame(401, $result->getStatusCode());
-        self::assertMatchesRegularExpression(
+        // assertMatchesRegularExpression() needs PHPUnit 9, Matomo 5 ships PHPUnit 8.5.
+        self::assertSame(1, preg_match(
             '/^Bearer realm="mcp", resource_metadata="[^"]+'
                 . '\/index\.php\?module=McpServer&action=protectedResourceMetadata"$/',
             $result->getHeaderLine('WWW-Authenticate'),
-        );
+        ), $result->getHeaderLine('WWW-Authenticate'));
     }
 
     public function testMcpReturnsForbiddenErrorWhenMcpIsDisabledAndTopLevelIdExists(): void
