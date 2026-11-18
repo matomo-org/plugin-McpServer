@@ -476,7 +476,47 @@ class McpServerFactoryTest extends TestCase
         $response = $this->runInitialize(protocolVersion: '2099-01-01');
 
         self::assertSame(400, $response->getStatusCode());
-        self::assertSame(JsonRpcError::INVALID_PARAMS, McpTestHelper::decodeError($response)->code);
+        self::assertSame(JsonRpcError::UNSUPPORTED_PROTOCOL_VERSION, McpTestHelper::decodeError($response)->code);
+    }
+
+    /**
+     * A 2026-07-28 client opens with `server/discover` instead of `initialize`. The transport serves
+     * that era on its own, so the plugin must not put a handshake-era protocol version check in
+     * front of it.
+     */
+    public function testTransportAnswersServerDiscoverForModernProtocolVersion(): void
+    {
+        $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
+        $this->setRequestHost('analytics.example.com');
+
+        $response = $this->runModernRequest('server/discover');
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = json_decode($this->body($response), true);
+        self::assertIsArray($payload);
+        self::assertSame('discover-1', $payload['id'] ?? null);
+        self::assertArrayNotHasKey('error', $payload);
+        $result = $payload['result'] ?? null;
+        self::assertIsArray($result);
+        self::assertIsArray($result['capabilities'] ?? null);
+        self::assertIsArray($result['supportedVersions'] ?? null);
+        self::assertContains(ProtocolVersion::V2026_07_28->value, $result['supportedVersions']);
+    }
+
+    public function testTransportListsToolsForModernProtocolVersion(): void
+    {
+        $this->setGeneralConfig(['trusted_hosts' => ['analytics.example.com']]);
+        $this->setRequestHost('analytics.example.com');
+
+        $response = $this->runModernRequest('tools/list');
+
+        self::assertSame(200, $response->getStatusCode());
+        $payload = json_decode($this->body($response), true);
+        self::assertIsArray($payload);
+        self::assertArrayNotHasKey('error', $payload);
+        $result = $payload['result'] ?? null;
+        self::assertIsArray($result);
+        self::assertIsArray($result['tools'] ?? null);
     }
 
     public function testTransportAllowsAnyHostWhenTrustedHostsNotConfigured(): void
@@ -787,6 +827,38 @@ class McpServerFactoryTest extends TestCase
         if ($protocolVersion !== null) {
             $request = $request->withHeader(StreamableHttpTransport::PROTOCOL_VERSION_HEADER, $protocolVersion);
         }
+
+        return $server->run(McpServerFactory::createTransport($request));
+    }
+
+    private function runModernRequest(string $method): ResponseInterface
+    {
+        $factory = new McpServerFactory(
+            $this->createMock(LoggerInterface::class),
+            new InMemorySessionStore(),
+            $this->createMock(ContainerInterface::class),
+            new ToolCallParameterFormatter(),
+            new FixedMcpToolsProvider([]),
+        );
+        $server = $factory->createServer();
+
+        $body = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 'discover-1',
+            'method' => $method,
+            'params' => ['_meta' => [
+                'io.modelcontextprotocol/protocolVersion' => ProtocolVersion::V2026_07_28->value,
+                'io.modelcontextprotocol/clientInfo' => ['name' => 'test', 'version' => '1.0'],
+                'io.modelcontextprotocol/clientCapabilities' => new \stdClass(),
+            ]],
+        ], JSON_THROW_ON_ERROR);
+
+        $psr = new Psr17Factory();
+        $request = $psr->createServerRequest('POST', 'https://mcp.test/mcp')
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader(StreamableHttpTransport::PROTOCOL_VERSION_HEADER, ProtocolVersion::V2026_07_28->value)
+            ->withHeader('Mcp-Method', $method)
+            ->withBody($psr->createStream($body));
 
         return $server->run(McpServerFactory::createTransport($request));
     }

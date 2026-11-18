@@ -11,19 +11,27 @@
 namespace Matomo\Dependencies\McpServer\Mcp;
 
 use Matomo\Dependencies\McpServer\Mcp\Client\Builder;
+use Matomo\Dependencies\McpServer\Mcp\Client\CancellationTokenInterface;
 use Matomo\Dependencies\McpServer\Mcp\Client\Configuration;
 use Matomo\Dependencies\McpServer\Mcp\Client\Protocol;
 use Matomo\Dependencies\McpServer\Mcp\Client\Transport\TransportInterface;
 use Matomo\Dependencies\McpServer\Mcp\Exception\ConnectionException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\ExceptionInterface;
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\RequestCancelledException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\RequestException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\RuntimeException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\LoggingLevel;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\RootsListChangedNotification;
 use Matomo\Dependencies\McpServer\Mcp\Schema\PromptReference;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CallToolRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\CompletionCompleteRequest;
+use Matomo\Dependencies\McpServer\Mcp\Schema\Request\DiscoverRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\GetPromptRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListPromptsRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ListResourcesRequest;
@@ -41,6 +49,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListResourcesResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListResourceTemplatesResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ListToolsResult;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\ReadResourceResult;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 /**
@@ -53,6 +62,7 @@ use Psr\Log\NullLogger;
  */
 class Client
 {
+    private const RETRY_BASE_DELAY_MS = 100;
     private ?TransportInterface $transport = null;
     public function __construct(private readonly Protocol $protocol, private readonly Configuration $config, private readonly LoggerInterface $logger = new NullLogger())
     {
@@ -67,14 +77,37 @@ class Client
     /**
      * Connect to an MCP server using the provided transport.
      *
-     * @throws ConnectionException If connection or initialization fails
+     * A failed attempt is closed and retried, see {@see Builder::setMaxRetries()}.
+     *
+     * @throws ConnectionException If connection or initialization fails on every attempt
      */
     public function connect(TransportInterface $transport) : void
     {
         $this->transport = $transport;
         $this->protocol->connect($transport, $this->config);
-        $transport->connect();
-        $this->logger->info('Client connected and initialized');
+        $maxAttempts = $this->config->maxRetries + 1;
+        for ($attempt = 1; $attempt <= $maxAttempts; ++$attempt) {
+            try {
+                $transport->connect();
+                $this->logger->info('Client connected and initialized', ['attempt' => $attempt]);
+                return;
+            } catch (ExceptionInterface $e) {
+                // initialize() flags the session before sending the initialized
+                // notification, so a failure in between leaves the flag set.
+                $this->protocol->getState()->setInitialized(\false);
+                $transport->close();
+                // Anything else, like a malformed initialize result, is not
+                // transient and would fail every retry the same way.
+                if (!$e instanceof ConnectionException) {
+                    throw new ConnectionException('Initialization failed: ' . $e->getMessage(), 0, $e);
+                }
+                if ($attempt === $maxAttempts) {
+                    throw $e;
+                }
+                $this->logger->warning('Connection attempt failed, retrying', ['attempt' => $attempt, 'max_attempts' => $maxAttempts, 'exception' => $e]);
+                usleep($attempt * self::RETRY_BASE_DELAY_MS * 1000);
+            }
+        }
     }
     /**
      * Check if connected and initialized.
@@ -98,11 +131,33 @@ class Client
         return $this->protocol->getState()->getInstructions();
     }
     /**
-     * Send a ping request to the server.
+     * Capabilities the server declared: during the handshake, or in its
+     * `server/discover` result from 2026-07-28 on.
+     *
+     * Null until a server declared them, e.g. before connecting or when a
+     * 2026-07-28 server does not answer `server/discover`.
+     */
+    public function getServerCapabilities() : ?ServerCapabilities
+    {
+        return $this->protocol->getState()->getServerCapabilities();
+    }
+    /**
+     * Protocol revision negotiated during the handshake.
+     *
+     * This is the version the server answered with, which is not necessarily the
+     * one configured on the builder: a server that cannot speak the requested
+     * revision counter-offers one it supports. Null until the handshake completed.
+     */
+    public function getProtocolVersion() : ?ProtocolVersion
+    {
+        return $this->protocol->getState()->getProtocolVersion();
+    }
+    /**
+     * Check that the server is reachable: `ping`, or `server/discover` on the modern era, which removed it.
      */
     public function ping() : void
     {
-        $request = new PingRequest();
+        $request = $this->protocol->isModern() ? new DiscoverRequest() : new PingRequest();
         $this->sendRequest($request);
     }
     /**
@@ -112,20 +167,50 @@ class Client
     {
         $request = new ListToolsRequest($cursor);
         $response = $this->sendRequest($request);
-        return ListToolsResult::fromArray($response->result);
+        $result = $response->result;
+        // Filtered before parsing, because parsing is where a malformed
+        // `x-mcp-header` annotation throws. One broken definition must cost the
+        // caller that tool, not the whole listing (SEP-2243).
+        if (\is_array($result['tools'] ?? null)) {
+            $result['tools'] = $this->protocol->getToolCatalog()->record($result['tools']);
+        }
+        return ListToolsResult::fromArray($result);
     }
     /**
      * Call a tool on the server.
      *
-     * @param string                                                                  $name       Tool name
-     * @param array<string, mixed>                                                    $arguments  Tool arguments
+     * Cancellation and deadlines are cooperative: on HTTP, blocking I/O has to
+     * return before the transport can observe the interruption. An answer that
+     * arrived for an interrupted call is discarded rather than returned.
+     *
+     * @param string                                                                  $name           Tool name
+     * @param array<string, mixed>                                                    $arguments      Tool arguments
      * @param (callable(float $progress, ?float $total, ?string $message): void)|null $onProgress
-     *                                                                                            Optional callback for progress updates
+     *                                                                                                Optional callback for progress updates
+     * @param CancellationTokenInterface|null                                         $cancellation   Non-blocking cancellation signal
+     * @param float|null                                                              $timeoutSeconds Finite positive timeout replacing the default for this call
+     *
+     * @throws RequestCancelledException                                                      When cancellation is observed
+     * @throws Exception\TimeoutException                                                     When the request timeout is observed to have expired
+     * @throws RequestException|ConnectionException|InvalidArgumentException|RuntimeException
      */
-    public function callTool(string $name, array $arguments = [], ?callable $onProgress = null) : CallToolResult
+    public function callTool(string $name, array $arguments = [], ?callable $onProgress = null, ?CancellationTokenInterface $cancellation = null, ?float $timeoutSeconds = null) : CallToolResult
     {
+        if ($cancellation?->isCancellationRequested()) {
+            throw new RequestCancelledException('The client cancelled the request.');
+        }
+        if (null !== $timeoutSeconds && (!is_finite($timeoutSeconds) || $timeoutSeconds <= 0)) {
+            throw new InvalidArgumentException('The per-call timeout must be a finite positive number of seconds.');
+        }
+        $catalog = $this->protocol->getToolCatalog();
+        // A tool the listing showed to be malformed is refused here rather than
+        // sent: the client cannot produce the headers its annotations demand,
+        // so the call could only go out misdescribed (SEP-2243).
+        if ($catalog->isRejected($name)) {
+            throw new RuntimeException(\sprintf('Refusing to call tool "%s": its "x-mcp-header" annotations are invalid (%s).', $name, $catalog->reasonFor($name)));
+        }
         $request = new CallToolRequest($name, $arguments);
-        $response = $this->sendRequest($request, $onProgress);
+        $response = $this->sendRequest($request, $onProgress, $cancellation, $timeoutSeconds);
         return CallToolResult::fromArray($response->result);
     }
     /**
@@ -152,9 +237,14 @@ class Client
      * @param string                                                                  $uri        The resource URI
      * @param (callable(float $progress, ?float $total, ?string $message): void)|null $onProgress
      *                                                                                            Optional callback for progress updates
+     *
+     * @throws RequestException|ConnectionException|InvalidArgumentException
      */
     public function readResource(string $uri, ?callable $onProgress = null) : ReadResourceResult
     {
+        if ('' === $uri) {
+            throw new InvalidArgumentException('Resource URI must not be empty.');
+        }
         $request = new ReadResourceRequest($uri);
         $response = $this->sendRequest($request, $onProgress);
         return ReadResourceResult::fromArray($response->result);
@@ -175,6 +265,8 @@ class Client
      * @param array<string, string>                                                   $arguments  Prompt arguments
      * @param (callable(float $progress, ?float $total, ?string $message): void)|null $onProgress
      *                                                                                            Optional callback for progress updates
+     *
+     * @throws RequestException|ConnectionException|InvalidArgumentException
      */
     public function getPrompt(string $name, array $arguments = [], ?callable $onProgress = null) : GetPromptResult
     {
@@ -187,6 +279,8 @@ class Client
      *
      * @param PromptReference|ResourceReference  $ref      The prompt or resource reference
      * @param array{name: string, value: string} $argument The argument to complete
+     *
+     * @throws RequestException|ConnectionException|InvalidArgumentException
      */
     public function complete(PromptReference|ResourceReference $ref, array $argument) : CompletionCompleteResult
     {
@@ -195,12 +289,41 @@ class Client
         return CompletionCompleteResult::fromArray($response->result);
     }
     /**
-     * Set the minimum logging level for server log messages.
+     * Set the minimum logging level for server log messages; on the modern era it rides on every following request.
      */
     public function setLoggingLevel(LoggingLevel $level) : void
     {
+        if (!$this->isConnected()) {
+            throw new ConnectionException('Client is not connected. Call connect() first.');
+        }
+        if ($this->protocol->isModern()) {
+            $this->protocol->setLogLevel($level);
+            return;
+        }
         $request = new SetLogLevelRequest($level);
         $this->sendRequest($request);
+    }
+    /**
+     * Notify the server that the client's list of roots has changed.
+     *
+     * The server should react by requesting an updated list via roots/list.
+     *
+     * @throws RuntimeException    if the client did not advertise the `roots.listChanged` capability
+     * @throws ConnectionException if the client is not connected
+     */
+    public function sendRootsListChanged() : void
+    {
+        if (\true !== $this->config->capabilities->rootsListChanged) {
+            throw new RuntimeException('Cannot send a "roots/list_changed" notification without advertising the "roots.listChanged" capability. Build the client with new ClientCapabilities(roots: true, rootsListChanged: true).');
+        }
+        if (!$this->isConnected()) {
+            throw new ConnectionException('Client is not connected. Call connect() first.');
+        }
+        if ($this->protocol->isModern()) {
+            $this->logger->debug('Not sending "notifications/roots/list_changed": the connection is on the modern era, which removed roots.');
+            return;
+        }
+        $this->protocol->sendNotification(new RootsListChangedNotification());
     }
     /**
      * Send a request to the server and wait for response.
@@ -209,16 +332,22 @@ class Client
      *
      * @return Response<mixed>
      *
-     * @throws RequestException|ConnectionException
+     * @throws RequestException|ConnectionException|InvalidArgumentException
      */
-    private function sendRequest(Request $request, ?callable $onProgress = null) : Response
+    private function sendRequest(Request $request, ?callable $onProgress = null, ?CancellationTokenInterface $cancellation = null, ?float $timeoutSeconds = null) : Response
     {
-        if (!$this->isConnected()) {
+        $transport = $this->transport;
+        if (null === $transport || !$this->protocol->getState()->isInitialized()) {
             throw new ConnectionException('Client is not connected. Call connect() first.');
         }
         $withProgress = null !== $onProgress;
-        $fiber = new \Fiber(fn() => $this->protocol->request($request, $this->config->requestTimeout, $withProgress));
-        $response = $this->transport->runRequest($fiber, $onProgress);
+        $fiber = new \Fiber(fn() => $this->protocol->request($request, $this->config->requestTimeout, $withProgress, $cancellation, $timeoutSeconds ?? $this->config->requestTimeout));
+        $this->protocol->setProgressCallback($onProgress);
+        try {
+            $response = $transport->runRequest($fiber);
+        } finally {
+            $this->protocol->setProgressCallback(null);
+        }
         if ($response instanceof Error) {
             throw RequestException::fromError($response);
         }

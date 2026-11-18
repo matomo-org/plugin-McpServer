@@ -20,7 +20,6 @@ use Matomo\Dependencies\McpServer\Mcp\Server;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
 use Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionStoreInterface;
-use Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\Middleware\ProtocolVersionMiddleware;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StreamableHttpTransport;
 use Matomo\Dependencies\McpServer\Psr\Http\Message\ServerRequestInterface;
 use Piwik\Config;
@@ -309,9 +308,14 @@ final class McpServerFactory
      * 403s every real deployment. We replace its raw-`Host` DNS-rebinding check
      * with {@see MatomoHostValidationMiddleware} — which validates the
      * proxy-aware host, and a supplied `Origin`, against the deployment's own
-     * trusted hostnames — and keep the protocol-version middleware. Passing an
-     * explicit list is what disables the SDK defaults; see
-     * {@see StreamableHttpTransport::defaultMiddleware()}.
+     * trusted hostnames. Passing an explicit list is what disables the SDK
+     * defaults; see {@see StreamableHttpTransport::defaultMiddleware()}.
+     *
+     * The `Mcp-Protocol-Version` check is deliberately not in this list. The
+     * transport applies it by itself to handshake-era traffic
+     * ({@see StreamableHttpTransport::handshakeMiddleware()}), whereas a copy
+     * here would run before the request's era is known and reject every
+     * `2026-07-28` request, including `server/discover`, with a 400.
      *
      * We deliberately drop the SDK's `CorsMiddleware`: browser/CORS access to
      * MCP is unsupported (see {@see MatomoHostValidationMiddleware}), and Matomo
@@ -341,7 +345,6 @@ final class McpServerFactory
     {
         $middleware = [
             new MatomoHostValidationMiddleware(self::resolveAllowedOriginHosts()),
-            new ProtocolVersionMiddleware(),
         ];
 
         return new StreamableHttpTransport($request, middleware: $middleware);

@@ -10,9 +10,11 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\State;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 /**
  * Interface for client state management.
  *
@@ -42,7 +44,7 @@ interface ClientStateInterface
     /**
      * Get all pending requests.
      *
-     * @return array<int|string, array{request_id: int|string, timestamp: int, timeout: int}>
+     * @return array<int|string, array{request_id: int|string, timestamp: float, timeout: int}>
      */
     public function getPendingRequests() : array;
     /**
@@ -67,9 +69,19 @@ interface ClientStateInterface
      */
     public function isInitialized() : bool;
     /**
+     * Store the protocol version negotiated during initialization.
+     */
+    public function setProtocolVersion(?ProtocolVersion $protocolVersion) : void;
+    /**
+     * Get the protocol version negotiated during initialization.
+     *
+     * Null until the handshake has completed.
+     */
+    public function getProtocolVersion() : ?ProtocolVersion;
+    /**
      * Store the server info from initialization.
      */
-    public function setServerInfo(Implementation $serverInfo) : void;
+    public function setServerInfo(?Implementation $serverInfo) : void;
     /**
      * Get the server info from initialization.
      */
@@ -82,6 +94,14 @@ interface ClientStateInterface
      * Get the server instructions from initialization.
      */
     public function getInstructions() : ?string;
+    /**
+     * Set the capabilities the server declared.
+     */
+    public function setServerCapabilities(?ServerCapabilities $capabilities) : void;
+    /**
+     * Get the capabilities the server declared, null until it declared them.
+     */
+    public function getServerCapabilities() : ?ServerCapabilities;
     /**
      * Store progress data received from a notification.
      *

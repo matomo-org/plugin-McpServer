@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ClientCapabilities;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
@@ -20,7 +21,22 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
  */
 class Configuration
 {
-    public function __construct(public readonly Implementation $clientInfo, public readonly ClientCapabilities $capabilities, public readonly ProtocolVersion $protocolVersion = ProtocolVersion::V2025_11_25, public readonly int $initTimeout = 30, public readonly int $requestTimeout = 120, public readonly int $maxRetries = 3)
+    /**
+     * @param ProtocolVersion|null $fallbackProtocolVersion handshake revision a modern client falls back to; null makes it modern-only
+     */
+    public function __construct(public readonly Implementation $clientInfo, public readonly ClientCapabilities $capabilities, public readonly ProtocolVersion $protocolVersion = ProtocolVersion::V2026_07_28, public readonly int $initTimeout = 30, public readonly int $requestTimeout = 120, public readonly int $maxRetries = 3, public readonly ?ProtocolVersion $fallbackProtocolVersion = ProtocolVersion::V2025_11_25)
     {
+        if (null !== $fallbackProtocolVersion && $fallbackProtocolVersion->isModern()) {
+            throw new InvalidArgumentException(\sprintf('The fallback protocol version must be one reached through the "initialize" handshake, got "%s".', $fallbackProtocolVersion->value));
+        }
+        if ($initTimeout < 1) {
+            throw new InvalidArgumentException(\sprintf('The initialization timeout must be a positive number of seconds, got %d.', $initTimeout));
+        }
+        if ($requestTimeout < 1) {
+            throw new InvalidArgumentException(\sprintf('The request timeout must be a positive number of seconds, got %d.', $requestTimeout));
+        }
+        if ($maxRetries < 0) {
+            throw new InvalidArgumentException(\sprintf('The maximum number of retries must be zero or greater, got %d.', $maxRetries));
+        }
     }
 }

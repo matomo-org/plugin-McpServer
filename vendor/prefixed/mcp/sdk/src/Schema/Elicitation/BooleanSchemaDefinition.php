@@ -18,30 +18,34 @@ namespace Matomo\Dependencies\McpServer\Mcp\Schema\Elicitation;
 final class BooleanSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string      $title       Human-readable title for the field
+     * @param ?string     $title       Optional human-readable title for the field
      * @param string|null $description Optional description/help text
      * @param bool|null   $default     Optional default value
      */
-    public function __construct(string $title, ?string $description = null, public readonly ?bool $default = null)
+    public function __construct(?string $title = null, ?string $description = null, public readonly ?bool $default = null)
     {
         parent::__construct($title, $description);
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: bool,
-     * } $data
+     * }|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
         self::validateTitle($data, 'boolean');
-        return new self(title: $data['title'], description: $data['description'] ?? null, default: isset($data['default']) ? (bool) $data['default'] : null);
+        return new self(title: $data['title'] ?? null, description: $data['description'] ?? null, default: isset($data['default']) ? (bool) $data['default'] : null);
+    }
+    public function getDefault() : ?bool
+    {
+        return $this->default;
     }
     /**
      * @return array{
      *     type: string,
-     *     title: string,
+     *     title?: string,
      *     description?: string,
      *     default?: bool,
      * }

@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\OAuth;
 
+use Matomo\Dependencies\McpServer\Mcp\Server\Authorization\AccessToken;
 /**
  * Describes the outcome of an authorization decision.
  *
@@ -24,20 +25,17 @@ namespace Matomo\Dependencies\McpServer\Mcp\Server\Transport\Http\OAuth;
 final class AuthorizationResult
 {
     /**
-     * @param list<string>|null    $scopes     Scopes to include in WWW-Authenticate challenge
-     * @param array<string, mixed> $attributes Attributes to attach to the request on success
+     * @param list<string>|null $scopes Scopes to include in WWW-Authenticate challenge
      */
-    private function __construct(private readonly bool $allowed, private readonly int $statusCode, private readonly ?string $error, private readonly ?string $errorDescription, private readonly ?array $scopes, private readonly array $attributes)
+    private function __construct(private readonly bool $allowed, private readonly int $statusCode, private readonly ?string $error, private readonly ?string $errorDescription, private readonly ?array $scopes, private readonly ?AccessToken $accessToken)
     {
     }
     /**
      * Creates a result indicating access is allowed.
-     *
-     * @param array<string, mixed> $attributes Attributes to attach to the request (e.g., user_id, scopes)
      */
-    public static function allow(array $attributes = []) : self
+    public static function allow(AccessToken $accessToken) : self
     {
-        return new self(\true, 200, null, null, null, $attributes);
+        return new self(\true, 200, null, null, null, $accessToken);
     }
     /**
      * Creates a result indicating the request is unauthorized (401).
@@ -50,7 +48,7 @@ final class AuthorizationResult
      */
     public static function unauthorized(?string $error = null, ?string $errorDescription = null, ?array $scopes = null) : self
     {
-        return new self(\false, 401, $error, $errorDescription, $scopes, []);
+        return new self(\false, 401, $error, $errorDescription, $scopes, null);
     }
     /**
      * Creates a result indicating the request is forbidden (403).
@@ -63,7 +61,7 @@ final class AuthorizationResult
      */
     public static function forbidden(?string $error = 'insufficient_scope', ?string $errorDescription = null, ?array $scopes = null) : self
     {
-        return new self(\false, 403, $error ?? 'insufficient_scope', $errorDescription, $scopes, []);
+        return new self(\false, 403, $error ?? 'insufficient_scope', $errorDescription, $scopes, null);
     }
     /**
      * Creates a result indicating a bad request (400).
@@ -75,7 +73,7 @@ final class AuthorizationResult
      */
     public static function badRequest(?string $error = 'invalid_request', ?string $errorDescription = null) : self
     {
-        return new self(\false, 400, $error ?? 'invalid_request', $errorDescription, null, []);
+        return new self(\false, 400, $error ?? 'invalid_request', $errorDescription, null, null);
     }
     public function isAllowed() : bool
     {
@@ -101,10 +99,10 @@ final class AuthorizationResult
         return $this->scopes;
     }
     /**
-     * @return array<string, mixed>
+     * The validated token; set only on an allowed result.
      */
-    public function getAttributes() : array
+    public function getAccessToken() : ?AccessToken
     {
-        return $this->attributes;
+        return $this->accessToken;
     }
 }

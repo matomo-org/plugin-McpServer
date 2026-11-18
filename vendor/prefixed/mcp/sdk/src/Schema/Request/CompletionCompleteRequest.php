@@ -38,14 +38,24 @@ final class CompletionCompleteRequest extends Request
             throw new InvalidArgumentException('Missing or invalid "ref" parameter for completion/complete.');
         }
         $ref = match ($params['ref']['type'] ?? null) {
-            'ref/prompt' => new PromptReference($params['ref']['name']),
-            'ref/resource' => new ResourceReference($params['ref']['uri']),
+            'ref/prompt' => new PromptReference(self::stringMember($params['ref'], 'ref', 'name')),
+            'ref/resource' => new ResourceReference(self::stringMember($params['ref'], 'ref', 'uri')),
             default => throw new InvalidArgumentException('Invalid "ref" parameter for completion/complete.'),
         };
         if (!isset($params['argument']) || !\is_array($params['argument'])) {
             throw new InvalidArgumentException('Missing or invalid "argument" parameter for completion/complete.');
         }
-        return new self($ref, $params['argument']);
+        return new self($ref, ['name' => self::stringMember($params['argument'], 'argument', 'name'), 'value' => self::stringMember($params['argument'], 'argument', 'value')]);
+    }
+    /**
+     * @param array<mixed> $data
+     */
+    private static function stringMember(array $data, string $member, string $key) : string
+    {
+        if (!isset($data[$key]) || !\is_string($data[$key])) {
+            throw new InvalidArgumentException(\sprintf('Missing or invalid "%s.%s" parameter for completion/complete.', $member, $key));
+        }
+        return $data[$key];
     }
     /**
      * @return array{

@@ -45,7 +45,7 @@ final class CallToolRequest extends Request
         return new self($params['name'], $arguments);
     }
     /**
-     * @return array{name: string, arguments: array<string, mixed>}
+     * @return array{name: string, arguments: array<string, mixed>|\stdClass}
      */
     protected function getParams() : array
     {

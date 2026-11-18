@@ -12,6 +12,7 @@ namespace Matomo\Dependencies\McpServer\Mcp\Server\Transport;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Server\Authorization\AccessToken;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
@@ -33,6 +34,7 @@ use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 abstract class BaseTransport implements TransportInterface
 {
     use ManagesTransportCallbacks;
+    private const YIELD_FAILED_MESSAGE = 'Failed to send the message to the client.';
     protected ?Uuid $sessionId = null;
     /**
      * @var McpFiber|null
@@ -72,19 +74,21 @@ abstract class BaseTransport implements TransportInterface
         return [];
     }
     /**
-     * @return array<int, array<string, mixed>>
+     * @param McpFiber $fiber
+     *
+     * @return array<string, array<string, mixed>>
      */
-    protected function getPendingRequests(?Uuid $sessionId) : array
+    protected function getPendingRequests(?Uuid $sessionId, \Fiber $fiber) : array
     {
         if ($sessionId && \is_callable($this->pendingRequestsProvider)) {
-            return ($this->pendingRequestsProvider)($sessionId);
+            return ($this->pendingRequestsProvider)($sessionId, $fiber);
         }
         return [];
     }
     /**
      * @phpstan-return FiberResume
      */
-    protected function checkForResponse(int $requestId, ?Uuid $sessionId) : Response|Error|null
+    protected function checkForResponse(Uuid $requestId, ?Uuid $sessionId) : Response|Error|null
     {
         if ($sessionId && \is_callable($this->responseFinder)) {
             return ($this->responseFinder)($requestId, $sessionId);
@@ -92,23 +96,34 @@ abstract class BaseTransport implements TransportInterface
         return null;
     }
     /**
+     * Hands what the session's fiber yielded to the yield handler.
+     *
+     * When the handler fails, the message the fiber suspended on never reaches the client, so
+     * the fiber is resumed with an error instead of being left waiting on nothing; whatever it
+     * yields next is handled the same way.
+     *
      * @param FiberSuspend|null $yielded
+     * @param McpFiber          $fiber   the fiber that yielded
      */
-    protected function handleFiberYield(mixed $yielded, ?Uuid $sessionId) : void
+    protected function handleFiberYield(mixed $yielded, ?Uuid $sessionId, \Fiber $fiber) : void
     {
-        if (null === $yielded || !\is_callable($this->fiberYieldHandler)) {
-            return;
-        }
-        try {
-            ($this->fiberYieldHandler)($yielded, $sessionId);
-        } catch (\Throwable $e) {
-            $this->logger->error('Fiber yield handler failed.', ['exception' => $e, 'sessionId' => $sessionId?->toRfc4122()]);
+        while (null !== $yielded && \is_callable($this->fiberYieldHandler)) {
+            try {
+                ($this->fiberYieldHandler)($yielded, $sessionId, $fiber);
+                return;
+            } catch (\Throwable $e) {
+                $this->logger->error('Fiber yield handler failed.', ['exception' => $e, 'sessionId' => $sessionId?->toRfc4122()]);
+            }
+            if (!$fiber->isSuspended()) {
+                return;
+            }
+            $yielded = $fiber->resume(Error::forInternalError(self::YIELD_FAILED_MESSAGE));
         }
     }
-    protected function handleMessage(string $payload, ?Uuid $sessionId) : void
+    protected function handleMessage(string $payload, ?Uuid $sessionId, ?AccessToken $accessToken = null) : void
     {
         if (\is_callable($this->messageListener)) {
-            ($this->messageListener)($this, $payload, $sessionId);
+            ($this->messageListener)($this, $payload, $sessionId, $accessToken);
         }
     }
     protected function handleSessionEnd(?Uuid $sessionId) : void

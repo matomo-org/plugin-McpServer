@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => '__root__',
-        'pretty_version' => 'dev-5.x-dev',
-        'version' => 'dev-5.x-dev',
-        'reference' => 'd598ae5dd0b8287020059babef855c427ccddd87',
+        'pretty_version' => 'dev-6.x-dev',
+        'version' => 'dev-6.x-dev',
+        'reference' => 'b3fbd3f8c3598beb40434d22b31cd1666ecc1b53',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => 'dev-5.x-dev',
-            'version' => 'dev-5.x-dev',
-            'reference' => 'd598ae5dd0b8287020059babef855c427ccddd87',
+            'pretty_version' => 'dev-6.x-dev',
+            'version' => 'dev-6.x-dev',
+            'reference' => 'b3fbd3f8c3598beb40434d22b31cd1666ecc1b53',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -29,9 +29,9 @@
             'dev_requirement' => false,
         ),
         'mcp/sdk' => array(
-            'pretty_version' => 'v0.7.1',
-            'version' => '0.7.1.0',
-            'reference' => '785fc3b9b7006ecc8a73322c939d96a4a7154345',
+            'pretty_version' => 'v0.9.0',
+            'version' => '0.9.0.0',
+            'reference' => 'be71c78bc3bce25f50d6a7e592017b8af6a2120f',
             'type' => 'library',
             'install_path' => __DIR__ . '/../mcp/sdk',
             'aliases' => array(),
@@ -236,6 +236,15 @@
             'replaced' => array(
                 0 => '*',
             ),
+        ),
+        'symfony/deprecation-contracts' => array(
+            'pretty_version' => 'v3.8.1',
+            'version' => '3.8.1.0',
+            'reference' => 'feb1edf4e546af3b85c5caebe8359a20db230ca3',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../symfony/deprecation-contracts',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'symfony/polyfill-uuid' => array(
             'pretty_version' => 'v1.37.0',

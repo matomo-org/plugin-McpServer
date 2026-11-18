@@ -92,6 +92,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
         self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
         self::assertSame($this->segmentNameAlpha, $result->structuredContent['name'] ?? null);
         self::assertSame('countryCode==de', $result->structuredContent['definition'] ?? null);
@@ -105,6 +106,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
         self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
     }
 
@@ -116,6 +118,7 @@ class SegmentGetTest extends IntegrationTestCase
         ]);
 
         self::assertFalse($result->isError);
+        self::assertIsArray($result->structuredContent);
         self::assertSame($this->idSegmentAlpha, $result->structuredContent['idsegment'] ?? null);
     }
 

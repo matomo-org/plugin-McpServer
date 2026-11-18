@@ -46,19 +46,19 @@ final class ExplicitElementLoader implements LoaderInterface
         foreach ($this->tools as $entry) {
             $handler = $entry['handler'];
             $registry->registerTool($entry['definition'], $this->boundClosure(static function (array $arguments) use($handler) : mixed {
-                $gateway = new ClientGateway($arguments['_session']);
+                $gateway = new ClientGateway($arguments['_session'], $arguments['_request'] ?? null);
                 unset($arguments['_session'], $arguments['_request']);
                 return $handler->execute($arguments, $gateway);
             }));
         }
         foreach ($this->resources as $entry) {
             $handler = $entry['handler'];
-            $registry->registerResource($entry['definition'], $this->boundClosure(static fn(array $arguments): mixed => $handler->read($arguments['uri'], new ClientGateway($arguments['_session']))));
+            $registry->registerResource($entry['definition'], $this->boundClosure(static fn(array $arguments): mixed => $handler->read($arguments['uri'], new ClientGateway($arguments['_session'], $arguments['_request'] ?? null))));
         }
         foreach ($this->resourceTemplates as $entry) {
             $handler = $entry['handler'];
             $registry->registerResourceTemplate($entry['definition'], $this->boundClosure(static function (array $arguments) use($handler) : mixed {
-                $gateway = new ClientGateway($arguments['_session']);
+                $gateway = new ClientGateway($arguments['_session'], $arguments['_request'] ?? null);
                 $uri = $arguments['uri'];
                 unset($arguments['_session'], $arguments['_request'], $arguments['uri']);
                 return $handler->read($uri, $arguments, $gateway);
@@ -67,7 +67,7 @@ final class ExplicitElementLoader implements LoaderInterface
         foreach ($this->prompts as $entry) {
             $handler = $entry['handler'];
             $registry->registerPrompt($entry['definition'], $this->boundClosure(static function (array $arguments) use($handler) : mixed {
-                $gateway = new ClientGateway($arguments['_session']);
+                $gateway = new ClientGateway($arguments['_session'], $arguments['_request'] ?? null);
                 unset($arguments['_session'], $arguments['_request']);
                 return $handler->get($arguments, $gateway);
             }), $entry['completionProviders']);

@@ -17,6 +17,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Request\ResourceSubscribeRequest;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Result\EmptyResult;
+use Matomo\Dependencies\McpServer\Mcp\Server\RequestContext;
 use Matomo\Dependencies\McpServer\Mcp\Server\Resource\SubscriptionManagerInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Psr\Log\LoggerInterface;
@@ -47,7 +48,7 @@ final class ResourceSubscribeHandler implements RequestHandlerInterface
             $this->registry->getResource($uri);
         } catch (ResourceNotFoundException $e) {
             $this->logger->error('Resource not found', ['uri' => $uri, 'exception' => $e]);
-            return Error::forResourceNotFound($e->getMessage(), $request->getId());
+            return (new RequestContext($session, $request))->getProtocolVersion()->usesInvalidParamsForResourceNotFound() ? Error::forInvalidParams($e->getMessage(), $request->getId(), ['uri' => $uri]) : Error::forResourceNotFound($e->getMessage(), $request->getId());
         }
         $this->logger->debug('Subscribing to resource', ['uri' => $uri]);
         $this->subscriptionManager->subscribe($session, $uri);

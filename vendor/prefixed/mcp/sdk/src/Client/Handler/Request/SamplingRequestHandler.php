@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\Handler\Request;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\SamplingException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
@@ -27,11 +28,15 @@ use Psr\Log\NullLogger;
  * @implements RequestHandlerInterface<CreateSamplingMessageResult>
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
+ *
+ * @deprecated since protocol revision 2026-07-28 (SEP-2577), earliest removal 2027-07-28.
+ *  Integrate with an LLM provider's API directly instead.
  */
 class SamplingRequestHandler implements RequestHandlerInterface
 {
     public function __construct(private readonly SamplingCallbackInterface $callback, private readonly LoggerInterface $logger = new NullLogger())
     {
+        trigger_deprecation('mcp/sdk', '0.8', 'MCP sampling is deprecated since protocol revision 2026-07-28 (SEP-2577); integrate with an LLM provider\'s API directly instead.');
     }
     public function supports(Request $request) : bool
     {
@@ -43,6 +48,12 @@ class SamplingRequestHandler implements RequestHandlerInterface
     public function handle(Request $request) : Response|Error
     {
         \assert($request instanceof CreateSamplingMessageRequest);
+        try {
+            $request->validateToolFlow();
+        } catch (InvalidArgumentException $e) {
+            $this->logger->warning('Rejecting sampling request violating the tool flow', ['exception' => $e]);
+            return Error::forInvalidParams($e->getMessage(), $request->getId());
+        }
         try {
             $result = $this->callback->__invoke($request);
             return new Response($request->getId(), $result);

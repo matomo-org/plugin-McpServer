@@ -10,9 +10,11 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\State;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
+use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
 /**
  * In-memory client state implementation.
  *
@@ -26,9 +28,11 @@ class ClientState implements ClientStateInterface
 {
     private int $requestIdCounter = 1;
     private bool $initialized = \false;
+    private ?ProtocolVersion $protocolVersion = null;
     private ?Implementation $serverInfo = null;
     private ?string $instructions = null;
-    /** @var array<int|string, array{request_id: int|string, timestamp: int, timeout: int}> */
+    private ?ServerCapabilities $serverCapabilities = null;
+    /** @var array<int|string, array{request_id: int|string, timestamp: float, timeout: int}> */
     private array $pendingRequests = [];
     /** @var array<int|string, array<string, mixed>> */
     private array $responses = [];
@@ -40,7 +44,7 @@ class ClientState implements ClientStateInterface
     }
     public function addPendingRequest(int|string $requestId, int $timeout) : void
     {
-        $this->pendingRequests[$requestId] = ['request_id' => $requestId, 'timestamp' => time(), 'timeout' => $timeout];
+        $this->pendingRequests[$requestId] = ['request_id' => $requestId, 'timestamp' => microtime(\true), 'timeout' => $timeout];
     }
     public function removePendingRequest(int|string $requestId) : void
     {
@@ -75,7 +79,15 @@ class ClientState implements ClientStateInterface
     {
         return $this->initialized;
     }
-    public function setServerInfo(Implementation $serverInfo) : void
+    public function setProtocolVersion(?ProtocolVersion $protocolVersion) : void
+    {
+        $this->protocolVersion = $protocolVersion;
+    }
+    public function getProtocolVersion() : ?ProtocolVersion
+    {
+        return $this->protocolVersion;
+    }
+    public function setServerInfo(?Implementation $serverInfo) : void
     {
         $this->serverInfo = $serverInfo;
     }
@@ -90,6 +102,14 @@ class ClientState implements ClientStateInterface
     public function getInstructions() : ?string
     {
         return $this->instructions;
+    }
+    public function setServerCapabilities(?ServerCapabilities $capabilities) : void
+    {
+        $this->serverCapabilities = $capabilities;
+    }
+    public function getServerCapabilities() : ?ServerCapabilities
+    {
+        return $this->serverCapabilities;
     }
     public function storeProgress(string $token, float $progress, ?float $total, ?string $message) : void
     {

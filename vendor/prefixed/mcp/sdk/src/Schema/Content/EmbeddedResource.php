@@ -35,7 +35,7 @@ class EmbeddedResource extends Content
         parent::__construct('resource');
     }
     /**
-     * @param EmbeddedResourceData $data
+     * @param EmbeddedResourceData|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
@@ -53,7 +53,7 @@ class EmbeddedResource extends Content
         } else {
             throw new InvalidArgumentException('EmbeddedResource "resource" field must contain "text" or "blob".');
         }
-        return new self($resourceInstance, isset($data['annotations']) ? Annotations::fromArray($data['annotations']) : null);
+        return new self($resourceInstance, Annotations::tryFromArray($data['annotations'] ?? null, 'EmbeddedResource'));
     }
     public static function fromText(string $uri, string $text, ?string $mimeType = 'text/plain', ?Annotations $annotations = null) : self
     {
@@ -99,7 +99,7 @@ class EmbeddedResource extends Content
         if (\false === $content) {
             throw new RuntimeException(\sprintf('Could not read file: "%s".', $file->getPathname()));
         }
-        return new self(new BlobResourceContents($uri, $explicitMimeType ?? mime_content_type($file->getPathname()), base64_encode($content)), $annotations);
+        return new self(new BlobResourceContents($uri, $explicitMimeType ?? (mime_content_type($file->getPathname()) ?: null), base64_encode($content)), $annotations);
     }
     /**
      * @return array{
@@ -110,7 +110,7 @@ class EmbeddedResource extends Content
      */
     public function jsonSerialize() : array
     {
-        $data = ['type' => $this->type, 'resource' => $this->resource];
+        $data = ['type' => 'resource', 'resource' => $this->resource];
         if (null !== $this->annotations) {
             $data['annotations'] = $this->annotations;
         }
