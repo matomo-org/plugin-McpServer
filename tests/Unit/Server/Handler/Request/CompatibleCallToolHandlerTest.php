@@ -235,6 +235,37 @@ class CompatibleCallToolHandlerTest extends TestCase
     }
 
     /**
+     * A tool without parameters is called with `arguments: {}`, which the SDK decodes to PHP `[]`.
+     * It has to validate as the empty object it was sent as, not fail the schema's `type: object`.
+     */
+    public function testAcceptsEmptyArgumentsForToolWithoutParameters(): void
+    {
+        $registry = new Registry();
+        $called = false;
+        $request = (new CallToolRequest('demo_no_args', []))->withId('empty-arguments');
+
+        $registry->registerTool(
+            new \Matomo\Dependencies\McpServer\Mcp\Schema\Tool('demo_no_args', null, [
+                'type' => 'object',
+                'properties' => new \stdClass(),
+            ], null, null),
+            static function () use (&$called): array {
+                $called = true;
+
+                return [];
+            },
+        );
+
+        $handler = new CompatibleCallToolHandler($registry, new ReferenceHandler());
+        $response = $handler->handle($request, $this->createSession('0b5c7d6e-7f8a-4b9c-8d1e-2f3a4b5c6d7e'));
+
+        self::assertInstanceOf(Response::class, $response);
+        self::assertInstanceOf(CallToolResult::class, $response->result);
+        self::assertFalse($response->result->isError);
+        self::assertTrue($called);
+    }
+
+    /**
      * The class map stands in for what McpServerFactory collects while registering the real tool
      * objects. These cases register a reduced schema under the metadata tool's name, so the map
      * has to name its class for the tool's intake profile to apply.

@@ -32,7 +32,7 @@ class InternalToolCatalogTest extends TestCase
 {
     public function testBuildReturnsFlatEntriesForFullyAnnotatedTools(): void
     {
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = ['type' => 'object', 'properties' => new \stdClass(), 'required' => null];
         $outputSchema = ['type' => 'object', 'properties' => ['ok' => ['type' => 'boolean']]];
         $tool = new Tool(
             name: 'matomo_demo_tool',
@@ -50,7 +50,7 @@ class InternalToolCatalogTest extends TestCase
 
         $entries = (new InternalToolCatalog())->build($this->createAccess([$tool]));
 
-        self::assertSame([[
+        self::assertEquals([[
             'name' => 'matomo_demo_tool',
             'title' => 'Demo',
             'description' => 'Demo description.',
@@ -65,7 +65,7 @@ class InternalToolCatalogTest extends TestCase
 
     public function testBuildPassesThroughNullForMissingAnnotationsObject(): void
     {
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = ['type' => 'object', 'properties' => new \stdClass(), 'required' => null];
         $tool = new Tool(
             name: 'matomo_unannotated_tool',
             title: null,
@@ -76,7 +76,7 @@ class InternalToolCatalogTest extends TestCase
 
         $entries = (new InternalToolCatalog())->build($this->createAccess([$tool]));
 
-        self::assertSame([[
+        self::assertEquals([[
             'name' => 'matomo_unannotated_tool',
             'title' => null,
             'description' => 'no hints declared',
@@ -95,7 +95,7 @@ class InternalToolCatalogTest extends TestCase
         // two booleans verbatim and leave the other hints as null so consumers
         // can apply their own "unknown means …" policy instead of inheriting a
         // catalogue-imposed default.
-        $inputSchema = ['type' => 'object', 'properties' => [], 'required' => null];
+        $inputSchema = ['type' => 'object', 'properties' => new \stdClass(), 'required' => null];
         $tool = new Tool(
             name: 'matomo_partially_annotated_tool',
             title: null,
@@ -111,7 +111,7 @@ class InternalToolCatalogTest extends TestCase
 
         $entries = (new InternalToolCatalog())->build($this->createAccess([$tool]));
 
-        self::assertSame([[
+        self::assertEquals([[
             'name' => 'matomo_partially_annotated_tool',
             'title' => null,
             'description' => 'only some hints declared',

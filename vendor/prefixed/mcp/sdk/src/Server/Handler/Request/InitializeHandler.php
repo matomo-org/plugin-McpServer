@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Handler\Request;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
@@ -40,6 +41,35 @@ final class InitializeHandler implements RequestHandlerInterface
         \assert($request instanceof InitializeRequest);
         $session->set('client_info', $request->clientInfo->jsonSerialize());
         $session->set('client_capabilities', $request->capabilities->jsonSerialize());
-        return new Response($request->getId(), new InitializeResult($this->configuration->capabilities ?? new ServerCapabilities(), $this->configuration->serverInfo ?? new Implementation(), $this->configuration?->instructions, null, $this->configuration?->protocolVersion));
+        $negotiated = $this->negotiate($request->protocolVersion);
+        $session->set('protocol_version', $negotiated->value);
+        // List changes reach clients only through `subscriptions/listen`, which
+        // the handshake era does not have.
+        $capabilities = ($this->configuration->capabilities ?? new ServerCapabilities())->withoutListChanged();
+        return new Response($request->getId(), new InitializeResult($capabilities, $this->configuration->serverInfo ?? new Implementation(), $this->configuration?->instructions, null, $negotiated));
+    }
+    /**
+     * Picks the protocol version to answer an `initialize` handshake with.
+     *
+     * If the client asked for a version this server supports, the spec requires
+     * responding with that exact version. Otherwise the server counter-offers
+     * the newest version it does support and leaves it to the client to decide
+     * whether it can continue on that revision or must disconnect.
+     */
+    private function negotiate(string $requested) : ProtocolVersion
+    {
+        $supported = $this->supportedVersions();
+        $version = ProtocolVersion::tryFrom($requested);
+        if (null !== $version && \in_array($version, $supported, \true)) {
+            return $version;
+        }
+        return $supported[\count($supported) - 1];
+    }
+    /**
+     * @return non-empty-list<ProtocolVersion>
+     */
+    private function supportedVersions() : array
+    {
+        return $this->configuration?->handshakeVersions() ?? ProtocolVersion::handshakeVersions();
     }
 }

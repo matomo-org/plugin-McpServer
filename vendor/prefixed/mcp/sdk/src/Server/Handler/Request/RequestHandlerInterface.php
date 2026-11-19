@@ -15,7 +15,11 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Request;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 /**
- * @template TResult
+ * Covariant in TResult: a handler only ever produces its result, so one
+ * declaring a concrete result type satisfies a collection of handlers typed by
+ * the interface every result implements.
+ *
+ * @template-covariant TResult
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */

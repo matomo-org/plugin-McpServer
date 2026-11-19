@@ -30,8 +30,10 @@ class ServerCapabilities implements \JsonSerializable
      * @param ?bool                 $completions          Server supports argument autocompletion
      * @param ?array<string, mixed> $experimental         experimental, non-standard features that the server supports
      * @param ?array<string, mixed> $extensions           protocol extensions the server supports (e.g. io.modelcontextprotocol/ui)
+     * @param ?array<string, mixed> $tasks                task-augmented requests the server supports, as the
+     *                                                    spec's nested object, e.g. `['list' => [], 'requests' => ['tools' => ['call' => []]]]`
      */
-    public function __construct(public readonly ?bool $tools = \true, public readonly ?bool $toolsListChanged = \false, public readonly ?bool $resources = \true, public readonly ?bool $resourcesSubscribe = \false, public readonly ?bool $resourcesListChanged = \false, public readonly ?bool $prompts = \true, public readonly ?bool $promptsListChanged = \false, public readonly ?bool $logging = \false, public readonly ?bool $completions = \false, public readonly ?array $experimental = null, public readonly ?array $extensions = null)
+    public function __construct(public readonly ?bool $tools = \true, public readonly ?bool $toolsListChanged = \false, public readonly ?bool $resources = \true, public readonly ?bool $resourcesSubscribe = \false, public readonly ?bool $resourcesListChanged = \false, public readonly ?bool $prompts = \true, public readonly ?bool $promptsListChanged = \false, public readonly ?bool $logging = \false, public readonly ?bool $completions = \false, public readonly ?array $experimental = null, public readonly ?array $extensions = null, public readonly ?array $tasks = null)
     {
     }
     /**
@@ -43,6 +45,7 @@ class ServerCapabilities implements \JsonSerializable
      *     tools?: object|array{listChanged?: bool},
      *     experimental?: array<string, mixed>,
      *     extensions?: array<string, mixed>,
+     *     tasks?: array<string, mixed>,
      * } $data
      */
     public static function fromArray(array $data) : self
@@ -82,7 +85,7 @@ class ServerCapabilities implements \JsonSerializable
                 $toolsListChanged = (bool) $data['tools']->listChanged;
             }
         }
-        return new self(tools: $toolsEnabled, toolsListChanged: $toolsListChanged, resources: $resourcesEnabled, resourcesSubscribe: $resourcesSubscribe, resourcesListChanged: $resourcesListChanged, prompts: $promptsEnabled, promptsListChanged: $promptsListChanged, logging: $loggingEnabled, completions: $completionsEnabled, experimental: \is_array($data['experimental'] ?? null) ? $data['experimental'] : null, extensions: \is_array($data['extensions'] ?? null) ? $data['extensions'] : null);
+        return new self(tools: $toolsEnabled, toolsListChanged: $toolsListChanged, resources: $resourcesEnabled, resourcesSubscribe: $resourcesSubscribe, resourcesListChanged: $resourcesListChanged, prompts: $promptsEnabled, promptsListChanged: $promptsListChanged, logging: $loggingEnabled, completions: $completionsEnabled, experimental: \is_array($data['experimental'] ?? null) ? $data['experimental'] : null, extensions: \is_array($data['extensions'] ?? null) ? $data['extensions'] : null, tasks: \is_array($data['tasks'] ?? null) ? $data['tasks'] : null);
     }
     /**
      * Returns a copy with the given protocol extensions merged into the existing ones.
@@ -93,17 +96,27 @@ class ServerCapabilities implements \JsonSerializable
      */
     public function withExtensions(array $extensions) : self
     {
-        return new self($this->tools, $this->toolsListChanged, $this->resources, $this->resourcesSubscribe, $this->resourcesListChanged, $this->prompts, $this->promptsListChanged, $this->logging, $this->completions, $this->experimental, [...$this->extensions ?? [], ...$extensions]);
+        return new self($this->tools, $this->toolsListChanged, $this->resources, $this->resourcesSubscribe, $this->resourcesListChanged, $this->prompts, $this->promptsListChanged, $this->logging, $this->completions, $this->experimental, [...$this->extensions ?? [], ...$extensions], $this->tasks);
+    }
+    /**
+     * Returns a copy that announces no list-changed notifications.
+     *
+     * A kind announced only through its `listChanged` flag stays announced.
+     */
+    public function withoutListChanged() : self
+    {
+        return new self($this->tools || $this->toolsListChanged, \false, $this->resources || $this->resourcesListChanged, $this->resourcesSubscribe, \false, $this->prompts || $this->promptsListChanged, \false, $this->logging, $this->completions, $this->experimental, $this->extensions, $this->tasks);
     }
     /**
      * @return array{
-     *     logging?: object,
-     *     completions?: object,
-     *     prompts?: object,
-     *     resources?: object,
-     *     tools?: object,
-     *     experimental?: object,
-     *     extensions?: object,
+     *     logging?: \stdClass,
+     *     completions?: \stdClass,
+     *     prompts?: \stdClass,
+     *     resources?: \stdClass,
+     *     tools?: \stdClass,
+     *     experimental?: \stdClass,
+     *     extensions?: \stdClass,
+     *     tasks?: \stdClass,
      * }
      */
     public function jsonSerialize() : array
@@ -140,8 +153,23 @@ class ServerCapabilities implements \JsonSerializable
             $data['experimental'] = (object) $this->experimental;
         }
         if ($this->extensions) {
-            $data['extensions'] = (object) $this->extensions;
+            // Each entry is a settings *object*; an extension with no settings
+            // declares `{}`, and an empty PHP array would serialize as `[]`.
+            $data['extensions'] = (object) array_map(static fn(mixed $settings): mixed => \is_array($settings) ? (object) $settings : $settings, $this->extensions);
+        }
+        if (null !== $this->tasks) {
+            $data['tasks'] = self::toObject($this->tasks);
         }
         return $data;
+    }
+    /**
+     * Every node of the `tasks` capability is an object, most of them empty,
+     * which a PHP array would encode as `[]`.
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function toObject(array $data) : \stdClass
+    {
+        return (object) array_map(static fn(mixed $value): mixed => \is_array($value) ? self::toObject($value) : $value, $data);
     }
 }

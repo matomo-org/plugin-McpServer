@@ -10,13 +10,12 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Client\Handler\Notification;
 
-use Matomo\Dependencies\McpServer\Mcp\Client\State\ClientStateInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Notification;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\ProgressNotification;
 /**
  * Internal handler for progress notifications.
  *
- * Writes progress data to state for transport to consume and execute callbacks.
+ * Hands progress on as soon as it is parsed, so it keeps its order among other notifications.
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  *
@@ -24,7 +23,10 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Notification\ProgressNotification;
  */
 class ProgressNotificationHandler implements NotificationHandlerInterface
 {
-    public function __construct(private readonly ClientStateInterface $state)
+    /**
+     * @param \Closure(ProgressNotification): void $deliver
+     */
+    public function __construct(private readonly \Closure $deliver)
     {
     }
     public function supports(Notification $notification) : bool
@@ -36,6 +38,6 @@ class ProgressNotificationHandler implements NotificationHandlerInterface
         if (!$notification instanceof ProgressNotification) {
             return;
         }
-        $this->state->storeProgress((string) $notification->progressToken, $notification->progress, $notification->total, $notification->message);
+        ($this->deliver)($notification);
     }
 }

@@ -123,8 +123,11 @@ final class CompatibleCallToolHandler implements RequestHandlerInterface
             $reference->tool->inputSchema,
         );
 
+        // Arguments are always a JSON object, but an empty one decodes to `[]`, which the
+        // validator no longer treats as an object. A tool called with `{}` would otherwise fail
+        // its own `type: object` schema.
         $validationErrors = $this->schemaValidator->validateAgainstJsonSchema(
-            $validationArguments,
+            $validationArguments === [] ? new \stdClass() : $validationArguments,
             $reference->tool->inputSchema,
         );
         if (!empty($validationErrors)) {

@@ -11,6 +11,7 @@
 namespace Matomo\Dependencies\McpServer\Mcp\Capability\Registry;
 
 use Matomo\Dependencies\McpServer\Mcp\Capability\Formatter\ResourceResultFormatter;
+use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Content\ResourceContents;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 /**
@@ -80,6 +81,9 @@ class ResourceTemplateReference extends ElementReference
         $this->variableNames = [];
         $regexParts = [];
         $segments = preg_split('/(\\{\\w+\\})/', $this->resourceTemplate->uriTemplate, -1, \PREG_SPLIT_DELIM_CAPTURE | \PREG_SPLIT_NO_EMPTY);
+        if (\false === $segments) {
+            throw new InvalidArgumentException(\sprintf('Invalid URI template "%s".', $this->resourceTemplate->uriTemplate));
+        }
         foreach ($segments as $segment) {
             if (preg_match('/^\\{(\\w+)\\}$/', $segment, $matches)) {
                 $varName = $matches[1];

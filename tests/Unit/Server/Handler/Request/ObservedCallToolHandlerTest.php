@@ -272,6 +272,9 @@ class ObservedCallToolHandlerTest extends TestCase
                 'request' => (new CallToolRequest('missing_tool', ['id' => 1]))->withId('parity-missing'),
                 'tool' => null,
                 'callback' => null,
+                // The one intended divergence: the SDK answers an unknown tool with -32602 since
+                // 0.8, while this plugin keeps answering -32601 (method not found).
+                'observedCode' => Error::METHOD_NOT_FOUND,
             ],
             [
                 'request' => (new CallToolRequest('demo_tool', ['query' => 'abc']))->withId('parity-invalid'),
@@ -333,6 +336,16 @@ class ObservedCallToolHandlerTest extends TestCase
             )->handle($case['request'], $session);
             $sdk = $this->createSdkHandler($registryForSdk)
                 ->handle($case['request'], $session);
+
+            if (isset($case['observedCode'])) {
+                self::assertInstanceOf(Error::class, $sdk);
+                self::assertInstanceOf(Error::class, $observed);
+                self::assertSame($case['observedCode'], $observed->code);
+                self::assertSame($sdk->message, $observed->message);
+                self::assertSame($sdk->getId(), $observed->getId());
+
+                continue;
+            }
 
             self::assertSame($this->encodeMessage($sdk), $this->encodeMessage($observed));
         }

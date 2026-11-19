@@ -12,6 +12,8 @@ namespace Matomo\Dependencies\McpServer\Mcp\Client\Transport;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\ConnectionException;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\RequestCancelledException;
+use Matomo\Dependencies\McpServer\Mcp\Exception\TimeoutException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Error;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Psr\Log\LoggerInterface;
@@ -25,6 +27,7 @@ use Psr\Log\LoggerInterface;
  * - Managing Fibers waiting for responses
  *
  * @phpstan-import-type McpFiber from TransportInterface
+ * @phpstan-import-type FiberSuspend from TransportInterface
  *
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
  */
@@ -39,14 +42,33 @@ class StdioTransport extends BaseTransport
     /** @var resource|null */
     private $stderr;
     private string $inputBuffer = '';
+    private string $stderrBuffer = '';
+    /**
+     * Why the server's output ended, kept because every later tick sees the end of output
+     * again and would wait out the exit grace each time, and because before PHP 8.3
+     * proc_get_status() reports the exit code only on its first call after the exit.
+     */
+    private ?string $exitReason = null;
     /**
      * Default cap on the bytes buffered while waiting for a complete line.
      */
     public const DEFAULT_MAX_BUFFER_SIZE = 4 * 1024 * 1024;
+    /**
+     * Bytes of the most recent stderr kept to explain why the server stopped.
+     */
+    public const MAX_STDERR_BUFFER_SIZE = 8 * 1024;
+    /**
+     * How long a server that closed its output is given to exit, so its exit code can be reported.
+     */
+    private const EXIT_GRACE_SECONDS = 0.1;
+    /**
+     * Bytes of stderr read in one go at most: a pipe's usual capacity, so what an exited server left behind is read whole.
+     */
+    private const MAX_STDERR_READ = 64 * 1024;
     /** @var McpFiber|null */
     private ?\Fiber $activeFiber = null;
-    /** @var (callable(float, ?float, ?string): void)|null */
-    private $activeProgressCallback;
+    /** @var FiberSuspend|null */
+    private ?array $activeSuspend = null;
     /**
      * @param string                     $command       The command to run
      * @param array<int, string>         $args          Command arguments
@@ -69,12 +91,13 @@ class StdioTransport extends BaseTransport
     public function connect() : void
     {
         $this->spawnProcess();
-        $this->activeFiber = new \Fiber(fn() => $this->handleInitialize());
-        $this->activeFiber->start();
-        while (!$this->activeFiber->isTerminated()) {
+        $fiber = new \Fiber(fn() => $this->handleInitialize());
+        $this->activeFiber = $fiber;
+        $fiber->start();
+        while (!$fiber->isTerminated()) {
             $this->tick();
         }
-        $result = $this->activeFiber->getReturn();
+        $result = $fiber->getReturn();
         $this->activeFiber = null;
         if ($result instanceof Error) {
             $this->close();
@@ -87,7 +110,10 @@ class StdioTransport extends BaseTransport
         if (null === $this->stdin || !\is_resource($this->stdin)) {
             throw new ConnectionException('Process stdin not available');
         }
-        fwrite($this->stdin, $data . "\n");
+        if (\false === @fwrite($this->stdin, $data . "\n")) {
+            $this->state?->setInitialized(\false);
+            throw new ConnectionException('Could not write to the server process; it is no longer running.');
+        }
         fflush($this->stdin);
         $this->logger->debug('Sent message to server', ['data' => $data]);
     }
@@ -98,14 +124,16 @@ class StdioTransport extends BaseTransport
     public function runRequest(\Fiber $fiber, ?callable $onProgress = null) : Response|Error
     {
         $this->activeFiber = $fiber;
-        $this->activeProgressCallback = $onProgress;
-        $fiber->start();
-        while (!$fiber->isTerminated()) {
-            $this->tick();
+        try {
+            $this->activeSuspend = $fiber->start();
+            while (!$fiber->isTerminated()) {
+                $this->tick();
+            }
+            return $fiber->getReturn();
+        } finally {
+            $this->activeFiber = null;
+            $this->activeSuspend = null;
         }
-        $this->activeFiber = null;
-        $this->activeProgressCallback = null;
-        return $fiber->getReturn();
     }
     public function close() : void
     {
@@ -131,6 +159,11 @@ class StdioTransport extends BaseTransport
     }
     private function spawnProcess() : void
     {
+        // A transport may be respawned on a retry, so clear anything the
+        // previous process left behind.
+        $this->inputBuffer = '';
+        $this->stderrBuffer = '';
+        $this->exitReason = null;
         $descriptors = [
             0 => ['pipe', 'r'],
             // stdin
@@ -142,10 +175,11 @@ class StdioTransport extends BaseTransport
         foreach ($this->args as $arg) {
             $cmd .= ' ' . escapeshellarg($arg);
         }
-        $this->process = proc_open($cmd, $descriptors, $pipes, $this->cwd, $this->env);
-        if (!\is_resource($this->process)) {
+        $process = proc_open($cmd, $descriptors, $pipes, $this->cwd, $this->env);
+        if (!\is_resource($process)) {
             throw new ConnectionException('Failed to start process: ' . $cmd);
         }
+        $this->process = $process;
         $this->stdin = $pipes[0];
         $this->stdout = $pipes[1];
         $this->stderr = $pipes[2];
@@ -157,28 +191,10 @@ class StdioTransport extends BaseTransport
     private function tick() : void
     {
         $this->processInput();
-        $this->processProgress();
         $this->processFiber();
         $this->processStderr();
         usleep(1000);
         // 1ms
-    }
-    /**
-     * Process pending progress updates from session and execute callback.
-     */
-    private function processProgress() : void
-    {
-        if (null === $this->activeProgressCallback || null === $this->state) {
-            return;
-        }
-        $updates = $this->state->consumeProgressUpdates();
-        foreach ($updates as $update) {
-            try {
-                ($this->activeProgressCallback)($update['progress'], $update['total'], $update['message']);
-            } catch (\Throwable $e) {
-                $this->logger->warning('Progress callback failed', ['exception' => $e]);
-            }
-        }
     }
     private function processInput() : void
     {
@@ -201,6 +217,25 @@ class StdioTransport extends BaseTransport
                 $this->handleMessage($trimmed);
             }
         }
+        // Only on an empty read, so an answer arriving with the end of output is taken first.
+        if (('' === $data || \false === $data) && \is_resource($this->stdout) && feof($this->stdout)) {
+            // The client has to connect again before its next call.
+            $this->state?->setInitialized(\false);
+            $this->failPending($this->exitReason(), [self::CONNECTION_LOST => \true]);
+        }
+    }
+    /**
+     * @param array<string, mixed>|null $data
+     */
+    private function failPending(string $reason, ?array $data = null) : void
+    {
+        if (null === $this->state) {
+            return;
+        }
+        foreach ($this->state->getPendingRequests() as $pending) {
+            $requestId = $pending['request_id'];
+            $this->state->storeResponse($requestId, (new Error($requestId, Error::INTERNAL_ERROR, $reason, $data))->jsonSerialize());
+        }
     }
     /**
      * Discard the input buffer and fail any in-flight request.
@@ -213,14 +248,7 @@ class StdioTransport extends BaseTransport
         $bufferedBytes = \strlen($this->inputBuffer);
         $this->inputBuffer = '';
         $this->logger->warning('Aborting stdio input: ' . $reason, ['buffered_bytes' => $bufferedBytes, 'max_buffer_size' => $this->maxBufferSize]);
-        if (null === $this->state) {
-            return;
-        }
-        foreach ($this->state->getPendingRequests() as $pending) {
-            $requestId = $pending['request_id'];
-            $error = Error::forInternalError('stdio input aborted: ' . $reason, $requestId);
-            $this->state->storeResponse($requestId, $error->jsonSerialize());
-        }
+        $this->failPending('stdio input aborted: ' . $reason);
     }
     private function processFiber() : void
     {
@@ -239,26 +267,84 @@ class StdioTransport extends BaseTransport
             $response = $this->state->consumeResponse($requestId);
             if (null !== $response) {
                 $this->logger->debug('Resuming fiber with response', ['request_id' => $requestId]);
-                $this->activeFiber->resume($response);
+                $this->activeSuspend = $this->activeFiber->resume($response);
                 return;
             }
+            if (($this->activeSuspend['request_id'] ?? null) === $requestId) {
+                if (($this->activeSuspend['cancellation'] ?? null)?->isCancellationRequested()) {
+                    $this->activeFiber->throw(new RequestCancelledException('The client cancelled the request.'));
+                    return;
+                }
+                $deadline = $this->activeSuspend['deadline'] ?? null;
+                if (null !== $deadline) {
+                    if (microtime(\true) >= $deadline) {
+                        $this->activeFiber->throw(new TimeoutException('The request deadline expired.'));
+                    }
+                    return;
+                }
+            }
             // Check timeout
-            if (time() - $timestamp >= $timeout) {
+            if (microtime(\true) - $timestamp >= $timeout) {
                 $this->logger->warning('Request timed out', ['request_id' => $requestId]);
                 $error = Error::forInternalError('Request timed out', $requestId);
-                $this->activeFiber->resume($error);
+                $this->activeSuspend = $this->activeFiber->resume($error);
                 return;
             }
         }
     }
+    /**
+     * Read what the server wrote to stderr, keeping its tail to explain a later failure.
+     */
     private function processStderr() : void
     {
         if (null === $this->stderr || !\is_resource($this->stderr)) {
             return;
         }
-        $stderr = fread($this->stderr, 8192);
-        if (\false !== $stderr && '' !== $stderr) {
-            $this->logger->debug('Server stderr', ['output' => trim($stderr)]);
+        // A server that never stops writing to stderr must not keep the loop
+        // from reading its answers and enforcing timeouts.
+        $read = 0;
+        while ($read < self::MAX_STDERR_READ && \false !== ($chunk = fread($this->stderr, 8192)) && '' !== $chunk) {
+            $read += \strlen($chunk);
+            $this->logger->debug('Server stderr', ['output' => trim($chunk)]);
+            $this->stderrBuffer = substr($this->stderrBuffer . $chunk, -self::MAX_STDERR_BUFFER_SIZE);
         }
+    }
+    /**
+     * Why the server's output ended: how the process exited, if it did, and the end of its stderr.
+     */
+    private function exitReason() : string
+    {
+        if (null !== $this->exitReason) {
+            return $this->exitReason;
+        }
+        $ending = $this->awaitExit();
+        $this->processStderr();
+        $reason = null !== $ending ? 'The server process ' . $ending : 'The server process closed its output';
+        $stderr = trim($this->stderrBuffer);
+        return $this->exitReason = '' !== $stderr ? $reason . ': ' . $stderr : $reason . '.';
+    }
+    /**
+     * Give a server that closed its output a moment to exit, which it usually does next.
+     *
+     * @return string|null how the process ended, or null if it is still running
+     */
+    private function awaitExit() : ?string
+    {
+        if (!\is_resource($this->process)) {
+            return null;
+        }
+        $deadline = microtime(\true) + self::EXIT_GRACE_SECONDS;
+        do {
+            $status = proc_get_status($this->process);
+            if (!$status['running']) {
+                // A process ended by a signal has no exit code; PHP reports -1 for it.
+                if ($status['signaled']) {
+                    return \sprintf('was killed by signal %d', $status['termsig']);
+                }
+                return $status['exitcode'] >= 0 ? \sprintf('exited with code %d', $status['exitcode']) : 'exited';
+            }
+            usleep(1000);
+        } while (microtime(\true) < $deadline);
+        return null;
     }
 }

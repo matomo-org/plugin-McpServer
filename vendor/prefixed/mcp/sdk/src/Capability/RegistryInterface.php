@@ -23,6 +23,7 @@ use Matomo\Dependencies\McpServer\Mcp\Schema\Prompt;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceDefinition;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ResourceTemplate;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
+use Matomo\Dependencies\McpServer\Mcp\Server\Subscription\PublishingEventDispatcher;
 /**
  * @phpstan-import-type Handler from ElementReference
  *
@@ -79,6 +80,11 @@ interface RegistryInterface
      * Removes a prompt by name. No-op if absent.
      */
     public function unregisterPrompt(string $name) : void;
+    /**
+     * Whether list changes reach a notification bus, e.g. through a {@see PublishingEventDispatcher}.
+     * A decorator forwards the answer of the registry it wraps.
+     */
+    public function publishesListChanges() : bool;
     public function hasTool(string $name) : bool;
     public function hasResource(string $uri) : bool;
     public function hasResourceTemplate(string $uriTemplate) : bool;
@@ -89,6 +95,8 @@ interface RegistryInterface
     public function hasTools() : bool;
     /**
      * Gets all registered tools.
+     *
+     * @return Page<Tool>
      */
     public function getTools(?int $limit = null, ?string $cursor = null) : Page;
     /**
@@ -103,6 +111,8 @@ interface RegistryInterface
     public function hasResources() : bool;
     /**
      * Gets all registered resources.
+     *
+     * @return Page<ResourceDefinition>
      */
     public function getResources(?int $limit = null, ?string $cursor = null) : Page;
     /**
@@ -117,6 +127,8 @@ interface RegistryInterface
     public function hasResourceTemplates() : bool;
     /**
      * Gets all registered resource templates.
+     *
+     * @return Page<ResourceTemplate>
      */
     public function getResourceTemplates(?int $limit = null, ?string $cursor = null) : Page;
     /**
@@ -131,6 +143,8 @@ interface RegistryInterface
     public function hasPrompts() : bool;
     /**
      * Gets all registered prompts.
+     *
+     * @return Page<Prompt>
      */
     public function getPrompts(?int $limit = null, ?string $cursor = null) : Page;
     /**

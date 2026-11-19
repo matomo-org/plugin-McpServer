@@ -12,18 +12,19 @@ namespace Matomo\Dependencies\McpServer\Mcp\Capability\Logger;
 
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\LoggingLevel;
 use Matomo\Dependencies\McpServer\Mcp\Server\ClientGateway;
-use Matomo\Dependencies\McpServer\Mcp\Server\Protocol;
-use Matomo\Dependencies\McpServer\Mcp\Server\Session\SessionInterface;
 use Psr\Log\AbstractLogger;
 /**
  * MCP-aware PSR-3 logger that sends log messages as MCP notifications.
  *
  * @author Adam Jamiu <jamiuadam120@gmail.com>
  * @author Tobias Nyholm <tobias.nyholm@gmail.com>
+ *
+ * @deprecated since protocol revision 2026-07-28 (SEP-2577), earliest removal 2027-07-28.
+ *  Log to stderr (stdio) or use OpenTelemetry instead.
  */
 final class ClientLogger extends AbstractLogger
 {
-    public function __construct(private ClientGateway $client, private SessionInterface $session)
+    public function __construct(private ClientGateway $client)
     {
     }
     /**
@@ -39,11 +40,6 @@ final class ClientLogger extends AbstractLogger
         if (null === $mcpLevel) {
             return;
             // Unknown level, skip MCP notification
-        }
-        $minimumLevel = $this->session->get(Protocol::SESSION_LOGGING_LEVEL, '');
-        $minimumLevel = LoggingLevel::tryFrom($minimumLevel) ?? LoggingLevel::Warning;
-        if ($this->getSeverityIndex($minimumLevel) > $this->getSeverityIndex($mcpLevel)) {
-            return;
         }
         $this->client->log($mcpLevel, $message);
     }
@@ -66,25 +62,6 @@ final class ClientLogger extends AbstractLogger
             'info' => LoggingLevel::Info,
             'debug' => LoggingLevel::Debug,
             default => null,
-        };
-    }
-    /**
-     * Gets the severity index for this log level.
-     * Higher values indicate more severe log levels.
-     *
-     * @return int Severity index (0-7, where 7 is most severe)
-     */
-    private function getSeverityIndex(LoggingLevel $level) : int
-    {
-        return match ($level) {
-            LoggingLevel::Debug => 0,
-            LoggingLevel::Info => 1,
-            LoggingLevel::Notice => 2,
-            LoggingLevel::Warning => 3,
-            LoggingLevel::Error => 4,
-            LoggingLevel::Critical => 5,
-            LoggingLevel::Alert => 6,
-            LoggingLevel::Emergency => 7,
         };
     }
 }

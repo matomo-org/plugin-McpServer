@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Session;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\SessionStoreException;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 /**
  * @author Kyrian Obikwelu <koshnawaza@gmail.com>
@@ -22,6 +23,8 @@ interface SessionStoreInterface
      * @param Uuid $id the session id
      *
      * @return bool true if the session exists, false otherwise
+     *
+     * @throws SessionStoreException if the store cannot be reached
      */
     public function exists(Uuid $id) : bool;
     /**

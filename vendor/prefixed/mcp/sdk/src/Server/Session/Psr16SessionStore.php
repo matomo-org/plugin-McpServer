@@ -10,6 +10,7 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp\Server\Session;
 
+use Matomo\Dependencies\McpServer\Mcp\Exception\SessionStoreException;
 use Psr\SimpleCache\CacheInterface;
 use Matomo\Dependencies\McpServer\Symfony\Component\Uid\Uuid;
 /**
@@ -29,8 +30,8 @@ class Psr16SessionStore implements SessionStoreInterface
     {
         try {
             return $this->cache->has($this->getKey($id));
-        } catch (\Throwable) {
-            return \false;
+        } catch (\Throwable $e) {
+            throw new SessionStoreException(\sprintf('Session store is unavailable: %s', $e->getMessage()), previous: $e);
         }
     }
     public function read(Uuid $id) : string|false

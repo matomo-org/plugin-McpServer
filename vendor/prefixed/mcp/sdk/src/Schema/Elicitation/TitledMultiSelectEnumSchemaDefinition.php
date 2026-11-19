@@ -21,29 +21,36 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string                                    $title       Human-readable title for the field
-     * @param list<array{const: string, title: string}> $anyOf       Array of const/title pairs
-     * @param string|null                               $description Optional description/help text
-     * @param string[]|null                             $default     Optional default selected values (must be subset of anyOf consts)
-     * @param int|null                                  $minItems    Optional minimum number of selections
-     * @param int|null                                  $maxItems    Optional maximum number of selections
+     * @var list<array{const: string, title: string}>
      */
-    public function __construct(string $title, public readonly array $anyOf, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
+    public readonly array $anyOf;
+    /**
+     * @param ?string       $title       Optional human-readable title for the field
+     * @param array<mixed>  $anyOf       Array of const/title pairs
+     * @param string|null   $description Optional description/help text
+     * @param string[]|null $default     Optional default selected values (must be subset of anyOf consts)
+     * @param int|null      $minItems    Optional minimum number of selections
+     * @param int|null      $maxItems    Optional maximum number of selections
+     */
+    public function __construct(?string $title, array $anyOf, ?string $description = null, public readonly ?array $default = null, public readonly ?int $minItems = null, public readonly ?int $maxItems = null)
     {
         parent::__construct($title, $description);
         if ([] === $anyOf) {
             throw new InvalidArgumentException('anyOf array must not be empty.');
         }
         $consts = [];
+        $pairs = [];
         foreach ($anyOf as $item) {
-            if (!isset($item['const']) || !\is_string($item['const'])) {
+            if (!\is_array($item) || !isset($item['const']) || !\is_string($item['const'])) {
                 throw new InvalidArgumentException('Each anyOf item must have a string "const" property.');
             }
             if (!isset($item['title']) || !\is_string($item['title'])) {
                 throw new InvalidArgumentException('Each anyOf item must have a string "title" property.');
             }
             $consts[] = $item['const'];
+            $pairs[] = ['const' => $item['const'], 'title' => $item['title']];
         }
+        $this->anyOf = $pairs;
         if (null !== $minItems && $minItems < 0) {
             throw new InvalidArgumentException('minItems must be non-negative.');
         }
@@ -63,13 +70,13 @@ final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefiniti
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     items: array{anyOf: list<array{const: string, title: string}>},
      *     description?: string,
      *     default?: string[],
      *     minItems?: int,
      *     maxItems?: int,
-     * } $data
+     * }|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
@@ -77,7 +84,14 @@ final class TitledMultiSelectEnumSchemaDefinition extends AbstractSchemaDefiniti
         if (!isset($data['items']['anyOf']) || !\is_array($data['items']['anyOf'])) {
             throw new InvalidArgumentException('Missing or invalid "items.anyOf" for titled multi-select enum schema definition.');
         }
-        return new self(title: $data['title'], anyOf: $data['items']['anyOf'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
+        return new self(title: $data['title'] ?? null, anyOf: $data['items']['anyOf'], description: $data['description'] ?? null, default: $data['default'] ?? null, minItems: isset($data['minItems']) ? (int) $data['minItems'] : null, maxItems: isset($data['maxItems']) ? (int) $data['maxItems'] : null);
+    }
+    /**
+     * @return string[]|null
+     */
+    public function getDefault() : ?array
+    {
+        return $this->default;
     }
     /**
      * @return array<string, mixed>

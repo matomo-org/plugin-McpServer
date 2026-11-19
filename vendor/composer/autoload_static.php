@@ -4,27 +4,27 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit998791169c0f24b7a8ca69c99164722b
+class ComposerStaticInit70ad07c6b121eda8fe53540ec58595ed
 {
     public static $files = array(
 );
 
 
     public static $prefixLengthsPsr4 = array (
-        'p' => 
+        'p' =>
         array (
             'phpDocumentor\\Reflection\\' => 25,
         ),
-        'W' => 
+        'W' =>
         array (
             'Webmozart\\Assert\\' => 17,
         ),
-        'S' => 
+        'S' =>
         array (
             'Symfony\\Polyfill\\Uuid\\' => 22,
             'Symfony\\Component\\Uid\\' => 22,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\Http\\Server\\' => 16,
             'Psr\\Http\\Message\\' => 17,
@@ -32,101 +32,101 @@ class ComposerStaticInit998791169c0f24b7a8ca69c99164722b
             'Psr\\Clock\\' => 10,
             'PHPStan\\PhpDocParser\\' => 21,
         ),
-        'O' => 
+        'O' =>
         array (
             'Opis\\Uri\\' => 9,
             'Opis\\String\\' => 12,
             'Opis\\JsonSchema\\' => 16,
         ),
-        'N' => 
+        'N' =>
         array (
             'Nyholm\\Psr7\\' => 12,
             'Nyholm\\Psr7Server\\' => 18,
         ),
-        'M' => 
+        'M' =>
         array (
             'Mcp\\' => 4,
         ),
-        'H' => 
+        'H' =>
         array (
             'Http\\Discovery\\' => 15,
         ),
-        'D' => 
+        'D' =>
         array (
             'Doctrine\\Deprecations\\' => 22,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'phpDocumentor\\Reflection\\' => 
+        'phpDocumentor\\Reflection\\' =>
         array (
-            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            0 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
         ),
-        'Webmozart\\Assert\\' => 
+        'Webmozart\\Assert\\' =>
         array (
             0 => __DIR__ . '/..' . '/webmozart/assert/src',
         ),
-        'Symfony\\Polyfill\\Uuid\\' => 
+        'Symfony\\Polyfill\\Uuid\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-uuid',
         ),
-        'Symfony\\Component\\Uid\\' => 
+        'Symfony\\Component\\Uid\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/uid',
         ),
-        'Psr\\Http\\Server\\' => 
+        'Psr\\Http\\Server\\' =>
         array (
-            0 => __DIR__ . '/..' . '/psr/http-server-handler/src',
-            1 => __DIR__ . '/..' . '/psr/http-server-middleware/src',
+            0 => __DIR__ . '/..' . '/psr/http-server-middleware/src',
+            1 => __DIR__ . '/..' . '/psr/http-server-handler/src',
         ),
-        'Psr\\Http\\Message\\' => 
+        'Psr\\Http\\Message\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
             1 => __DIR__ . '/..' . '/psr/http-message/src',
         ),
-        'Psr\\Http\\Client\\' => 
+        'Psr\\Http\\Client\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-client/src',
         ),
-        'Psr\\Clock\\' => 
+        'Psr\\Clock\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/clock/src',
         ),
-        'PHPStan\\PhpDocParser\\' => 
+        'PHPStan\\PhpDocParser\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpstan/phpdoc-parser/src',
         ),
-        'Opis\\Uri\\' => 
+        'Opis\\Uri\\' =>
         array (
             0 => __DIR__ . '/..' . '/opis/uri/src',
         ),
-        'Opis\\String\\' => 
+        'Opis\\String\\' =>
         array (
             0 => __DIR__ . '/..' . '/opis/string/src',
         ),
-        'Opis\\JsonSchema\\' => 
+        'Opis\\JsonSchema\\' =>
         array (
             0 => __DIR__ . '/..' . '/opis/json-schema/src',
         ),
-        'Nyholm\\Psr7\\' => 
+        'Nyholm\\Psr7\\' =>
         array (
             0 => __DIR__ . '/..' . '/nyholm/psr7/src',
         ),
-        'Nyholm\\Psr7Server\\' => 
+        'Nyholm\\Psr7Server\\' =>
         array (
             0 => __DIR__ . '/..' . '/nyholm/psr7-server/src',
         ),
-        'Mcp\\' => 
+        'Mcp\\' =>
         array (
             0 => __DIR__ . '/..' . '/mcp/sdk/src',
         ),
-        'Http\\Discovery\\' => 
+        'Http\\Discovery\\' =>
         array (
             0 => __DIR__ . '/..' . '/php-http/discovery/src',
         ),
-        'Doctrine\\Deprecations\\' => 
+        'Doctrine\\Deprecations\\' =>
         array (
             0 => __DIR__ . '/..' . '/doctrine/deprecations/src',
         ),
@@ -139,9 +139,9 @@ class ComposerStaticInit998791169c0f24b7a8ca69c99164722b
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit998791169c0f24b7a8ca69c99164722b::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit998791169c0f24b7a8ca69c99164722b::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit998791169c0f24b7a8ca69c99164722b::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit70ad07c6b121eda8fe53540ec58595ed::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit70ad07c6b121eda8fe53540ec58595ed::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit70ad07c6b121eda8fe53540ec58595ed::$classMap;
 
         }, null, ClassLoader::class);
     }

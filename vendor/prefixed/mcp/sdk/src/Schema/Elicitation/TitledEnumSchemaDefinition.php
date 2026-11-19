@@ -22,38 +22,45 @@ use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 final class TitledEnumSchemaDefinition extends AbstractSchemaDefinition
 {
     /**
-     * @param string                                    $title       Human-readable title for the field
-     * @param list<array{const: string, title: string}> $oneOf       Array of const/title pairs
-     * @param string|null                               $description Optional description/help text
-     * @param string|null                               $default     Optional default value (must match a const)
+     * @var list<array{const: string, title: string}>
      */
-    public function __construct(string $title, public readonly array $oneOf, ?string $description = null, public readonly ?string $default = null)
+    public readonly array $oneOf;
+    /**
+     * @param ?string      $title       Optional human-readable title for the field
+     * @param array<mixed> $oneOf       Array of const/title pairs
+     * @param string|null  $description Optional description/help text
+     * @param string|null  $default     Optional default value (must match a const)
+     */
+    public function __construct(?string $title, array $oneOf, ?string $description = null, public readonly ?string $default = null)
     {
         parent::__construct($title, $description);
         if ([] === $oneOf) {
             throw new InvalidArgumentException('oneOf array must not be empty.');
         }
         $consts = [];
+        $pairs = [];
         foreach ($oneOf as $item) {
-            if (!isset($item['const']) || !\is_string($item['const'])) {
+            if (!\is_array($item) || !isset($item['const']) || !\is_string($item['const'])) {
                 throw new InvalidArgumentException('Each oneOf item must have a string "const" property.');
             }
             if (!isset($item['title']) || !\is_string($item['title'])) {
                 throw new InvalidArgumentException('Each oneOf item must have a string "title" property.');
             }
             $consts[] = $item['const'];
+            $pairs[] = ['const' => $item['const'], 'title' => $item['title']];
         }
+        $this->oneOf = $pairs;
         if (null !== $default && !\in_array($default, $consts, \true)) {
             throw new InvalidArgumentException(\sprintf('Default value "%s" is not in the oneOf const values.', $default));
         }
     }
     /**
      * @param array{
-     *     title: string,
+     *     title?: string,
      *     oneOf: list<array{const: string, title: string}>,
      *     description?: string,
      *     default?: string,
-     * } $data
+     * }|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
@@ -61,7 +68,11 @@ final class TitledEnumSchemaDefinition extends AbstractSchemaDefinition
         if (!isset($data['oneOf']) || !\is_array($data['oneOf'])) {
             throw new InvalidArgumentException('Missing or invalid "oneOf" for titled enum schema definition.');
         }
-        return new self(title: $data['title'], oneOf: $data['oneOf'], description: $data['description'] ?? null, default: $data['default'] ?? null);
+        return new self(title: $data['title'] ?? null, oneOf: $data['oneOf'], description: $data['description'] ?? null, default: $data['default'] ?? null);
+    }
+    public function getDefault() : ?string
+    {
+        return $this->default;
     }
     /**
      * @return array<string, mixed>

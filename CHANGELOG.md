@@ -1,5 +1,12 @@
 ## Changelog
 
+### 6.0.2
+
+- Updated `mcp/sdk` to 0.9.0.
+- Fixed responses getting lost or delivered on the wrong request when a client sends several `tools/call` requests in parallel on one MCP session. Each request now receives the response to its own request.
+- Added support for MCP protocol version `2026-07-28`. A client opening the connection with `server/discover`, as the Claude connector now does, no longer gets an HTTP `400`. Clients on the protocol versions supported before keep working unchanged.
+- Changed the error for a request with an unsupported `Mcp-Protocol-Version` header from JSON-RPC `-32602` to `-32022` (unsupported protocol version). The HTTP status stays `400`.
+
 ### 6.0.1
 
 - Added OAuth 2.0 Protected Resource Metadata (RFC 9728) for the MCP endpoint, served at `index.php?module=McpServer&action=protectedResourceMetadata`. While the Matomo `OAuth2` plugin is activated, the endpoint's `401` challenge now advertises it as `WWW-Authenticate: Bearer realm="mcp", resource_metadata="<metadata URL>"`, so MCP clients can discover Matomo's OAuth2 authorization server automatically without web server rewrite rules. Without the `OAuth2` plugin the challenge is unchanged and the metadata URL answers `404`.

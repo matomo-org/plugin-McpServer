@@ -13,7 +13,6 @@ namespace Matomo\Dependencies\McpServer\Mcp\Schema\Result;
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Schema\Implementation;
-use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\MessageInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\Response;
 use Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc\ResultInterface;
 use Matomo\Dependencies\McpServer\Mcp\Schema\ServerCapabilities;
@@ -42,7 +41,7 @@ class InitializeResult implements ResultInterface
      *     serverInfo: array<string, mixed>,
      *     instructions?: string,
      *     _meta?: array<string, mixed>,
-     * } $data
+     * }|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
@@ -54,6 +53,12 @@ class InitializeResult implements ResultInterface
         }
         if (!isset($data['serverInfo']) || !\is_array($data['serverInfo'])) {
             throw new InvalidArgumentException('Missing or invalid "serverInfo".');
+        }
+        if (isset($data['instructions']) && !\is_string($data['instructions'])) {
+            throw new InvalidArgumentException('Invalid "instructions" in InitializeResult data.');
+        }
+        if (isset($data['_meta']) && !\is_array($data['_meta'])) {
+            throw new InvalidArgumentException('Invalid "_meta" in InitializeResult data.');
         }
         return new self(ServerCapabilities::fromArray($data['capabilities']), Implementation::fromArray($data['serverInfo']), $data['instructions'] ?? null, $data['_meta'] ?? null, ProtocolVersion::tryFrom($data['protocolVersion']));
     }
@@ -68,7 +73,7 @@ class InitializeResult implements ResultInterface
      */
     public function jsonSerialize() : array
     {
-        $protocolVersion = $this->protocolVersion ?? MessageInterface::PROTOCOL_VERSION;
+        $protocolVersion = $this->protocolVersion ?? ProtocolVersion::latestHandshake();
         $data = ['protocolVersion' => $protocolVersion->value, 'capabilities' => $this->capabilities, 'serverInfo' => $this->serverInfo];
         if (null !== $this->instructions) {
             $data['instructions'] = $this->instructions;

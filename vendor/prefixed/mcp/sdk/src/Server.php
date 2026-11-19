@@ -10,8 +10,11 @@
  */
 namespace Matomo\Dependencies\McpServer\Mcp;
 
+use Matomo\Dependencies\McpServer\Mcp\Schema\Enum\ProtocolVersion;
 use Matomo\Dependencies\McpServer\Mcp\Server\Builder;
 use Matomo\Dependencies\McpServer\Mcp\Server\Protocol;
+use Matomo\Dependencies\McpServer\Mcp\Server\Stateless\StatelessProtocol;
+use Matomo\Dependencies\McpServer\Mcp\Server\Transport\StatelessAwareTransportInterface;
 use Matomo\Dependencies\McpServer\Mcp\Server\Transport\TransportInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -21,7 +24,12 @@ use Psr\Log\NullLogger;
  */
 final class Server
 {
-    public function __construct(private readonly Protocol $protocol, private readonly LoggerInterface $logger = new NullLogger())
+    /**
+     * @param StatelessProtocol|null               $statelessProtocol the modern-era (SEP-2575) dispatcher, absent on a
+     *                                                                server that serves the handshake era alone
+     * @param non-empty-list<ProtocolVersion>|null $handshakeVersions revisions `initialize` negotiates, all of them by default
+     */
+    public function __construct(private readonly Protocol $protocol, private readonly LoggerInterface $logger = new NullLogger(), private readonly ?StatelessProtocol $statelessProtocol = null, private readonly ?array $handshakeVersions = null)
     {
     }
     public static function builder() : Builder
@@ -39,6 +47,15 @@ final class Server
     {
         $transport->initialize();
         $this->protocol->connect($transport);
+        // The eras share the transport, not the dispatcher: a transport that
+        // can tell them apart takes both and picks per request. One that
+        // cannot carries the handshake era alone.
+        if ($transport instanceof StatelessAwareTransportInterface) {
+            $transport->setHandshakeVersions($this->handshakeVersions ?? ProtocolVersion::handshakeVersions());
+            if (null !== $this->statelessProtocol) {
+                $transport->connectStateless($this->statelessProtocol);
+            }
+        }
         $this->logger->info('Running server...');
         try {
             return $transport->listen();

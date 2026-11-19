@@ -30,6 +30,9 @@ final class ElicitationSchema implements \JsonSerializable
             throw new InvalidArgumentException('properties array must not be empty.');
         }
         foreach ($required as $name) {
+            if (!\is_string($name)) {
+                throw new InvalidArgumentException('Each entry in "required" must be a string.');
+            }
             if (!\array_key_exists($name, $properties)) {
                 throw new InvalidArgumentException(\sprintf('Required property "%s" is not defined in properties.', $name));
             }
@@ -42,7 +45,7 @@ final class ElicitationSchema implements \JsonSerializable
      *     type?: string,
      *     properties: array<string, array{type: string, title: string, ...}>,
      *     required?: string[],
-     * } $data
+     * }|array<mixed> $data
      */
     public static function fromArray(array $data) : self
     {
@@ -58,6 +61,9 @@ final class ElicitationSchema implements \JsonSerializable
                 throw new InvalidArgumentException(\sprintf('Property "%s" must be an array.', $name));
             }
             $properties[$name] = self::createSchemaDefinition($propertyData);
+        }
+        if (isset($data['required']) && !\is_array($data['required'])) {
+            throw new InvalidArgumentException('Invalid "required" for elicitation schema; expected an array.');
         }
         return new self(properties: $properties, required: $data['required'] ?? []);
     }
@@ -104,6 +110,21 @@ final class ElicitationSchema implements \JsonSerializable
             return MultiSelectEnumSchemaDefinition::fromArray($data);
         }
         throw new InvalidArgumentException('Array type must have "items" with either "enum" or "anyOf".');
+    }
+    /**
+     * The declared default of each field that has one, keyed by field name.
+     *
+     * @return array<string, mixed>
+     */
+    public function getDefaults() : array
+    {
+        $defaults = [];
+        foreach ($this->properties as $name => $property) {
+            if (null !== ($default = $property->getDefault())) {
+                $defaults[$name] = $default;
+            }
+        }
+        return $defaults;
     }
     /**
      * @return array{

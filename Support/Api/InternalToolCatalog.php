@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Piwik\Plugins\McpServer\Support\Api;
 
-use Matomo\Dependencies\McpServer\Mcp\Schema\Tool;
 use Piwik\Plugins\McpServer\Server\InternalAccess;
 
 /**
@@ -50,10 +49,6 @@ final class InternalToolCatalog
     {
         $entries = [];
         foreach ($access->registry->getTools()->references as $reference) {
-            if (!$reference instanceof Tool) {
-                continue;
-            }
-
             $annotations = $reference->annotations;
             $entries[] = [
                 'name' => $reference->name,

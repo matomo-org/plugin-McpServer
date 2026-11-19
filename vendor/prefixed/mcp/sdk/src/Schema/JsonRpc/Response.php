@@ -12,7 +12,11 @@ namespace Matomo\Dependencies\McpServer\Mcp\Schema\JsonRpc;
 
 use Matomo\Dependencies\McpServer\Mcp\Exception\InvalidArgumentException;
 /**
- * @template TResult
+ * Covariant because a Response only hands its result out, never consumes it,
+ * so a handler can declare the union of results it may answer with while each
+ * return path constructs one concrete type.
+ *
+ * @template-covariant TResult
  *
  * @phpstan-type ResponseData array{
  *     jsonrpc: string,
@@ -40,7 +44,7 @@ class Response implements MessageInterface
         return $this->id;
     }
     /**
-     * @param ResponseData $data
+     * @param ResponseData|array<mixed> $data
      *
      * @return self<array<string, mixed>>
      */
@@ -61,7 +65,9 @@ class Response implements MessageInterface
         if (!\is_array($data['result'])) {
             throw new InvalidArgumentException('Response "result" must be an array.');
         }
-        return new self($data['id'], $data['result']);
+        /** @var array<string, mixed> $result A result decoded from a JSON object is string-keyed. */
+        $result = $data['result'];
+        return new self($data['id'], $result);
     }
     /**
      * @return array{
