@@ -1,1 +1,5 @@
-{}
+{
+    "McpServer": {
+        "ConnectTroubleshootingTitle": "故障排除"
+    }
+}
