@@ -1,5 +1,37 @@
 {
     "McpServer": {
-        "ConnectTroubleshootingTitle": "Diagnostikim"
+        "ConnectEndpointDescription": "Use this endpoint Për MCP përmes HTTP-je, përdor këtë pikëmbarim:",
+        "ConnectEndpointTitle": "Pikëmbarim",
+        "ConnectInClientStepAuth": "Formësoni mirëfilltësim.",
+        "ConnectInClientStepChooseAuth": "Zgjidhni një metodë mirëfilltësimi.",
+        "ConnectInClientStepEndpoint": "Caktoni URL shërbyesi MCP.",
+        "ConnectInClientStepInitialize": "Ruaje formësimin dhe lidhu.",
+        "ConnectInClientTitle": "Lidhni Klientin Tuaj MCP",
+        "ConnectIntro": "Përdoreni këtë udhërrëfyes të lidhni çfarëdo klienti MCP te Shërbyesi juaj MCP Matomo.",
+        "ConnectMcpDisabledNoPermission": "Shërbyesi MCP aktualisht është i çaktivizuar.",
+        "ConnectNeedEndpoint": "Pikëmbarimi (URL-ja) e shërbyesit MCP",
+        "ConnectOAuth2Title": "E rekomanduar: Lidhuni Duke Përdorur OAuth2",
+        "ConnectPageTitle": "Si të Lidheni me Shërbyesin MCP",
+        "ConnectTokenAlternativeTitle": "Alternativë: Lidhuni Duke Përdorur token_auth",
+        "ConnectTokenTitle": "Merrni një Token Matomo",
+        "ConnectTroubleshooting401": "Mungon token mirëfilltësimi, ose është i pavlefshëm.",
+        "ConnectTroubleshooting401OAuth2": "Mungojnë kredenciale mirëfilltësimi, ose janë të pavlefshme.",
+        "ConnectTroubleshootingTitle": "Diagnostikim",
+        "ConnectWhatYouNeedTitle": "Ç’do T’ju Duhet",
+        "EnableMcpHelpConnectGuide": "%1$sSi të lidhet një klient MCP%2$s",
+        "EnableMcpHelpUrl": "URL-ja juaj MCP: %1$s%2$s%3$s",
+        "EnableMcpTitle": "Aktivizoni Shërbyes MCP (Model Context Protocol)",
+        "MaximumMcpAccessLevelAdmin": "Hyrje përgjegjësi",
+        "MaximumMcpAccessLevelView": "Hyrje për parje",
+        "MaximumMcpAccessLevelWrite": "Hyrje për shkrim",
+        "PlatformMenu": "Shërbyes MCP",
+        "RawApiAccessHelpAlwaysRestrictedHeading": "API-t përherë të kufizuara",
+        "RawApiAccessHelpBeforeEnablingHeading": "Para aktivizimit",
+        "RawApiAccessHelpDataExposureHeading": "Ekspozim të dhënash",
+        "RawApiAccessHelpFullAccessHeading": "Hyrje e plotë API-sh",
+        "RawApiAccessHelpNoAccessHeading": "Pa hyrje API-sh (parazgjedhje)",
+        "RawApiAccessScopeFull": "Hyrje e plotë API-sh",
+        "RawApiAccessScopeNone": "Pa hyrje API-sh",
+        "RawApiAccessScopePartial": "Hyrje e pjeshme API-sh"
     }
 }
